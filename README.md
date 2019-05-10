@@ -20,6 +20,8 @@ folder would be inputs that produce that same output.
   others. This is a implementation for Nix.
 * [format-nix](https://github.com/justinwoo/format-nix/) - A nix formatter
   using tree-sitter-nix.
+* [nix-format](https://github.com/serokell/nix-format/tree/develop) - A nix
+  formatter written in Haskell.
 
 ## Discussions
 
