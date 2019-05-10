@@ -1,15 +1,10 @@
 # Some basic formatting
 {
-  empty_list = [ ];
+  empty_list = [];
 
   inline_list = [ 1 2 3 ];
 
-  multiline_list = [
-    1
-    2
-    3
-    4
-  ];
+  multiline_list = [ 1 2 3 4 ];
 
   inline_attrset = { x = "y"; };
 
@@ -26,7 +21,7 @@
   abspath = /hello;
 
   # URLs get converted to strings
-  url = "https://foobar.com";
+  url = https://foobar.com;
 
   atoms = [ true false null ];
 
@@ -45,7 +40,6 @@
   # long expression
   attrs = {
     attr1 = short_expr;
-    attr2 =
-      if true then big_expr else big_expr;
+    attr2 = if true then big_expr else big_expr;
   };
 }
