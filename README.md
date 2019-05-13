@@ -20,8 +20,11 @@ folder would be inputs that produce that same output.
   others. This is a implementation for Nix.
 * [format-nix](https://github.com/justinwoo/format-nix/) - A nix formatter
   using tree-sitter-nix.
-* [nix-format](https://github.com/serokell/nix-format/tree/develop) - A nix
-  formatter written in Haskell.
+* [nixfmt](https://github.com/serokell/nixfmt) - A nix formatter written in
+  Haskell.
+* [nix-fmt](https://github.com/jmackie/nix-fmt)
+* [nix-format](https://github.com/taktoa/nix-format) - Emacs-based Nix formatter
+* [nix-beautify](https://github.com/nixcloud/nix-beautify)
 
 ## Discussions
 
