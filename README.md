@@ -25,6 +25,7 @@ folder would be inputs that produce that same output.
 * [nix-fmt](https://github.com/jmackie/nix-fmt)
 * [nix-format](https://github.com/taktoa/nix-format) - Emacs-based Nix formatter
 * [nix-beautify](https://github.com/nixcloud/nix-beautify)
+* [nix-linter](https://github.com/Synthetica9/nix-linter)
 
 ## Discussions
 
