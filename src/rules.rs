@@ -28,6 +28,11 @@ mod tests {
             let expected = test_case.after;
             let actual = reformat_string(&test_case.before);
             assert_eq!(expected, actual);
+            assert_eq!(
+                actual,
+                reformat_string(&actual),
+                "formatting is not idempotent",
+            );
         }
     }
 
