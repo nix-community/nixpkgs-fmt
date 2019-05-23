@@ -1,0 +1,9 @@
+[package]
+name = "nix-fmt"
+version = "0.1.0"
+authors = []
+edition = "2018"
+
+[dependencies]
+rowan = "0.5"
+rnix = { git = "https://gitlab.com/jD91mZM2/rnix.git" }
