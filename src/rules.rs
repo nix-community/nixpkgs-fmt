@@ -6,24 +6,16 @@ use crate::dsl::{self, inside};
 #[rustfmt::skip]
 pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {
     let mut rules = Vec::new();
-    rules.push(
-        inside(NODE_SET_ENTRY)
-            .around(T![=])  // { a=92; }
-            .single_space() // -----------
-            .into(),        // { a = 92; }
-    );
-    rules.push(
-        inside(NODE_SET)
-            .after(T!['{']) // {a = 92; }
-            .single_space() // -----------
-            .into()         // { a = 92; }
-    );
-    rules.push(
-        inside(NODE_SET)
-            .before(T!['}']) // { a = 92;}
-            .single_space()  // -----------
-            .into()          // { a = 92; }
-    );
+    let mut r = |b: dsl::SpacingRuleBuilder| rules.push(b.into());
+
+    // { a=92; } => { a = 92; }
+    r(inside(NODE_SET_ENTRY).around(T![=]).single_space());
+
+    // {a = 92; } => { a = 92; }
+    r(inside(NODE_SET).after(T!['{']).single_space());
+
+    // { a = 92;} => { a = 92; }
+    r(inside(NODE_SET).before(T!['}']).single_space());
     rules
 }
 
@@ -56,31 +48,21 @@ mod tests {
     }
 
     impl TestCase {
-        fn try_from(group: &[&str]) -> Option<TestCase> {
-            let divisor = group.iter().position(|line| line.contains("----"))?;
-            let before = group[..divisor].join("\n");
-            let after = group[divisor + 1..].join("\n");
+        fn try_from(line: &str) -> Option<TestCase> {
+            let divisor = line.find("=>")?;
+            let before = line[..divisor].trim().to_string();
+            let after = line[divisor + 3..].trim().to_string();
             Some(TestCase { before, after })
         }
 
         fn collect() -> Vec<TestCase> {
             let this_file = include_str!("./rules.rs");
-            let lines = this_file
+            let res = this_file
                 .lines()
-                .map(|line| line.find("// ").map(|idx| &line[idx + 3..]));
+                .filter_map(|line| line.find("// ").map(|idx| &line[idx + 3..]))
+                .filter_map(TestCase::try_from)
+                .collect::<Vec<_>>();
 
-            let mut res = vec![];
-            let mut group = vec![];
-            for line in lines {
-                match line {
-                    Some(it) => group.push(it),
-                    None => {
-                        res.extend(TestCase::try_from(&group));
-                        group.clear()
-                    }
-                }
-            }
-            res.extend(TestCase::try_from(&group));
             assert!(res.len() > 0);
             res
         }
