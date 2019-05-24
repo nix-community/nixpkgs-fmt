@@ -12,6 +12,18 @@ pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {
             .single_space() // -----------
             .into(),        // { a = 92; }
     );
+    rules.push(
+        inside(NODE_SET)
+            .after(T!['{']) // {a = 92; }
+            .single_space() // -----------
+            .into()         // { a = 92; }
+    );
+    rules.push(
+        inside(NODE_SET)
+            .before(T!['}']) // { a = 92;}
+            .single_space()  // -----------
+            .into()          // { a = 92; }
+    );
     rules
 }
 

@@ -1,12 +1,12 @@
 //! This module applies the rules from `super::dsl` to a `SyntaxNode`, to
 //! get a `FmtDiff`.
 use rnix::{
-    SmolStr, SyntaxElement, SyntaxNode, TextRange, TextUnit, WalkEvent,
-    tokenizer::tokens::TOKEN_WHITESPACE
+    tokenizer::tokens::TOKEN_WHITESPACE, SmolStr, SyntaxElement, SyntaxNode, TextRange, TextUnit,
+    WalkEvent,
 };
 
 use crate::{
-    dsl::{Space, SpacingRule},
+    dsl::{SpacingRule, SpaceLoc},
     AtomEdit, FmtDiff,
 };
 
@@ -25,17 +25,17 @@ pub(crate) fn format(rules: &[SpacingRule], root: &SyntaxNode) -> FmtDiff {
 
 impl SpacingRule {
     fn apply(&self, element: SyntaxElement, diff: &mut FmtDiff) {
-        if !self.matches(element) {
+        if !self.pattern.matches(element) {
             return;
         }
         match self.space {
-            Some(Space::Single) => ensure_single_space_around(element, diff),
+            Some(space) => match space.loc {
+                SpaceLoc::Before => ensure_single_space_before(element, diff),
+                SpaceLoc::After => ensure_single_space_after(element, diff),
+                SpaceLoc::Around => ensure_single_space_around(element, diff),
+            },
             None => (),
         }
-    }
-
-    fn matches(&self, element: SyntaxElement) -> bool {
-        element.kind() == self.child && element.parent().map(|it| it.kind()) == Some(self.parent)
     }
 }
 
