@@ -1,7 +1,9 @@
 //! This module applies the rules from `super::dsl` to a `SyntaxNode`, to
 //! get a `FmtDiff`.
-use rnix::tokenizer::tokens::TOKEN_WHITESPACE;
-use rowan::{SmolStr, SyntaxElement, SyntaxNode, TextRange, TextUnit, WalkEvent};
+use rnix::{
+    SmolStr, SyntaxElement, SyntaxNode, TextRange, TextUnit, WalkEvent,
+    tokenizer::tokens::TOKEN_WHITESPACE
+};
 
 use crate::{
     dsl::{Space, SpacingRule},

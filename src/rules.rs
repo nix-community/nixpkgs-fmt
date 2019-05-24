@@ -1,6 +1,7 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
-use crate::dsl::{self, inside};
 use rnix::parser::nodes::*;
+
+use crate::dsl::{self, inside};
 
 #[rustfmt::skip]
 pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {

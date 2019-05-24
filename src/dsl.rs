@@ -1,5 +1,5 @@
 //! This module contains a definition of pattern-based formatting DSL.
-use rowan::SyntaxKind;
+use rnix::SyntaxKind;
 
 pub(crate) struct SpacingRule {
     pub(crate) parent: SyntaxKind,

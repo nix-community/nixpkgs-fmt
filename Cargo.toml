@@ -6,5 +6,4 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33.0"
-rowan = "0.5"
 rnix = { git = "https://gitlab.com/jD91mZM2/rnix.git" }

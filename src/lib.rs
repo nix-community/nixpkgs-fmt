@@ -3,7 +3,7 @@ mod dsl;
 mod engine;
 mod rules;
 
-use rowan::{SmolStr, SyntaxElement, SyntaxNode, SyntaxToken, TextRange, TreeArc, WalkEvent};
+use rnix::{SmolStr, SyntaxElement, SyntaxNode, SyntaxToken, TextRange, TreeArc, WalkEvent};
 
 /// The result of formatting.
 ///
