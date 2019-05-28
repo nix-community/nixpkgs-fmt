@@ -1,10 +1,12 @@
 use std::{
+    fmt::Write,
     fs,
     io::{stdin, Read},
     path::PathBuf,
 };
 
 use clap::{App, Arg};
+use rnix::types::TypedNode;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -17,8 +19,15 @@ fn main() {
 
 #[derive(Debug)]
 struct Args {
+    operation: Operation,
     src: Src,
     dst: Dst,
+}
+
+#[derive(Debug)]
+enum Operation {
+    Fmt,
+    Parse,
 }
 
 #[derive(Debug)]
@@ -37,7 +46,11 @@ fn parse_args() -> Result<Args> {
     let matches = App::new("nix-fmt")
         .version("0.1")
         .about("Format Nix code")
-        .arg(Arg::with_name("src").value_name("FILE").help("File to reformat"))
+        .arg(
+            Arg::with_name("src")
+                .value_name("FILE")
+                .help("File to reformat"),
+        )
         .arg(
             Arg::with_name("in-place")
                 .long("--in-place")
@@ -54,6 +67,12 @@ fn parse_args() -> Result<Args> {
                 .value_name("file")
                 .help("Place the output into <file>"),
         )
+        .arg(
+            Arg::with_name("parse")
+                .long("parse")
+                .conflicts_with("in-place")
+                .help("Show syntax tree instead of reformatting"),
+        )
         .get_matches_safe()?;
 
     let src_path = matches.value_of("src").map(PathBuf::from);
@@ -66,8 +85,17 @@ fn parse_args() -> Result<Args> {
             .map(PathBuf::from)
             .map_or(Dst::Stdout, Dst::File)
     };
+    let operation = if matches.is_present("parse") {
+        Operation::Parse
+    } else {
+        Operation::Fmt
+    };
 
-    Ok(Args { src, dst })
+    Ok(Args {
+        operation,
+        src,
+        dst,
+    })
 }
 
 fn try_main(args: Args) -> Result<()> {
@@ -80,7 +108,18 @@ fn try_main(args: Args) -> Result<()> {
         Src::File(path) => fs::read_to_string(path)?,
     };
 
-    let res = nix_fmt::reformat_string(&input);
+    let res = match args.operation {
+        Operation::Fmt => nix_fmt::reformat_string(&input),
+        Operation::Parse => {
+            let ast = rnix::parse(&input);
+            let mut buf = String::new();
+            for error in ast.root_errors() {
+                writeln!(buf, "error: {}", error).unwrap();
+            }
+            writeln!(buf, "{}", ast.root().dump()).unwrap();
+            buf
+        }
+    };
 
     match &args.dst {
         Dst::Stdout => print!("{}", res),
