@@ -25,8 +25,14 @@ pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {
     // a++  b => a ++ b
     r(inside(NODE_OPERATION).around(T![++]).single_space());
 
+    // a==  b => a == b
+    r(inside(NODE_OPERATION).around(T![==]).single_space());
+
     // foo . bar . baz => foo.bar.baz
     r(inside(NODE_INDEX_SET).around(T![.]).no_space());
+
+    // {} : 92 => {}: 92
+    r(inside(NODE_LAMBDA).before(T![:]).no_space());
 
     rules
 }
