@@ -8,18 +8,32 @@ use rnix::{
 };
 
 use crate::{
-    dsl::{SpaceLoc, SpaceValue, SpacingRule},
+    dsl::{IndentRule, SpaceLoc, SpaceValue, SpacingRule},
     tree_utils::{has_newline, walk},
     AtomEdit, FmtDiff,
 };
 
-pub(crate) fn format(rules: &[SpacingRule], root: &SyntaxNode) -> FmtDiff {
+const INDENT_SIZE: usize = 2;
+
+pub(crate) fn format(
+    spacing_rules: &[SpacingRule],
+    indent_rules: &[IndentRule],
+    root: &SyntaxNode,
+) -> FmtDiff {
     let mut model = FmtModel::new(root);
+
     for element in walk(root) {
-        for rule in rules.iter() {
+        for rule in spacing_rules.iter() {
             rule.apply(element, &mut model)
         }
     }
+
+    for element in walk(root) {
+        for rule in indent_rules.iter() {
+            rule.apply(element, &mut model)
+        }
+    }
+
     model.into_diff()
 }
 
@@ -67,9 +81,32 @@ impl<'a> SpaceBlock<'a> {
     }
     fn set_text(&mut self, text: &str) {
         match self.original {
-            OriginalSpace::Some(token) if token.text() == text => return,
-            _ => self.new_text = Some(text.into())
+            OriginalSpace::Some(token) if token.text() == text && self.new_text.is_none() => return,
+            _ => self.new_text = Some(text.into()),
         }
+    }
+    fn set_indent(&mut self, level: usize) {
+        let indent = " ".repeat(INDENT_SIZE * level);
+        self.set_text(&format!("\n{}", indent));
+    }
+    fn text(&self) -> &str {
+        if let Some(text) = self.new_text.as_ref() {
+            return text.as_str();
+        }
+        match self.original {
+            OriginalSpace::Some(token) => token.text().as_str(),
+            OriginalSpace::None { .. } => "",
+        }
+    }
+    fn indent_level(&self) -> usize {
+        let text = self.text();
+        match text.rfind('\n') {
+            None => return 0,
+            Some(idx) => text[idx + 1..].chars().count() / INDENT_SIZE,
+        }
+    }
+    fn has_newline(&self) -> bool {
+        self.text().contains('\n')
     }
 }
 
@@ -191,6 +228,33 @@ fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValu
         }
         SpaceValue::Single => block.set_text(" "),
         SpaceValue::None => block.set_text(""),
+    }
+}
+
+impl IndentRule {
+    fn apply<'a>(&self, element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
+        if !self.pattern.matches(element) {
+            return;
+        }
+        let block = model.block_for(element, BlockPosition::Before);
+        if !block.has_newline() {
+            return;
+        }
+        let parent = match element.parent() {
+            None => return,
+            Some(it) => it,
+        };
+        let mut parent_indent = None;
+        for node in parent.ancestors() {
+            let block = model.block_for(node.into(), BlockPosition::Before);
+            if block.has_newline() {
+                parent_indent = Some(block.indent_level());
+                break;
+            }
+        }
+        let parent_indent = parent_indent.unwrap_or(0);
+        let block = model.block_for(element, BlockPosition::Before);
+        block.set_indent(parent_indent + 1);
     }
 }
 

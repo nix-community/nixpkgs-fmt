@@ -1,5 +1,5 @@
 //! This module contains a definition of pattern-based formatting DSL.
-use rnix::{SyntaxKind, SyntaxElement};
+use rnix::{SyntaxElement, SyntaxKind};
 
 #[derive(Debug)]
 pub(crate) struct Pattern {
@@ -11,6 +11,20 @@ impl Pattern {
     pub(crate) fn matches(&self, element: SyntaxElement) -> bool {
         element.kind() == self.child && element.parent().map(|it| it.kind()) == Some(self.parent)
     }
+}
+
+#[rustfmt::skip]
+macro_rules! T {
+    (=)   => (rnix::tokenizer::tokens::TOKEN_ASSIGN);
+    ('{') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_OPEN);
+    ('}') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_CLOSE);
+    ('[') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_OPEN);
+    (']') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_CLOSE);
+    (++) => (rnix::tokenizer::tokens::TOKEN_CONCAT);
+    (==) => (rnix::tokenizer::tokens::TOKEN_EQUAL);
+    (:) => (rnix::tokenizer::tokens::TOKEN_COLON);
+    (;) => (rnix::tokenizer::tokens::TOKEN_SEMICOLON);
+    (.) => (rnix::tokenizer::tokens::TOKEN_DOT);
 }
 
 #[derive(Debug)]
@@ -37,20 +51,6 @@ pub(crate) enum SpaceLoc {
     Before,
     After,
     Around,
-}
-
-#[rustfmt::skip]
-macro_rules! T {
-    (=)   => (rnix::tokenizer::tokens::TOKEN_ASSIGN);
-    ('{') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_OPEN);
-    ('}') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_CLOSE);
-    ('[') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_OPEN);
-    (']') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_CLOSE);
-    (++) => (rnix::tokenizer::tokens::TOKEN_CONCAT);
-    (==) => (rnix::tokenizer::tokens::TOKEN_EQUAL);
-    (:) => (rnix::tokenizer::tokens::TOKEN_COLON);
-    (;) => (rnix::tokenizer::tokens::TOKEN_SEMICOLON);
-    (.) => (rnix::tokenizer::tokens::TOKEN_DOT);
 }
 
 pub(crate) struct SpacingRuleBuilder {
@@ -109,8 +109,22 @@ impl From<SpacingRuleBuilder> for SpacingRule {
     fn from(builder: SpacingRuleBuilder) -> SpacingRule {
         let child = builder.child.unwrap();
         SpacingRule {
-            pattern: Pattern { parent: builder.parent, child },
+            pattern: Pattern {
+                parent: builder.parent,
+                child,
+            },
             space: builder.space(),
         }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct IndentRule {
+    pub(crate) pattern: Pattern,
+}
+
+pub(crate) fn indent(parent: SyntaxKind, child: SyntaxKind) -> IndentRule {
+    IndentRule {
+        pattern: Pattern { parent, child },
     }
 }

@@ -1,7 +1,7 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::parser::nodes::*;
 
-use crate::dsl::{self, inside};
+use crate::dsl::{self, indent, inside};
 
 #[rustfmt::skip]
 pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {
@@ -38,6 +38,14 @@ pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {
     r(inside(NODE_LIST).after(T!['[']).single_space_or_newline());
     r(inside(NODE_LIST).before(T![']']).single_space_or_newline());
 
+    rules
+}
+
+#[rustfmt::skip]
+pub(crate) fn indentation() -> Vec<dsl::IndentRule> {
+    let mut rules = Vec::new();
+    let mut r = |i: dsl::IndentRule| rules.push(i);
+    r(indent(NODE_LIST, NODE_VALUE));
     rules
 }
 
@@ -128,20 +136,22 @@ mod tests {
             let actual = &reformat_string(&test_case.before);
             if expected != actual {
                 panic!(
-                    "assertion failed: wrong formatting.\
+                    "assertion failed({}): wrong formatting\
                      \nBefore:\n{}\n\
                      \nAfter:\n{}\n\
                      \nExpected:\n{}\n",
-                    test_case.before, actual, test_case.after,
+                    name, test_case.before, actual, test_case.after,
                 )
             }
-            assert_eq!(expected, actual, "\nwrong formatting\n{}\n", name);
-            assert_eq!(
-                actual,
-                &reformat_string(actual),
-                "\nformatting is not idempotent\n{}\n",
-                name,
-            );
+            let second_round = &reformat_string(actual);
+            if actual != second_round {
+                panic!(
+                    "assertion failed({}): formatting is not idempotent\
+                     \nBefore:\n{}\n\
+                     \nAfter:\n{}\n",
+                    name, actual, second_round,
+                )
+            }
         }
     }
 }
