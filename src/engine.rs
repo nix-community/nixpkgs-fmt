@@ -61,8 +61,10 @@ fn ensure_space_before(diff: &mut FmtDiff, element: SyntaxElement, value: SpaceV
             }
         }
         Some(_) => {
-            if let Some(text) = value.insert_ws() {
-                diff.insert(element.range().start(), text.into())
+            if let Some(parent) = element.parent() {
+                if let Some(text) = value.insert_ws(parent) {
+                    diff.insert(element.range().start(), text.into())
+                }
             }
         }
     };
@@ -77,8 +79,10 @@ fn ensure_space_after(diff: &mut FmtDiff, element: SyntaxElement, value: SpaceVa
             }
         }
         Some(_) => {
-            if let Some(text) = value.insert_ws() {
-                diff.insert(element.range().end(), text.into())
+            if let Some(parent) = element.parent() {
+                if let Some(text) = value.insert_ws(parent) {
+                    diff.insert(element.range().end(), text.into())
+                }
             }
         }
     }
@@ -102,16 +106,49 @@ impl FmtDiff {
 impl SpaceValue {
     fn replace_ws(&self, token: SyntaxToken) -> Option<&'static str> {
         match (self, token.text().as_str()) {
-            (SpaceValue::Single, " ") => return None,
-            (SpaceValue::Single, _) => return Some(" "),
-            (SpaceValue::None, _) => return Some(""),
+            (SpaceValue::SingleOrNewline, ws) => {
+                if has_newline(token.parent()) {
+                    if ws.starts_with('\n') {
+                        None
+                    } else {
+                        Some("\n")
+                    }
+                } else {
+                    if ws == " " {
+                        None
+                    } else {
+                        Some(" ")
+                    }
+                }
+            }
+            (SpaceValue::Single, " ") => None,
+            (SpaceValue::Single, _) => Some(" "),
+            (SpaceValue::None, _) => Some(""),
         }
     }
 
-    fn insert_ws(&self) -> Option<&'static str> {
+    fn insert_ws(&self, parent: &SyntaxNode) -> Option<&'static str> {
         match self {
+            SpaceValue::SingleOrNewline => {
+                if has_newline(parent) {
+                    Some("\n")
+                } else {
+                    Some(" ")
+                }
+            }
             SpaceValue::Single => Some(" "),
             SpaceValue::None => None,
         }
     }
+}
+
+fn has_newline(node: &SyntaxNode) -> bool {
+    for event in node.preorder_with_tokens() {
+        if let WalkEvent::Enter(SyntaxElement::Token(token)) = event {
+            if token.text().contains('\n') {
+                return true;
+            }
+        }
+    }
+    false
 }
