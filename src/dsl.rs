@@ -45,6 +45,7 @@ macro_rules! T {
     ('}') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_CLOSE);
     (++) => (rnix::tokenizer::tokens::TOKEN_CONCAT);
     (;) => (rnix::tokenizer::tokens::TOKEN_SEMICOLON);
+    (.) => (rnix::tokenizer::tokens::TOKEN_DOT);
 }
 
 pub(crate) struct SpacingRuleBuilder {
