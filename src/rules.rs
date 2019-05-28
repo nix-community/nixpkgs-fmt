@@ -8,6 +8,8 @@ pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {
     let mut rules = Vec::new();
     let mut r = |b: dsl::SpacingRuleBuilder| rules.push(b.into());
 
+    // Note: comments with fat arrow are tests!
+
     // { a=92; } => { a = 92; }
     r(inside(NODE_SET_ENTRY).around(T![=]).single_space());
 
