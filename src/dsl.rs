@@ -27,8 +27,8 @@ pub(crate) struct Space {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum SpaceValue {
-    Single,
     SingleOrNewline,
+    Single,
     None,
 }
 
