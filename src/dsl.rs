@@ -28,6 +28,7 @@ pub(crate) struct Space {
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum SpaceValue {
     Single,
+    None,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -42,6 +43,8 @@ macro_rules! T {
     (=)   => (rnix::tokenizer::tokens::TOKEN_ASSIGN);
     ('{') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_OPEN);
     ('}') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_CLOSE);
+    (++) => (rnix::tokenizer::tokens::TOKEN_CONCAT);
+    (;) => (rnix::tokenizer::tokens::TOKEN_SEMICOLON);
 }
 
 pub(crate) struct SpacingRuleBuilder {
@@ -78,6 +81,10 @@ impl SpacingRuleBuilder {
     }
     pub(crate) fn single_space(mut self) -> SpacingRuleBuilder {
         self.value = Some(SpaceValue::Single);
+        self
+    }
+    pub(crate) fn no_space(mut self) -> SpacingRuleBuilder {
+        self.value = Some(SpaceValue::None);
         self
     }
     fn space(&self) -> Option<Space> {

@@ -1,12 +1,12 @@
 //! This module applies the rules from `super::dsl` to a `SyntaxNode`, to
 //! get a `FmtDiff`.
 use rnix::{
-    tokenizer::tokens::TOKEN_WHITESPACE, SmolStr, SyntaxElement, SyntaxNode, TextRange, TextUnit,
-    WalkEvent,
+    tokenizer::tokens::TOKEN_WHITESPACE, SmolStr, SyntaxElement, SyntaxNode, SyntaxToken,
+    TextRange, TextUnit, WalkEvent,
 };
 
 use crate::{
-    dsl::{SpacingRule, SpaceLoc},
+    dsl::{SpaceLoc, SpaceValue, SpacingRule},
     AtomEdit, FmtDiff,
 };
 
@@ -28,11 +28,12 @@ impl SpacingRule {
         if !self.pattern.matches(element) {
             return;
         }
+
         match self.space {
             Some(space) => match space.loc {
-                SpaceLoc::Before => ensure_single_space_before(element, diff),
-                SpaceLoc::After => ensure_single_space_after(element, diff),
-                SpaceLoc::Around => ensure_single_space_around(element, diff),
+                SpaceLoc::Before => ensure_space_before(diff, element, space.value),
+                SpaceLoc::After => ensure_space_after(diff, element, space.value),
+                SpaceLoc::Around => ensure_space_around(diff, element, space.value),
             },
             None => (),
         }
@@ -46,32 +47,40 @@ fn walk<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxElement<'a>> {
     })
 }
 
-fn ensure_single_space_around(element: SyntaxElement, diff: &mut FmtDiff) {
-    ensure_single_space_before(element, diff);
-    ensure_single_space_after(element, diff);
+fn ensure_space_around(diff: &mut FmtDiff, element: SyntaxElement, value: SpaceValue) {
+    ensure_space_before(diff, element, value);
+    ensure_space_after(diff, element, value);
 }
 
-fn ensure_single_space_before(element: SyntaxElement, diff: &mut FmtDiff) {
+fn ensure_space_before(diff: &mut FmtDiff, element: SyntaxElement, value: SpaceValue) {
     match element.prev_sibling_or_token() {
         None => return,
         Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
-            if token.text() != " " {
-                diff.replace(token.range(), " ".into())
+            if let Some(text) = value.replace_ws(token) {
+                diff.replace(token.range(), text.into())
             }
         }
-        Some(_) => diff.insert(element.range().start(), " ".into()),
+        Some(_) => {
+            if let Some(text) = value.insert_ws() {
+                diff.insert(element.range().start(), text.into())
+            }
+        }
     };
 }
 
-fn ensure_single_space_after(element: SyntaxElement, diff: &mut FmtDiff) {
+fn ensure_space_after(diff: &mut FmtDiff, element: SyntaxElement, value: SpaceValue) {
     match element.next_sibling_or_token() {
         None => return,
         Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
-            if token.text() != " " {
-                diff.replace(token.range(), " ".into())
+            if let Some(text) = value.replace_ws(token) {
+                diff.replace(token.range(), text.into())
             }
         }
-        Some(_) => diff.insert(element.range().end(), " ".into()),
+        Some(_) => {
+            if let Some(text) = value.insert_ws() {
+                diff.insert(element.range().end(), text.into())
+            }
+        }
     }
 }
 
@@ -87,5 +96,22 @@ impl FmtDiff {
             delete: range,
             insert: text,
         })
+    }
+}
+
+impl SpaceValue {
+    fn replace_ws(&self, token: SyntaxToken) -> Option<&'static str> {
+        match (self, token.text().as_str()) {
+            (SpaceValue::Single, " ") => return None,
+            (SpaceValue::Single, _) => return Some(" "),
+            (SpaceValue::None, _) => return Some(""),
+        }
+    }
+
+    fn insert_ws(&self) -> Option<&'static str> {
+        match self {
+            SpaceValue::Single => Some(" "),
+            SpaceValue::None => None,
+        }
     }
 }
