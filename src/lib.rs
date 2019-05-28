@@ -2,8 +2,11 @@
 mod dsl;
 mod engine;
 mod rules;
+mod tree_utils;
 
-use rnix::{SmolStr, SyntaxElement, SyntaxNode, SyntaxToken, TextRange, TreeArc, WalkEvent};
+use rnix::{SmolStr, SyntaxNode, TextRange, TreeArc};
+
+use crate::tree_utils::walk_tokens;
 
 /// The result of formatting.
 ///
@@ -71,9 +74,3 @@ pub fn reformat_string(text: &str) -> String {
     diff.to_string()
 }
 
-fn walk_tokens<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxToken<'a>> {
-    node.preorder_with_tokens().filter_map(|event| match event {
-        WalkEvent::Leave(SyntaxElement::Token(token)) => Some(token),
-        _ => None,
-    })
-}

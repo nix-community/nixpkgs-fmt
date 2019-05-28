@@ -2,11 +2,12 @@
 //! get a `FmtDiff`.
 use rnix::{
     tokenizer::tokens::TOKEN_WHITESPACE, SmolStr, SyntaxElement, SyntaxNode, SyntaxToken,
-    TextRange, TextUnit, WalkEvent,
+    TextRange, TextUnit,
 };
 
 use crate::{
     dsl::{SpaceLoc, SpaceValue, SpacingRule},
+    tree_utils::{walk, has_newline},
     AtomEdit, FmtDiff,
 };
 
@@ -38,13 +39,6 @@ impl SpacingRule {
             None => (),
         }
     }
-}
-
-fn walk<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxElement<'a>> {
-    node.preorder_with_tokens().filter_map(|event| match event {
-        WalkEvent::Enter(_) => None,
-        WalkEvent::Leave(element) => Some(element),
-    })
 }
 
 fn ensure_space_around(diff: &mut FmtDiff, element: SyntaxElement, value: SpaceValue) {
@@ -142,13 +136,4 @@ impl SpaceValue {
     }
 }
 
-fn has_newline(node: &SyntaxNode) -> bool {
-    for event in node.preorder_with_tokens() {
-        if let WalkEvent::Enter(SyntaxElement::Token(token)) = event {
-            if token.text().contains('\n') {
-                return true;
-            }
-        }
-    }
-    false
-}
+
