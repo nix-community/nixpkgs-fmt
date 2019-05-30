@@ -16,12 +16,6 @@ pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {
     // { a = 92 ; } => { a = 92; }
     r(inside(NODE_SET_ENTRY).before(T![;]).no_space());
 
-    // {a = 92; } => { a = 92; }
-    r(inside(NODE_SET).after(T!['{']).single_space());
-
-    // { a = 92;} => { a = 92; }
-    r(inside(NODE_SET).before(T!['}']).single_space());
-
     // a++  b => a ++ b
     r(inside(NODE_OPERATION).around(T![++]).single_space());
 
@@ -38,6 +32,7 @@ pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {
     r(inside(NODE_LIST).after(T!['[']).single_space_or_newline());
     r(inside(NODE_LIST).before(T![']']).single_space_or_newline());
 
+    // {foo = 92;} => { foo = 92; }
     r(inside(NODE_SET).after(T!['{']).single_space_or_newline());
     r(inside(NODE_SET).before(T!['}']).single_space_or_newline());
 
@@ -50,6 +45,10 @@ pub(crate) fn indentation() -> Vec<dsl::IndentRule> {
     let mut r = |i: dsl::IndentRule| rules.push(i);
     r(indent(NODE_LIST, LIST_ELEMENTS));
     r(indent(ENTRY_OWNERS, NODE_SET_ENTRY));
+
+    // FIXME: don't force indent if comment is on the first line
+    r(indent(NODE_LIST, TOKEN_COMMENT));
+    r(indent(ENTRY_OWNERS, TOKEN_COMMENT));
     rules
 }
 
