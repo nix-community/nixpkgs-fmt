@@ -1,5 +1,5 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
-use rnix::parser::nodes::*;
+use rnix::{parser::nodes::*, SyntaxKind};
 
 use crate::dsl::{self, indent, inside};
 
@@ -45,9 +45,20 @@ pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {
 pub(crate) fn indentation() -> Vec<dsl::IndentRule> {
     let mut rules = Vec::new();
     let mut r = |i: dsl::IndentRule| rules.push(i);
-    r(indent(NODE_LIST, NODE_VALUE));
+    r(indent(NODE_LIST, LIST_ELEMENTS));
     rules
 }
+
+static LIST_ELEMENTS: &'static [SyntaxKind] = &[
+    NODE_VALUE,
+    NODE_LIST,
+    NODE_SET,
+    NODE_INDEX_SET,
+    NODE_LAMBDA,
+    NODE_STRING,
+    NODE_PAREN,
+    NODE_IDENT,
+];
 
 #[cfg(test)]
 mod tests {
@@ -119,7 +130,9 @@ mod tests {
                     let test_case = TestCase {
                         name: Some(after_name.to_string()),
                         before: fs::read_to_string(dir.join(before_name)).unwrap(),
-                        after: fs::read_to_string(dir.join(after_name)).unwrap(),
+                        after: fs::read_to_string(dir.join(&after_name)).unwrap_or_else(|_err| {
+                            panic!("{} not found", after_name);
+                        }),
                     };
                     res.push(test_case);
                 }

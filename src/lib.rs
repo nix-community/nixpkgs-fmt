@@ -36,14 +36,17 @@ impl FmtDiff {
             .collect::<String>();
 
         let mut total_len = old_text.len();
-        for atom in self.edits.iter() {
+        let mut edits = self.edits.clone();
+        edits.sort_by_key(|edit| edit.delete.start());
+
+        for atom in edits.iter() {
             total_len += atom.insert.len();
             total_len -= u32::from(atom.delete.end() - atom.delete.start()) as usize;
         }
 
         let mut buf = String::with_capacity(total_len);
         let mut prev = 0;
-        for atom in self.edits.iter() {
+        for atom in edits.iter() {
             let start = u32::from(atom.delete.start()) as usize;
             let end = u32::from(atom.delete.end()) as usize;
             if start > prev {
@@ -52,7 +55,7 @@ impl FmtDiff {
             buf.push_str(&atom.insert);
             prev = end;
         }
-        buf.push_str(&old_text[prev..old_text.len()]);
+        buf.push_str(&old_text[prev..]);
         assert_eq!(buf.len(), total_len);
         buf
     }

@@ -1,17 +1,47 @@
 //! This module contains a definition of pattern-based formatting DSL.
+use std::fmt;
+
 use rnix::{SyntaxElement, SyntaxKind};
 
 #[derive(Debug)]
 pub(crate) struct Pattern {
-    pub(crate) parent: SyntaxKind,
-    pub(crate) child: SyntaxKind,
+    pub(crate) parent: Pred,
+    pub(crate) child: Pred,
 }
 
 impl Pattern {
     pub(crate) fn matches(&self, element: SyntaxElement) -> bool {
-        element.kind() == self.child && element.parent().map(|it| it.kind()) == Some(self.parent)
+        self.child.matches(element.kind())
+            && element.parent().map(|it| self.parent.matches(it.kind())) == Some(true)
     }
 }
+
+pub(crate) struct Pred(Box<Fn(SyntaxKind) -> bool>);
+
+impl fmt::Debug for Pred {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("Pred { ... }")
+    }
+}
+
+impl Pred {
+    fn matches(&self, kind: SyntaxKind) -> bool {
+        (self.0)(kind)
+    }
+}
+
+impl From<SyntaxKind> for Pred {
+    fn from(kind: SyntaxKind) -> Pred {
+        Pred(Box::new(move |it| it == kind))
+    }
+}
+
+impl From<&'static [SyntaxKind]> for Pred {
+    fn from(kinds: &'static [SyntaxKind]) -> Pred {
+        Pred(Box::new(move |it| kinds.contains(&it)))
+    }
+}
+
 
 #[rustfmt::skip]
 macro_rules! T {
@@ -54,15 +84,15 @@ pub(crate) enum SpaceLoc {
 }
 
 pub(crate) struct SpacingRuleBuilder {
-    parent: SyntaxKind,
-    child: Option<SyntaxKind>,
+    parent: Pred,
+    child: Option<Pred>,
     value: Option<SpaceValue>,
     loc: Option<SpaceLoc>,
 }
 
-pub(crate) fn inside(parent: SyntaxKind) -> SpacingRuleBuilder {
+pub(crate) fn inside(parent: impl Into<Pred>) -> SpacingRuleBuilder {
     SpacingRuleBuilder {
-        parent,
+        parent: parent.into(),
         child: None,
         value: None,
         loc: None,
@@ -70,18 +100,18 @@ pub(crate) fn inside(parent: SyntaxKind) -> SpacingRuleBuilder {
 }
 
 impl SpacingRuleBuilder {
-    pub(crate) fn around(mut self, kind: SyntaxKind) -> SpacingRuleBuilder {
-        self.child = Some(kind);
+    pub(crate) fn around(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder {
+        self.child = Some(kind.into());
         self.loc = Some(SpaceLoc::Around);
         self
     }
-    pub(crate) fn before(mut self, kind: SyntaxKind) -> SpacingRuleBuilder {
-        self.child = Some(kind);
+    pub(crate) fn before(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder {
+        self.child = Some(kind.into());
         self.loc = Some(SpaceLoc::Before);
         self
     }
-    pub(crate) fn after(mut self, kind: SyntaxKind) -> SpacingRuleBuilder {
-        self.child = Some(kind);
+    pub(crate) fn after(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder {
+        self.child = Some(kind.into());
         self.loc = Some(SpaceLoc::After);
         self
     }
@@ -107,13 +137,14 @@ impl SpacingRuleBuilder {
 
 impl From<SpacingRuleBuilder> for SpacingRule {
     fn from(builder: SpacingRuleBuilder) -> SpacingRule {
+        let space = builder.space();
         let child = builder.child.unwrap();
         SpacingRule {
             pattern: Pattern {
                 parent: builder.parent,
                 child,
             },
-            space: builder.space(),
+            space,
         }
     }
 }
@@ -123,8 +154,11 @@ pub(crate) struct IndentRule {
     pub(crate) pattern: Pattern,
 }
 
-pub(crate) fn indent(parent: SyntaxKind, child: SyntaxKind) -> IndentRule {
+pub(crate) fn indent(parent: impl Into<Pred>, child: impl Into<Pred>) -> IndentRule {
     IndentRule {
-        pattern: Pattern { parent, child },
+        pattern: Pattern {
+            parent: parent.into(),
+            child: child.into(),
+        },
     }
 }
