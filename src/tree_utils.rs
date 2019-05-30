@@ -6,14 +6,14 @@ use rnix::{
 
 pub(crate) fn walk<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxElement<'a>> {
     node.preorder_with_tokens().filter_map(|event| match event {
-        WalkEvent::Enter(_) => None,
-        WalkEvent::Leave(element) => Some(element),
+        WalkEvent::Leave(_) => None,
+        WalkEvent::Enter(element) => Some(element),
     })
 }
 pub(crate) fn walk_non_whitespace<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxElement<'a>> {
     node.preorder_with_tokens().filter_map(|event| match event {
-        WalkEvent::Enter(_) => None,
-        WalkEvent::Leave(element) => Some(element).filter(|it| it.kind() != TOKEN_WHITESPACE),
+        WalkEvent::Leave(_) => None,
+        WalkEvent::Enter(element) => Some(element).filter(|it| it.kind() != TOKEN_WHITESPACE),
     })
 }
 pub(crate) fn walk_tokens<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxToken<'a>> {

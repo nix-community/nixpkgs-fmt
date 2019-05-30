@@ -33,8 +33,9 @@ pub(crate) fn format(
         if !block.has_newline() {
             continue;
         }
-        for rule in indent_rules.iter() {
-            rule.apply(element, &mut model)
+        match indent_rules.iter().find(|it| it.pattern.matches(element)) {
+            Some(rule) => rule.apply(element, &mut model),
+            None => default_indent(element, &mut model),
         }
     }
 
@@ -246,29 +247,33 @@ fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValu
 
 impl IndentRule {
     fn apply<'a>(&self, element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
-        if !self.pattern.matches(element) {
-            return;
-        }
-        let block = model.block_for(element, BlockPosition::Before);
-        if !block.has_newline() {
-            return;
-        }
-        let parent = match element.parent() {
+        assert!(self.pattern.matches(element));
+        let parent_indent = match element.parent() {
             None => return,
-            Some(it) => it,
+            Some(it) => current_indent(it, model),
         };
-        let mut parent_indent = None;
-        for node in parent.ancestors() {
-            let block = model.block_for(node.into(), BlockPosition::Before);
-            if block.has_newline() {
-                parent_indent = Some(block.indent_level());
-                break;
-            }
-        }
-        let parent_indent = parent_indent.unwrap_or(0);
         let block = model.block_for(element, BlockPosition::Before);
         block.set_indent(parent_indent + 1);
     }
+}
+
+fn default_indent<'a>(element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
+    let parent_indent = match element.parent() {
+        None => return,
+        Some(it) => current_indent(it, model),
+    };
+    let block = model.block_for(element, BlockPosition::Before);
+    block.set_indent(parent_indent);
+}
+
+fn current_indent<'a>(node: &'a SyntaxNode, model: &mut FmtModel<'a>) -> usize {
+    for node in node.ancestors() {
+        let block = model.block_for(node.into(), BlockPosition::Before);
+        if block.has_newline() {
+            return block.indent_level();
+        }
+    }
+    0
 }
 
 impl FmtDiff {
