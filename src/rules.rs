@@ -49,9 +49,11 @@ pub(crate) fn indentation() -> Vec<dsl::IndentRule> {
     let mut rules = Vec::new();
     let mut r = |i: dsl::IndentRule| rules.push(i);
     r(indent(NODE_LIST, LIST_ELEMENTS));
-    r(indent(NODE_SET, NODE_SET_ENTRY));
+    r(indent(ENTRY_OWNERS, NODE_SET_ENTRY));
     rules
 }
+
+static ENTRY_OWNERS: &'static [SyntaxKind] = &[NODE_SET, NODE_LET_IN];
 
 static LIST_ELEMENTS: &'static [SyntaxKind] = &[
     NODE_VALUE,
