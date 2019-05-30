@@ -1,9 +1,19 @@
-use rnix::{SyntaxNode, SyntaxToken, SyntaxElement, WalkEvent};
+use rnix::{
+    SyntaxNode, SyntaxToken, SyntaxElement, WalkEvent,
+    tokenizer::tokens::TOKEN_WHITESPACE
+};
+
 
 pub(crate) fn walk<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxElement<'a>> {
     node.preorder_with_tokens().filter_map(|event| match event {
         WalkEvent::Enter(_) => None,
         WalkEvent::Leave(element) => Some(element),
+    })
+}
+pub(crate) fn walk_non_whitespace<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxElement<'a>> {
+    node.preorder_with_tokens().filter_map(|event| match event {
+        WalkEvent::Enter(_) => None,
+        WalkEvent::Leave(element) => Some(element).filter(|it| it.kind() != TOKEN_WHITESPACE),
     })
 }
 pub(crate) fn walk_tokens<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxToken<'a>> {

@@ -9,7 +9,7 @@ use rnix::{
 
 use crate::{
     dsl::{IndentRule, SpaceLoc, SpaceValue, SpacingRule},
-    tree_utils::{has_newline, walk},
+    tree_utils::{has_newline, walk_non_whitespace},
     AtomEdit, FmtDiff,
 };
 
@@ -22,13 +22,17 @@ pub(crate) fn format(
 ) -> FmtDiff {
     let mut model = FmtModel::new(root);
 
-    for element in walk(root) {
+    for element in walk_non_whitespace(root) {
         for rule in spacing_rules.iter() {
             rule.apply(element, &mut model)
         }
     }
 
-    for element in walk(root) {
+    for element in walk_non_whitespace(root) {
+        let block = model.block_for(element, BlockPosition::Before);
+        if !block.has_newline() {
+            continue;
+        }
         for rule in indent_rules.iter() {
             rule.apply(element, &mut model)
         }
@@ -138,6 +142,7 @@ impl<'a> FmtModel<'a> {
         element: SyntaxElement<'a>,
         position: BlockPosition,
     ) -> &mut SpaceBlock<'a> {
+        assert!(element.kind() != TOKEN_WHITESPACE);
         match position {
             BlockPosition::Before => {
                 let offset = element.range().start();
@@ -148,7 +153,11 @@ impl<'a> FmtModel<'a> {
                         Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
                             OriginalSpace::Some(token)
                         }
-                        _ => OriginalSpace::None { offset },
+                        Some(_) => OriginalSpace::None { offset },
+                        _ => match element.parent() {
+                            Option::Some(parent) => return self.block_for(parent.into(), position),
+                            None => OriginalSpace::None { offset },
+                        },
                     };
                     self.push_block(SpaceBlock::new(original))
                 }
@@ -162,7 +171,11 @@ impl<'a> FmtModel<'a> {
                         Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
                             OriginalSpace::Some(token)
                         }
-                        _ => OriginalSpace::None { offset },
+                        Some(_) => OriginalSpace::None { offset },
+                        _ => match element.parent() {
+                            Option::Some(parent) => return self.block_for(parent.into(), position),
+                            None => OriginalSpace::None { offset },
+                        },
                     };
                     self.push_block(SpaceBlock::new(original))
                 }
