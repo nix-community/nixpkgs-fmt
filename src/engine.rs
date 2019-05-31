@@ -99,7 +99,8 @@ impl<'a> SpaceBlock<'a> {
     }
     fn set_indent(&mut self, level: usize) {
         let indent = " ".repeat(INDENT_SIZE * level);
-        self.set_text(&format!("\n{}", indent));
+        let newlines: String = self.text().chars().filter(|&it| it == '\n').collect();
+        self.set_text(&format!("{}{}", newlines, indent));
     }
     fn text(&self) -> &str {
         if let Some(text) = self.new_text.as_ref() {
@@ -233,8 +234,8 @@ impl SpaceLoc {
 fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValue) {
     match value {
         SpaceValue::SingleOrNewline => {
-            let has_newline = element.parent().map_or(false, has_newline);
-            block.set_text(if has_newline { "\n" } else { " " });
+            let parent_is_multiline = element.parent().map_or(false, has_newline);
+            block.set_text(if parent_is_multiline { "\n" } else { " " });
         }
         SpaceValue::Single => block.set_text(" "),
         SpaceValue::None => block.set_text(""),
