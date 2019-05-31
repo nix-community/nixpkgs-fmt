@@ -36,11 +36,19 @@ impl From<SyntaxKind> for Pred {
     }
 }
 
-impl From<&'static [SyntaxKind]> for Pred {
-    fn from(kinds: &'static [SyntaxKind]) -> Pred {
+impl From<&'_ [SyntaxKind]> for Pred {
+    fn from(kinds: &[SyntaxKind]) -> Pred {
+        let kinds = kinds.to_vec();
         Pred(Box::new(move |it| kinds.contains(&it)))
     }
 }
+
+impl From<[SyntaxKind; 2]> for Pred {
+    fn from(kinds: [SyntaxKind; 2]) -> Pred {
+        Pred::from(&kinds[..])
+    }
+}
+
 
 #[derive(Debug)]
 pub(crate) struct SpacingRule {

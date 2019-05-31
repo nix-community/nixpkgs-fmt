@@ -16,10 +16,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_SET_ENTRY).before(T![;]).no_space()
 
         // a++  b => a ++ b
-        .inside(NODE_OPERATION).around(T![++]).single_space()
-
         // a==  b => a == b
-        .inside(NODE_OPERATION).around(T![==]).single_space()
+        .inside(NODE_OPERATION).around([T![==], T![++]]).single_space()
 
         // foo . bar . baz => foo.bar.baz
         .inside(NODE_INDEX_SET).around(T![.]).no_space()
