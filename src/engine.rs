@@ -22,12 +22,15 @@ pub(crate) fn format(
 ) -> FmtDiff {
     let mut model = FmtModel::new(root);
 
+    // First, adjust spacing rules between the nodes.
+    // This can force some newlines.
     for element in walk_non_whitespace(root) {
         for rule in spacing_dsl.rules.iter() {
             rule.apply(element, &mut model)
         }
     }
 
+    // Next, for each node which starts the newline, adjust the indent.
     for element in walk_non_whitespace(root) {
         let block = model.block_for(element, BlockPosition::Before);
         if !block.has_newline() {
@@ -147,45 +150,39 @@ impl<'a> FmtModel<'a> {
         element: SyntaxElement<'a>,
         position: BlockPosition,
     ) -> &mut SpaceBlock<'a> {
+        use BlockPosition::{After, Before};
+
         assert!(element.kind() != TOKEN_WHITESPACE);
-        match position {
-            BlockPosition::Before => {
-                let offset = element.range().start();
-                if let Some(&idx) = self.by_end_offset.get(&offset) {
-                    &mut self.blocks[idx]
-                } else {
-                    let original = match element.prev_sibling_or_token() {
-                        Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
-                            OriginalSpace::Some(token)
-                        }
-                        Some(_) => OriginalSpace::None { offset },
-                        _ => match element.parent() {
-                            Option::Some(parent) => return self.block_for(parent.into(), position),
-                            None => OriginalSpace::None { offset },
-                        },
-                    };
-                    self.push_block(SpaceBlock::new(original))
-                }
-            }
-            BlockPosition::After => {
-                let offset = element.range().end();
-                if let Some(&idx) = self.by_start_offset.get(&offset) {
-                    &mut self.blocks[idx]
-                } else {
-                    let original = match element.next_sibling_or_token() {
-                        Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
-                            OriginalSpace::Some(token)
-                        }
-                        Some(_) => OriginalSpace::None { offset },
-                        _ => match element.parent() {
-                            Option::Some(parent) => return self.block_for(parent.into(), position),
-                            None => OriginalSpace::None { offset },
-                        },
-                    };
-                    self.push_block(SpaceBlock::new(original))
-                }
-            }
+
+        let offset = match position {
+            Before => element.range().start(),
+            After => element.range().end(),
+        };
+
+        if let Some(&existing) = match position {
+            Before => self.by_end_offset.get(&offset),
+            After => self.by_start_offset.get(&offset),
+        } {
+            return &mut self.blocks[existing];
         }
+
+        let original_token = match position {
+            Before => element.prev_sibling_or_token(),
+            After => element.next_sibling_or_token(),
+        };
+
+        let original_space = match original_token {
+            Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
+                OriginalSpace::Some(token)
+            }
+            Some(_) => OriginalSpace::None { offset },
+            _ => match element.parent() {
+                Option::Some(parent) => return self.block_for(parent.into(), position),
+                None => OriginalSpace::None { offset },
+            },
+        };
+
+        self.push_block(SpaceBlock::new(original_space))
     }
 
     fn push_block(&mut self, block: SpaceBlock<'a>) -> &mut SpaceBlock<'a> {
