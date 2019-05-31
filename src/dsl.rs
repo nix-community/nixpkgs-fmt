@@ -42,25 +42,10 @@ impl From<&'static [SyntaxKind]> for Pred {
     }
 }
 
-
-#[rustfmt::skip]
-macro_rules! T {
-    (=)   => (rnix::tokenizer::tokens::TOKEN_ASSIGN);
-    ('{') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_OPEN);
-    ('}') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_CLOSE);
-    ('[') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_OPEN);
-    (']') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_CLOSE);
-    (++) => (rnix::tokenizer::tokens::TOKEN_CONCAT);
-    (==) => (rnix::tokenizer::tokens::TOKEN_EQUAL);
-    (:) => (rnix::tokenizer::tokens::TOKEN_COLON);
-    (;) => (rnix::tokenizer::tokens::TOKEN_SEMICOLON);
-    (.) => (rnix::tokenizer::tokens::TOKEN_DOT);
-}
-
 #[derive(Debug)]
 pub(crate) struct SpacingRule {
     pub(crate) pattern: Pattern,
-    pub(crate) space: Option<Space>,
+    pub(crate) space: Space,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -83,69 +68,68 @@ pub(crate) enum SpaceLoc {
     Around,
 }
 
-pub(crate) struct SpacingRuleBuilder {
-    parent: Pred,
-    child: Option<Pred>,
-    value: Option<SpaceValue>,
-    loc: Option<SpaceLoc>,
+#[derive(Debug, Default)]
+pub(crate) struct SpacingDsl {
+    pub(crate) rules: Vec<SpacingRule>,
 }
 
-pub(crate) fn inside(parent: impl Into<Pred>) -> SpacingRuleBuilder {
-    SpacingRuleBuilder {
-        parent: parent.into(),
-        child: None,
-        value: None,
-        loc: None,
+impl SpacingDsl {
+    pub(crate) fn inside(&mut self, parent: impl Into<Pred>) -> SpacingRuleBuilder<'_> {
+        SpacingRuleBuilder {
+            dsl: self,
+            parent: parent.into(),
+            child: None,
+            loc: None,
+        }
     }
 }
 
-impl SpacingRuleBuilder {
-    pub(crate) fn around(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder {
+pub(crate) struct SpacingRuleBuilder<'a> {
+    dsl: &'a mut SpacingDsl,
+    parent: Pred,
+    child: Option<Pred>,
+    loc: Option<SpaceLoc>,
+}
+
+impl<'a> SpacingRuleBuilder<'a> {
+    pub(crate) fn around(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder<'a> {
         self.child = Some(kind.into());
         self.loc = Some(SpaceLoc::Around);
         self
     }
-    pub(crate) fn before(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder {
+    pub(crate) fn before(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder<'a> {
         self.child = Some(kind.into());
         self.loc = Some(SpaceLoc::Before);
         self
     }
-    pub(crate) fn after(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder {
+    pub(crate) fn after(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder<'a> {
         self.child = Some(kind.into());
         self.loc = Some(SpaceLoc::After);
         self
     }
-    pub(crate) fn single_space(mut self) -> SpacingRuleBuilder {
-        self.value = Some(SpaceValue::Single);
-        self
+    pub(crate) fn single_space(self) -> &'a mut SpacingDsl {
+        self.finish(SpaceValue::Single)
     }
-    pub(crate) fn single_space_or_newline(mut self) -> SpacingRuleBuilder {
-        self.value = Some(SpaceValue::SingleOrNewline);
-        self
+    pub(crate) fn single_space_or_newline(self) -> &'a mut SpacingDsl {
+        self.finish(SpaceValue::SingleOrNewline)
     }
-    pub(crate) fn no_space(mut self) -> SpacingRuleBuilder {
-        self.value = Some(SpaceValue::None);
-        self
+    pub(crate) fn no_space(self) -> &'a mut SpacingDsl {
+        self.finish(SpaceValue::None)
     }
-    fn space(&self) -> Option<Space> {
-        Some(Space {
-            value: self.value?,
-            loc: self.loc?,
-        })
-    }
-}
-
-impl From<SpacingRuleBuilder> for SpacingRule {
-    fn from(builder: SpacingRuleBuilder) -> SpacingRule {
-        let space = builder.space();
-        let child = builder.child.unwrap();
-        SpacingRule {
+    fn finish(self, value: SpaceValue) -> &'a mut SpacingDsl {
+        let space = Space {
+            value,
+            loc: self.loc.unwrap(),
+        };
+        let rule = SpacingRule {
             pattern: Pattern {
-                parent: builder.parent,
-                child,
+                parent: self.parent,
+                child: self.child.unwrap(),
             },
             space,
-        }
+        };
+        self.dsl.rules.push(rule);
+        self.dsl
     }
 }
 
@@ -161,4 +145,18 @@ pub(crate) fn indent(parent: impl Into<Pred>, child: impl Into<Pred>) -> IndentR
             child: child.into(),
         },
     }
+}
+
+#[rustfmt::skip]
+macro_rules! T {
+    (=)   => (rnix::tokenizer::tokens::TOKEN_ASSIGN);
+    ('{') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_OPEN);
+    ('}') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_CLOSE);
+    ('[') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_OPEN);
+    (']') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_CLOSE);
+    (++) => (rnix::tokenizer::tokens::TOKEN_CONCAT);
+    (==) => (rnix::tokenizer::tokens::TOKEN_EQUAL);
+    (:) => (rnix::tokenizer::tokens::TOKEN_COLON);
+    (;) => (rnix::tokenizer::tokens::TOKEN_SEMICOLON);
+    (.) => (rnix::tokenizer::tokens::TOKEN_DOT);
 }

@@ -8,7 +8,7 @@ use rnix::{
 };
 
 use crate::{
-    dsl::{IndentRule, SpaceLoc, SpaceValue, SpacingRule},
+    dsl::{IndentRule, SpaceLoc, SpaceValue, SpacingRule, SpacingDsl},
     tree_utils::{has_newline, walk_non_whitespace},
     AtomEdit, FmtDiff,
 };
@@ -16,14 +16,14 @@ use crate::{
 const INDENT_SIZE: usize = 2;
 
 pub(crate) fn format(
-    spacing_rules: &[SpacingRule],
+    spacing_dsl: &SpacingDsl,
     indent_rules: &[IndentRule],
     root: &SyntaxNode,
 ) -> FmtDiff {
     let mut model = FmtModel::new(root);
 
     for element in walk_non_whitespace(root) {
-        for rule in spacing_rules.iter() {
+        for rule in spacing_dsl.rules.iter() {
             rule.apply(element, &mut model)
         }
     }
@@ -203,18 +203,13 @@ impl SpacingRule {
         if !self.pattern.matches(element) {
             return;
         }
-        let space = match self.space {
-            Some(it) => it,
-            None => return,
-        };
-
-        if space.loc.is_before() {
+        if self.space.loc.is_before() {
             let block = model.block_for(element, BlockPosition::Before);
-            ensure_space(element, block, space.value);
+            ensure_space(element, block, self.space.value);
         }
-        if space.loc.is_after() {
+        if self.space.loc.is_after() {
             let block = model.block_for(element, BlockPosition::After);
-            ensure_space(element, block, space.value);
+            ensure_space(element, block, self.space.value);
         }
     }
 }

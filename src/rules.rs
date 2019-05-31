@@ -1,42 +1,41 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{parser::nodes::*, SyntaxKind};
 
-use crate::dsl::{self, indent, inside};
+use crate::dsl::{self, indent, SpacingDsl};
 
 #[rustfmt::skip]
-pub(crate) fn spacing() -> Vec<dsl::SpacingRule> {
-    let mut rules = Vec::new();
-    let mut r = |b: dsl::SpacingRuleBuilder| rules.push(b.into());
-
+pub(crate) fn spacing() -> SpacingDsl {
     // Note: comments with fat arrow are tests!
+    let mut dsl = SpacingDsl::default();
 
-    // { a=92; } => { a = 92; }
-    r(inside(NODE_SET_ENTRY).around(T![=]).single_space());
+    dsl
+        // { a=92; } => { a = 92; }
+        .inside(NODE_SET_ENTRY).around(T![=]).single_space()
 
-    // { a = 92 ; } => { a = 92; }
-    r(inside(NODE_SET_ENTRY).before(T![;]).no_space());
+        // { a = 92 ; } => { a = 92; }
+        .inside(NODE_SET_ENTRY).before(T![;]).no_space()
 
-    // a++  b => a ++ b
-    r(inside(NODE_OPERATION).around(T![++]).single_space());
+        // a++  b => a ++ b
+        .inside(NODE_OPERATION).around(T![++]).single_space()
 
-    // a==  b => a == b
-    r(inside(NODE_OPERATION).around(T![==]).single_space());
+        // a==  b => a == b
+        .inside(NODE_OPERATION).around(T![==]).single_space()
 
-    // foo . bar . baz => foo.bar.baz
-    r(inside(NODE_INDEX_SET).around(T![.]).no_space());
+        // foo . bar . baz => foo.bar.baz
+        .inside(NODE_INDEX_SET).around(T![.]).no_space()
 
-    // {} : 92 => {}: 92
-    r(inside(NODE_LAMBDA).before(T![:]).no_space());
+        // {} : 92 => {}: 92
+        .inside(NODE_LAMBDA).before(T![:]).no_space()
 
-    // [1 2 3] => [ 1 2 3 ]
-    r(inside(NODE_LIST).after(T!['[']).single_space_or_newline());
-    r(inside(NODE_LIST).before(T![']']).single_space_or_newline());
+        // [1 2 3] => [ 1 2 3 ]
+        .inside(NODE_LIST).after(T!['[']).single_space_or_newline()
+        .inside(NODE_LIST).before(T![']']).single_space_or_newline()
 
-    // {foo = 92;} => { foo = 92; }
-    r(inside(NODE_SET).after(T!['{']).single_space_or_newline());
-    r(inside(NODE_SET).before(T!['}']).single_space_or_newline());
+        // {foo = 92;} => { foo = 92; }
+        .inside(NODE_SET).after(T!['{']).single_space_or_newline()
+        .inside(NODE_SET).before(T!['}']).single_space_or_newline();
 
-    rules
+    dsl
 }
 
 #[rustfmt::skip]
