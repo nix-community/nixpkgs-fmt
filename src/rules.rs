@@ -1,7 +1,7 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{parser::nodes::*, SyntaxKind};
 
-use crate::dsl::{self, indent, SpacingDsl};
+use crate::dsl::{IndentDsl, SpacingDsl};
 
 #[rustfmt::skip]
 pub(crate) fn spacing() -> SpacingDsl {
@@ -37,16 +37,16 @@ pub(crate) fn spacing() -> SpacingDsl {
 }
 
 #[rustfmt::skip]
-pub(crate) fn indentation() -> Vec<dsl::IndentRule> {
-    let mut rules = Vec::new();
-    let mut r = |i: dsl::IndentRule| rules.push(i);
-    r(indent(NODE_LIST, LIST_ELEMENTS));
-    r(indent(ENTRY_OWNERS, NODE_SET_ENTRY));
+pub(crate) fn indentation() -> IndentDsl {
+    let mut dsl = IndentDsl::default();
+    dsl
+        .inside(NODE_LIST).indent(LIST_ELEMENTS)
+        .inside(ENTRY_OWNERS).indent(NODE_SET_ENTRY)
 
-    // FIXME: don't force indent if comment is on the first line
-    r(indent(NODE_LIST, TOKEN_COMMENT));
-    r(indent(ENTRY_OWNERS, TOKEN_COMMENT));
-    rules
+        // FIXME: don't force indent if comment is on the first line
+        .inside(NODE_LIST).indent(TOKEN_COMMENT)
+        .inside(ENTRY_OWNERS).indent(TOKEN_COMMENT);
+    dsl
 }
 
 static ENTRY_OWNERS: &'static [SyntaxKind] = &[NODE_SET, NODE_LET_IN];

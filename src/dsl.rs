@@ -146,12 +146,35 @@ pub(crate) struct IndentRule {
     pub(crate) pattern: Pattern,
 }
 
-pub(crate) fn indent(parent: impl Into<Pred>, child: impl Into<Pred>) -> IndentRule {
-    IndentRule {
-        pattern: Pattern {
+#[derive(Default)]
+pub(crate) struct IndentDsl {
+    pub(crate) rules: Vec<IndentRule>,
+}
+
+impl IndentDsl {
+    pub(crate) fn inside(&mut self, parent: impl Into<Pred>) -> IndentRuleBuilder<'_> {
+        IndentRuleBuilder {
+            dsl: self,
             parent: parent.into(),
-            child: child.into(),
-        },
+        }
+    }
+}
+
+pub(crate) struct IndentRuleBuilder<'a> {
+    dsl: &'a mut IndentDsl,
+    parent: Pred,
+}
+
+impl<'a> IndentRuleBuilder<'a> {
+    pub(crate) fn indent(self, child: impl Into<Pred>) -> &'a mut IndentDsl {
+        let indent_rule = IndentRule {
+            pattern: Pattern {
+                parent: self.parent,
+                child: child.into(),
+            }
+        };
+        self.dsl.rules.push(indent_rule);
+        self.dsl
     }
 }
 

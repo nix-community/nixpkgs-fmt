@@ -8,7 +8,7 @@ use rnix::{
 };
 
 use crate::{
-    dsl::{IndentRule, SpaceLoc, SpaceValue, SpacingRule, SpacingDsl},
+    dsl::{IndentDsl, IndentRule, SpaceLoc, SpaceValue, SpacingDsl, SpacingRule},
     tree_utils::{has_newline, walk_non_whitespace},
     AtomEdit, FmtDiff,
 };
@@ -17,7 +17,7 @@ const INDENT_SIZE: usize = 2;
 
 pub(crate) fn format(
     spacing_dsl: &SpacingDsl,
-    indent_rules: &[IndentRule],
+    indent_dsl: &IndentDsl,
     root: &SyntaxNode,
 ) -> FmtDiff {
     let mut model = FmtModel::new(root);
@@ -33,7 +33,11 @@ pub(crate) fn format(
         if !block.has_newline() {
             continue;
         }
-        match indent_rules.iter().find(|it| it.pattern.matches(element)) {
+        match indent_dsl
+            .rules
+            .iter()
+            .find(|it| it.pattern.matches(element))
+        {
             Some(rule) => rule.apply(element, &mut model),
             None => default_indent(element, &mut model),
         }
