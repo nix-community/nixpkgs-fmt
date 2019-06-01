@@ -1,11 +1,22 @@
-# nix-fmt
-Experimental universal nix formatter for nixpkgs
+# nixpkgs-fmt
 
-## Samples
+**STATUS: experimental**
 
-the samples folder contains multiple samples, `samples/*/out.nix` is what the
-tool would produce after formatting the code. All the other files in the given
-folder would be inputs that produce that same output.
+This project's goal is to provide a nix code formatter that would be applied
+on nixpkgs. Ideally automatically with a tool like ofborg.
+
+## Design decisions
+
+Use Rust because ofborg is written in rust. Rust also has a small chance of
+being included in nix upstream.
+
+Use a rule-based formatter (vs pretty-printing) because it allows some form of
+expressivity for the developers. For example double new-lines can be used when
+the developer wants a section of code to stand out. The important part is to
+avoid discussions on indent and brackets alignment.
+
+Favour mergeability. nixpkgs is seeing a lot of traffic. Spread things out
+vertically to minimize the chances of merge conflicts.
 
 ## Related projects
 

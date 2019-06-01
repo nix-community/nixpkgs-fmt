@@ -43,7 +43,7 @@ enum Dst {
 }
 
 fn parse_args() -> Result<Args> {
-    let matches = App::new("nix-fmt")
+    let matches = App::new("nixpkgs-fmt")
         .version("0.1")
         .about("Format Nix code")
         .arg(
@@ -109,7 +109,7 @@ fn try_main(args: Args) -> Result<()> {
     };
 
     let res = match args.operation {
-        Operation::Fmt => nix_fmt::reformat_string(&input),
+        Operation::Fmt => nixpkgs_fmt::reformat_string(&input),
         Operation::Parse => {
             let ast = rnix::parse(&input);
             let mut buf = String::new();
