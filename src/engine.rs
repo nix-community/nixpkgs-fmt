@@ -233,12 +233,16 @@ impl SpaceLoc {
 
 fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValue) {
     match value {
+        SpaceValue::Single => block.set_text(" "),
+        SpaceValue::None => block.set_text(""),
         SpaceValue::SingleOrNewline => {
             let parent_is_multiline = element.parent().map_or(false, has_newline);
             block.set_text(if parent_is_multiline { "\n" } else { " " });
         }
-        SpaceValue::Single => block.set_text(" "),
-        SpaceValue::None => block.set_text(""),
+        SpaceValue::NoneOrNewline => {
+            let parent_is_multiline = element.parent().map_or(false, has_newline);
+            block.set_text(if parent_is_multiline { "\n" } else { "" });
+        }
     }
 }
 
