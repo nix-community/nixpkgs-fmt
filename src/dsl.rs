@@ -1,7 +1,9 @@
 //! This module contains a definition of pattern-based formatting DSL.
-use std::{fmt, ops};
+use std::{fmt, ops, sync::Arc};
 
 use rnix::{SyntaxElement, SyntaxKind};
+
+use crate::tree_utils::{next_non_whitespace_sibling, prev_non_whitespace_sibling};
 
 #[derive(Debug)]
 pub(crate) struct Pattern {
@@ -16,7 +18,8 @@ impl Pattern {
     }
 }
 
-pub(crate) struct Pred(Box<Fn(SyntaxElement<'_>) -> bool>);
+#[derive(Clone)]
+pub(crate) struct Pred(Arc<dyn (Fn(SyntaxElement<'_>) -> bool)>);
 
 impl fmt::Debug for Pred {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -33,26 +36,29 @@ impl Pred {
 impl ops::BitAnd for Pred {
     type Output = Pred;
     fn bitand(self, other: Pred) -> Pred {
-        Pred(Box::new(move |it| self.matches(it) && other.matches(it)))
+        Pred(Arc::new(move |it| self.matches(it) && other.matches(it)))
     }
 }
 
-impl From<fn(SyntaxElement) -> bool> for Pred {
-    fn from(f: fn(SyntaxElement) -> bool) -> Pred {
-        Pred(Box::new(f))
+impl<F> From<F> for Pred
+where
+    F: for<'a> Fn(SyntaxElement<'a>) -> bool + 'static,
+{
+    fn from(f: F) -> Pred {
+        Pred(Arc::new(f))
     }
 }
 
 impl From<SyntaxKind> for Pred {
     fn from(kind: SyntaxKind) -> Pred {
-        Pred(Box::new(move |it| it.kind() == kind))
+        Pred(Arc::new(move |it| it.kind() == kind))
     }
 }
 
 impl From<&'_ [SyntaxKind]> for Pred {
     fn from(kinds: &[SyntaxKind]) -> Pred {
         let kinds = kinds.to_vec();
-        Pred(Box::new(move |it| kinds.contains(&it.kind())))
+        Pred(Arc::new(move |it| kinds.contains(&it.kind())))
     }
 }
 
@@ -100,6 +106,7 @@ impl SpacingDsl {
             dsl: self,
             parent: parent.into(),
             child: None,
+            between: None,
             loc: None,
         }
     }
@@ -109,6 +116,7 @@ pub(crate) struct SpacingRuleBuilder<'a> {
     dsl: &'a mut SpacingDsl,
     parent: Pred,
     child: Option<Pred>,
+    between: Option<(SyntaxKind, SyntaxKind)>,
     loc: Option<SpaceLoc>,
 }
 
@@ -125,6 +133,11 @@ impl<'a> SpacingRuleBuilder<'a> {
     }
     pub(crate) fn after(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder<'a> {
         self.child = Some(kind.into());
+        self.loc = Some(SpaceLoc::After);
+        self
+    }
+    pub(crate) fn between(mut self, left: SyntaxKind, right: SyntaxKind) -> SpacingRuleBuilder<'a> {
+        self.between = Some((left, right));
         self.loc = Some(SpaceLoc::After);
         self
     }
@@ -147,18 +160,52 @@ impl<'a> SpacingRuleBuilder<'a> {
         self.finish(SpaceValue::NoneOrNewline)
     }
     fn finish(self, value: SpaceValue) -> &'a mut SpacingDsl {
-        let space = Space {
-            value,
-            loc: self.loc.unwrap(),
-        };
-        let rule = SpacingRule {
-            pattern: Pattern {
-                parent: self.parent,
-                child: self.child.unwrap(),
-            },
-            space,
-        };
-        self.dsl.rules.push(rule);
+        assert!(self.between.is_some() ^ self.child.is_some());
+        if let Some((left, right)) = self.between {
+            let rule = SpacingRule {
+                pattern: Pattern {
+                    parent: self.parent.clone(),
+                    child: Pred::from(left)
+                        & Pred::from(move |it: SyntaxElement<'_>| {
+                            next_non_whitespace_sibling(it).map(|it| it.kind() == right)
+                                == Some(true)
+                        }),
+                },
+                space: Space {
+                    value,
+                    loc: SpaceLoc::After,
+                },
+            };
+            self.dsl.rules.push(rule);
+
+            let rule = SpacingRule {
+                pattern: Pattern {
+                    parent: self.parent,
+                    child: Pred::from(right)
+                        & Pred::from(move |it: SyntaxElement<'_>| {
+                            prev_non_whitespace_sibling(it).map(|it| it.kind() == left)
+                                == Some(true)
+                        }),
+                },
+                space: Space {
+                    value,
+                    loc: SpaceLoc::Before,
+                },
+            };
+            self.dsl.rules.push(rule);
+        } else {
+            let rule = SpacingRule {
+                pattern: Pattern {
+                    parent: self.parent,
+                    child: self.child.unwrap(),
+                },
+                space: Space {
+                    value,
+                    loc: self.loc.unwrap(),
+                },
+            };
+            self.dsl.rules.push(rule);
+        }
         self.dsl
     }
 }

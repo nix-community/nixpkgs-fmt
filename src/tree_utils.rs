@@ -38,3 +38,17 @@ pub(crate) fn prev_sibling(element: SyntaxElement<'_>) -> Option<&SyntaxNode> {
         SyntaxElement::Token(_) => None,
     })
 }
+
+pub(crate) fn prev_non_whitespace_sibling(element: SyntaxElement<'_>) -> Option<SyntaxElement<'_>> {
+    successors(element.prev_sibling_or_token(), |it| {
+        it.prev_sibling_or_token()
+    })
+    .find(|it| it.kind() != TOKEN_WHITESPACE)
+}
+
+pub(crate) fn next_non_whitespace_sibling(element: SyntaxElement<'_>) -> Option<SyntaxElement<'_>> {
+    successors(element.next_sibling_or_token(), |it| {
+        it.next_sibling_or_token()
+    })
+    .find(|it| it.kind() != TOKEN_WHITESPACE)
+}
