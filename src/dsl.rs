@@ -212,4 +212,5 @@ macro_rules! T {
     (:) => (rnix::tokenizer::tokens::TOKEN_COLON);
     (;) => (rnix::tokenizer::tokens::TOKEN_SEMICOLON);
     (.) => (rnix::tokenizer::tokens::TOKEN_DOT);
+    (,) => (rnix::tokenizer::tokens::TOKEN_COMMA);
 }

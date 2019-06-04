@@ -1,0 +1,5 @@
+{ stdenv
+, lib
+, curl
+}:
+null
