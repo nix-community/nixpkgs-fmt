@@ -43,6 +43,9 @@ pub(crate) fn spacing() -> SpacingDsl {
          // {arg}: 92 => { arg }: 92
         .inside(NODE_PATTERN).after(T!['{']).single_space_or_newline()
         .inside(NODE_PATTERN).before(T!['}']).single_space_or_newline()
+
+        // { foo,bar }: 92 => { foo, bar }: 92
+        .inside(NODE_PATTERN).after(T![,]).single_space()
         ;
 
     dsl
