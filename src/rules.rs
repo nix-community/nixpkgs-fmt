@@ -1,7 +1,10 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
-use rnix::{parser::nodes::*, SyntaxKind};
+use rnix::{parser::nodes::*, SyntaxElement, SyntaxKind};
 
-use crate::dsl::{IndentDsl, SpacingDsl};
+use crate::{
+    dsl::{IndentDsl, SpacingDsl},
+    tree_utils::prev_sibling,
+};
 
 #[rustfmt::skip]
 pub(crate) fn spacing() -> SpacingDsl {
@@ -13,11 +16,15 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_SET_ENTRY).around(T![=]).single_space()
 
         // { a = 92 ; } => { a = 92; }
-        .inside(NODE_SET_ENTRY).before(T![;]).no_space()
+        .inside(NODE_SET_ENTRY).before(T![;]).no_space_or_newline()
+        .inside(NODE_SET_ENTRY).before(T![;]).when(after_literal).no_space()
+
+        // a==  b => a == b
+        .inside(NODE_OPERATION).around(T![==]).single_space()
 
         // a++  b => a ++ b
-        // a==  b => a == b
-        .inside(NODE_OPERATION).around([T![==], T![++]]).single_space()
+        .inside(NODE_OPERATION).after(T![++]).single_space()
+        .inside(NODE_OPERATION).before(T![++]).single_space_or_newline()
 
         // foo . bar . baz => foo.bar.baz
         .inside(NODE_INDEX_SET).around(T![.]).no_space()
@@ -31,9 +38,17 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         // {foo = 92;} => { foo = 92; }
         .inside(NODE_SET).after(T!['{']).single_space_or_newline()
-        .inside(NODE_SET).before(T!['}']).single_space_or_newline();
+        .inside(NODE_SET).before(T!['}']).single_space_or_newline()
+        ;
 
     dsl
+}
+
+fn after_literal(node: SyntaxElement<'_>) -> bool {
+    match prev_sibling(node).map(|it| it.kind()) {
+        Some(NODE_SET) | Some(NODE_LIST) => true,
+        _ => false,
+    }
 }
 
 #[rustfmt::skip]
@@ -45,7 +60,8 @@ pub(crate) fn indentation() -> IndentDsl {
 
         // FIXME: don't force indent if comment is on the first line
         .inside(NODE_LIST).indent(TOKEN_COMMENT)
-        .inside(ENTRY_OWNERS).indent(TOKEN_COMMENT);
+        .inside(ENTRY_OWNERS).indent(TOKEN_COMMENT)
+        ;
     dsl
 }
 

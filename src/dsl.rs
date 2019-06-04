@@ -1,5 +1,5 @@
 //! This module contains a definition of pattern-based formatting DSL.
-use std::fmt;
+use std::{fmt, ops};
 
 use rnix::{SyntaxElement, SyntaxKind};
 
@@ -11,12 +11,12 @@ pub(crate) struct Pattern {
 
 impl Pattern {
     pub(crate) fn matches(&self, element: SyntaxElement) -> bool {
-        self.child.matches(element.kind())
-            && element.parent().map(|it| self.parent.matches(it.kind())) == Some(true)
+        self.child.matches(element)
+            && element.parent().map(|it| self.parent.matches(it.into())) == Some(true)
     }
 }
 
-pub(crate) struct Pred(Box<Fn(SyntaxKind) -> bool>);
+pub(crate) struct Pred(Box<Fn(SyntaxElement<'_>) -> bool>);
 
 impl fmt::Debug for Pred {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -25,21 +25,34 @@ impl fmt::Debug for Pred {
 }
 
 impl Pred {
-    fn matches(&self, kind: SyntaxKind) -> bool {
-        (self.0)(kind)
+    fn matches(&self, element: SyntaxElement<'_>) -> bool {
+        (self.0)(element)
+    }
+}
+
+impl ops::BitAnd for Pred {
+    type Output = Pred;
+    fn bitand(self, other: Pred) -> Pred {
+        Pred(Box::new(move |it| self.matches(it) && other.matches(it)))
+    }
+}
+
+impl From<fn(SyntaxElement) -> bool> for Pred {
+    fn from(f: fn(SyntaxElement) -> bool) -> Pred {
+        Pred(Box::new(f))
     }
 }
 
 impl From<SyntaxKind> for Pred {
     fn from(kind: SyntaxKind) -> Pred {
-        Pred(Box::new(move |it| it == kind))
+        Pred(Box::new(move |it| it.kind() == kind))
     }
 }
 
 impl From<&'_ [SyntaxKind]> for Pred {
     fn from(kinds: &[SyntaxKind]) -> Pred {
         let kinds = kinds.to_vec();
-        Pred(Box::new(move |it| kinds.contains(&it)))
+        Pred(Box::new(move |it| kinds.contains(&it.kind())))
     }
 }
 
@@ -48,7 +61,6 @@ impl From<[SyntaxKind; 2]> for Pred {
         Pred::from(&kinds[..])
     }
 }
-
 
 #[derive(Debug)]
 pub(crate) struct SpacingRule {
@@ -64,9 +76,10 @@ pub(crate) struct Space {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum SpaceValue {
-    SingleOrNewline,
     Single,
     None,
+    SingleOrNewline,
+    NoneOrNewline,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -115,14 +128,23 @@ impl<'a> SpacingRuleBuilder<'a> {
         self.loc = Some(SpaceLoc::After);
         self
     }
+    pub(crate) fn when(mut self, cond: fn(SyntaxElement<'_>) -> bool) -> SpacingRuleBuilder<'a> {
+        let pred = cond.into();
+        let prev = self.child.take().unwrap();
+        self.child = Some(prev & pred);
+        self
+    }
     pub(crate) fn single_space(self) -> &'a mut SpacingDsl {
         self.finish(SpaceValue::Single)
+    }
+    pub(crate) fn no_space(self) -> &'a mut SpacingDsl {
+        self.finish(SpaceValue::None)
     }
     pub(crate) fn single_space_or_newline(self) -> &'a mut SpacingDsl {
         self.finish(SpaceValue::SingleOrNewline)
     }
-    pub(crate) fn no_space(self) -> &'a mut SpacingDsl {
-        self.finish(SpaceValue::None)
+    pub(crate) fn no_space_or_newline(self) -> &'a mut SpacingDsl {
+        self.finish(SpaceValue::NoneOrNewline)
     }
     fn finish(self, value: SpaceValue) -> &'a mut SpacingDsl {
         let space = Space {
@@ -171,7 +193,7 @@ impl<'a> IndentRuleBuilder<'a> {
             pattern: Pattern {
                 parent: self.parent,
                 child: child.into(),
-            }
+            },
         };
         self.dsl.rules.push(indent_rule);
         self.dsl
