@@ -1,2 +1,2 @@
-{ stdenv, lib, curl}:
+{ stdenv, lib, curl }:
 null
