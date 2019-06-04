@@ -11,12 +11,12 @@ pub(crate) struct Pattern {
 
 impl Pattern {
     pub(crate) fn matches(&self, element: SyntaxElement) -> bool {
-        self.child.matches(element.kind())
-            && element.parent().map(|it| self.parent.matches(it.kind())) == Some(true)
+        self.child.matches(element)
+            && element.parent().map(|it| self.parent.matches(it.into())) == Some(true)
     }
 }
 
-pub(crate) struct Pred(Box<Fn(SyntaxKind) -> bool>);
+pub(crate) struct Pred(Box<Fn(SyntaxElement<'_>) -> bool>);
 
 impl fmt::Debug for Pred {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -25,21 +25,21 @@ impl fmt::Debug for Pred {
 }
 
 impl Pred {
-    fn matches(&self, kind: SyntaxKind) -> bool {
-        (self.0)(kind)
+    fn matches(&self, element: SyntaxElement<'_>) -> bool {
+        (self.0)(element)
     }
 }
 
 impl From<SyntaxKind> for Pred {
     fn from(kind: SyntaxKind) -> Pred {
-        Pred(Box::new(move |it| it == kind))
+        Pred(Box::new(move |it| it.kind() == kind))
     }
 }
 
 impl From<&'_ [SyntaxKind]> for Pred {
     fn from(kinds: &[SyntaxKind]) -> Pred {
         let kinds = kinds.to_vec();
-        Pred(Box::new(move |it| kinds.contains(&it)))
+        Pred(Box::new(move |it| kinds.contains(&it.kind())))
     }
 }
 
