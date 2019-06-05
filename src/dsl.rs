@@ -265,6 +265,8 @@ macro_rules! T {
     ('}') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_CLOSE);
     ('[') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_OPEN);
     (']') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_CLOSE);
+    ('(') => (rnix::tokenizer::tokens::TOKEN_PAREN_OPEN);
+    (')') => (rnix::tokenizer::tokens::TOKEN_PAREN_CLOSE);
     (++) => (rnix::tokenizer::tokens::TOKEN_CONCAT);
     (==) => (rnix::tokenizer::tokens::TOKEN_EQUAL);
     (:) => (rnix::tokenizer::tokens::TOKEN_COLON);
