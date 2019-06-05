@@ -71,7 +71,7 @@ pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
         .inside(NODE_LIST).indent(LIST_ELEMENTS)
-        .inside(ENTRY_OWNERS).indent(NODE_SET_ENTRY)
+        .inside(ENTRY_OWNERS).indent([NODE_SET_ENTRY, NODE_INHERIT])
 
         // FIXME: don't force indent if comment is on the first line
         .inside(NODE_LIST).indent(TOKEN_COMMENT)
