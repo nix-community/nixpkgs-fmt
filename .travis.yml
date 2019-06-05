@@ -1,1 +1,7 @@
 language: rust
+
+branches:
+  only:
+    - staging
+    - master
+    - trying
