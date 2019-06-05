@@ -225,6 +225,7 @@ impl IndentDsl {
         IndentRuleBuilder {
             dsl: self,
             parent: parent.into(),
+            when: None,
         }
     }
 }
@@ -232,14 +233,24 @@ impl IndentDsl {
 pub(crate) struct IndentRuleBuilder<'a> {
     dsl: &'a mut IndentDsl,
     parent: Pred,
+    when: Option<Pred>,
 }
 
 impl<'a> IndentRuleBuilder<'a> {
+    pub(crate) fn when(mut self, cond: fn(SyntaxElement<'_>) -> bool) -> IndentRuleBuilder<'a> {
+        self.when = Some(cond.into());
+        self
+    }
+
     pub(crate) fn indent(self, child: impl Into<Pred>) -> &'a mut IndentDsl {
+        let mut child: Pred = child.into();
+        if let Some(cond) = self.when {
+            child = child & cond;
+        }
         let indent_rule = IndentRule {
             pattern: Pattern {
                 parent: self.parent,
-                child: child.into(),
+                child,
             },
         };
         self.dsl.rules.push(indent_rule);
