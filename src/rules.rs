@@ -16,8 +16,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_SET_ENTRY).around(T![=]).single_space()
 
         // { a = 92 ; } => { a = 92; }
-        .inside(NODE_SET_ENTRY).before(T![;]).no_space_or_newline()
-        .inside(NODE_SET_ENTRY).before(T![;]).when(after_literal).no_space()
+        .inside(NODE_SET_ENTRY).before(T![;]).no_space()
+        .inside(NODE_SET_ENTRY).before(T![;]).when(after_bin_op).no_space_or_newline()
 
         // a==  b => a == b
         .inside(NODE_OPERATION).around(T![==]).single_space()
@@ -59,9 +59,9 @@ pub(crate) fn spacing() -> SpacingDsl {
     dsl
 }
 
-fn after_literal(node: SyntaxElement<'_>) -> bool {
+fn after_bin_op(node: SyntaxElement<'_>) -> bool {
     match prev_sibling(node).map(|it| it.kind()) {
-        Some(NODE_SET) | Some(NODE_LIST) => true,
+        Some(NODE_OPERATION) => true,
         _ => false,
     }
 }
