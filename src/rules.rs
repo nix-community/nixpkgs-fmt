@@ -52,8 +52,14 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         // { foo,bar }: 92 => { foo, bar }: 92
         .inside(NODE_PATTERN).after(T![,]).single_space()
-
         .inside(NODE_PATTERN).before(T![,]).no_space_or_newline()
+
+        // { inherit( x )  y  z  ; } => { inherit (x) y z; }
+        .inside(NODE_INHERIT).around(NODE_INHERIT_FROM).single_space()
+        .inside(NODE_INHERIT).before(T![;]).no_space()
+        .inside(NODE_INHERIT).before(NODE_IDENT).single_space()
+        .inside(NODE_INHERIT_FROM).after(T!['(']).no_space()
+        .inside(NODE_INHERIT_FROM).before(T![')']).no_space()
         ;
 
     dsl
