@@ -1,7 +1,7 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
     parser::nodes::*,
-    types::{Lambda, TypedNode},
+    types::{Lambda, TypedNode, With, Apply},
     SyntaxElement, SyntaxKind,
 };
 
@@ -84,6 +84,8 @@ pub(crate) fn indentation() -> IndentDsl {
         .inside(ENTRY_OWNERS).indent([NODE_SET_ENTRY, NODE_INHERIT])
 
         .inside(NODE_LAMBDA).when(lambda_body_not_on_top_level).indent(VALUES)
+        .inside(NODE_WITH).when(with_body).indent(VALUES)
+        .inside(NODE_APPLY).when(apply_arg).indent(VALUES)
 
         // FIXME: don't force indent if comment is on the first line
         .inside(NODE_LIST).indent(TOKEN_COMMENT)
@@ -104,6 +106,30 @@ fn lambda_body_not_on_top_level(body: SyntaxElement<'_>) -> bool {
     lambda.body() == body && lambda.node().parent().map(|it| it.kind()) != Some(NODE_ROOT)
 }
 
+fn with_body(body: SyntaxElement<'_>) -> bool {
+    let body = match body {
+        SyntaxElement::Node(it) => it,
+        SyntaxElement::Token(_) => return false,
+    };
+    let with = match body.parent().and_then(With::cast) {
+        None => return false,
+        Some(it) => it,
+    };
+    with.body() == body
+}
+
+fn apply_arg(arg: SyntaxElement<'_>) -> bool {
+    let arg = match arg {
+        SyntaxElement::Node(it) => it,
+        SyntaxElement::Token(_) => return false,
+    };
+    let apply = match arg.parent().and_then(Apply::cast) {
+        None => return false,
+        Some(it) => it,
+    };
+    apply.value() == arg
+}
+
 static ENTRY_OWNERS: &'static [SyntaxKind] = &[NODE_SET, NODE_LET_IN];
 
 static VALUES: &'static [SyntaxKind] = &[
@@ -115,6 +141,7 @@ static VALUES: &'static [SyntaxKind] = &[
     NODE_STRING,
     NODE_PAREN,
     NODE_IDENT,
+    NODE_LET_IN,
 ];
 
 #[cfg(test)]
