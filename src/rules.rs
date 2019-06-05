@@ -1,5 +1,9 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
-use rnix::{parser::nodes::*, SyntaxElement, SyntaxKind};
+use rnix::{
+    parser::nodes::*,
+    types::{Lambda, TypedNode},
+    SyntaxElement, SyntaxKind,
+};
 
 use crate::{
     dsl::{IndentDsl, SpacingDsl},
@@ -70,8 +74,10 @@ fn after_bin_op(node: SyntaxElement<'_>) -> bool {
 pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
-        .inside(NODE_LIST).indent(LIST_ELEMENTS)
+        .inside(NODE_LIST).indent(VALUES)
         .inside(ENTRY_OWNERS).indent([NODE_SET_ENTRY, NODE_INHERIT])
+
+        .inside(NODE_LAMBDA).when(lambda_body_not_on_top_level).indent(VALUES)
 
         // FIXME: don't force indent if comment is on the first line
         .inside(NODE_LIST).indent(TOKEN_COMMENT)
@@ -80,9 +86,21 @@ pub(crate) fn indentation() -> IndentDsl {
     dsl
 }
 
+fn lambda_body_not_on_top_level(body: SyntaxElement<'_>) -> bool {
+    let body = match body {
+        SyntaxElement::Node(it) => it,
+        SyntaxElement::Token(_) => return false,
+    };
+    let lambda = match body.parent().and_then(Lambda::cast) {
+        None => return false,
+        Some(it) => it,
+    };
+    lambda.body() == body && lambda.node().parent().map(|it| it.kind()) != Some(NODE_ROOT)
+}
+
 static ENTRY_OWNERS: &'static [SyntaxKind] = &[NODE_SET, NODE_LET_IN];
 
-static LIST_ELEMENTS: &'static [SyntaxKind] = &[
+static VALUES: &'static [SyntaxKind] = &[
     NODE_VALUE,
     NODE_LIST,
     NODE_SET,
@@ -106,8 +124,16 @@ mod tests {
     fn smoke() {
         TestCase {
             name: None,
-            before: "{ foo = 1;\nbar = 2; }".into(),
-            after: "{\n  foo = 1;\n  bar = 2;\n}".into(),
+            before: "{
+foo = x:
+92;
+}"
+            .into(),
+            after: "{
+  foo = x:
+    92;
+}"
+            .into(),
         }
         .run();
     }
