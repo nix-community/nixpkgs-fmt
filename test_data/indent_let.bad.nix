@@ -1,4 +1,5 @@
 let
 x = 1;
 y = 2;
-in x + y
+inherit z;
+in x + y + z
