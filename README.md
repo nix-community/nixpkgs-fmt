@@ -1,6 +1,6 @@
 # nixpkgs-fmt
 
-**STATUS: experimental**
+**STATUS: alpha**
 
 This project's goal is to provide a nix code formatter that would be applied
 on nixpkgs. Ideally automatically with a tool like ofborg.
@@ -17,6 +17,10 @@ avoid discussions on indent and brackets alignment.
 
 Favour mergeability. nixpkgs is seeing a lot of traffic. Spread things out
 vertically to minimize the chances of merge conflicts.
+
+## Documents
+
+* [HOWTO write new rules](docs/howto_rules.md)
 
 ## Related projects
 
