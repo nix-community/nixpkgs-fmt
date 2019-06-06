@@ -21,6 +21,7 @@ vertically to minimize the chances of merge conflicts.
 ## Documents
 
 * [HOWTO write new rules](docs/howto_rules.md)
+* [HOWTO WASM](wasm/README.md)
 
 ## Related projects
 
