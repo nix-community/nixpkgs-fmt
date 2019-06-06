@@ -18,6 +18,10 @@ avoid discussions on indent and brackets alignment.
 Favour mergeability. nixpkgs is seeing a lot of traffic. Spread things out
 vertically to minimize the chances of merge conflicts.
 
+## Documents
+
+* [HOWTO write new rules](docs/howto_rules.md)
+
 ## Related projects
 
 * [hnix](https://github.com/haskell-nix/hnix) - Haskell implementation of Nix
