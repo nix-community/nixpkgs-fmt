@@ -1,6 +1,6 @@
 # nixpkgs-fmt
 
-**STATUS: experimental**
+**STATUS: alpha**
 
 This project's goal is to provide a nix code formatter that would be applied
 on nixpkgs. Ideally automatically with a tool like ofborg.
