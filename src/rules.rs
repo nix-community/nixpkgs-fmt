@@ -71,6 +71,10 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_INHERIT).before(NODE_IDENT).single_space()
         .inside(NODE_INHERIT_FROM).after(T!['(']).no_space()
         .inside(NODE_INHERIT_FROM).before(T![')']).no_space()
+
+        // let   foo = bar;in  92 => let foo = bar; in 92
+        .inside(NODE_LET_IN).after(T![let]).single_space_or_newline()
+        .inside(NODE_LET_IN).around(T![in]).single_space_or_newline()
         ;
 
     dsl
