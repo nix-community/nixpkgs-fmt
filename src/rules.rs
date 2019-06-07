@@ -1,7 +1,7 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
     parser::nodes::*,
-    types::{Lambda, TypedNode, With, Apply},
+    types::{Apply, Lambda, TypedNode, With},
     SyntaxElement, SyntaxKind,
 };
 
@@ -32,13 +32,10 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         // a+  b => a + b
         // a  -   b => a - b
-        .inside(NODE_OPERATION).after([T![+], T![-]]).single_space()
-        .inside(NODE_OPERATION).before([T![+], T![-]]).single_space_or_newline()
-
         // a*  b => a * b
         // a/  b => a / b
-        .inside(NODE_OPERATION).after([T![*], T![/]]).single_space()
-        .inside(NODE_OPERATION).before([T![*], T![/]]).single_space_or_newline()
+        .inside(NODE_OPERATION).after([T![++], T![+], T![-], T![*], T![/]]).single_space()
+        .inside(NODE_OPERATION).before([T![++], T![+], T![-], T![*], T![/]]).single_space_or_newline()
 
         // foo . bar . baz => foo.bar.baz
         .inside(NODE_INDEX_SET).around(T![.]).no_space()
