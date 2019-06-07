@@ -10,3 +10,10 @@ branches:
     - staging
     - master
     - trying
+
+deploy:
+  skip_cleanup: true
+  provider: script
+  script: TMPDIR=$HOME/tmpdir ./deploy.sh
+  on:
+    branch: master
