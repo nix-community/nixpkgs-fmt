@@ -30,6 +30,16 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_OPERATION).after(T![++]).single_space()
         .inside(NODE_OPERATION).before(T![++]).single_space_or_newline()
 
+        // a+  b => a + b
+        // a  -   b => a - b
+        .inside(NODE_OPERATION).after([T![+], T![-]]).single_space()
+        .inside(NODE_OPERATION).before([T![+], T![-]]).single_space_or_newline()
+
+        // a*  b => a * b
+        // a/  b => a / b
+        .inside(NODE_OPERATION).after([T![*], T![/]]).single_space()
+        .inside(NODE_OPERATION).before([T![*], T![/]]).single_space_or_newline()
+
         // foo . bar . baz => foo.bar.baz
         .inside(NODE_INDEX_SET).around(T![.]).no_space()
 
@@ -133,15 +143,16 @@ fn apply_arg(arg: SyntaxElement<'_>) -> bool {
 static ENTRY_OWNERS: &'static [SyntaxKind] = &[NODE_SET, NODE_LET_IN];
 
 static VALUES: &'static [SyntaxKind] = &[
-    NODE_VALUE,
-    NODE_LIST,
-    NODE_SET,
+    NODE_IDENT,
     NODE_INDEX_SET,
     NODE_LAMBDA,
-    NODE_STRING,
-    NODE_PAREN,
-    NODE_IDENT,
     NODE_LET_IN,
+    NODE_LIST,
+    NODE_OPERATION,
+    NODE_PAREN,
+    NODE_SET,
+    NODE_STRING,
+    NODE_VALUE,
 ];
 
 #[cfg(test)]
