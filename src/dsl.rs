@@ -62,11 +62,17 @@ impl From<&'_ [SyntaxKind]> for Pred {
     }
 }
 
-impl From<[SyntaxKind; 2]> for Pred {
-    fn from(kinds: [SyntaxKind; 2]) -> Pred {
-        Pred::from(&kinds[..])
-    }
+macro_rules! from_array {
+    ($($arity:literal),*) => {$(
+        impl From<[SyntaxKind; $arity]> for Pred {
+            fn from(kinds: [SyntaxKind; $arity]) -> Pred {
+                Pred::from(&kinds[..])
+            }
+        }
+    )*}
 }
+
+from_array!(0, 1, 2, 3, 4, 5, 6, 7, 8);
 
 #[derive(Debug)]
 pub(crate) struct SpacingRule {
