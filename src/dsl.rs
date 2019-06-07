@@ -263,26 +263,3 @@ impl<'a> IndentRuleBuilder<'a> {
         self.dsl
     }
 }
-
-#[rustfmt::skip]
-macro_rules! T {
-    (=)   => (rnix::tokenizer::tokens::TOKEN_ASSIGN);
-    ('{') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_OPEN);
-    ('}') => (rnix::tokenizer::tokens::TOKEN_CURLY_B_CLOSE);
-    ('[') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_OPEN);
-    (']') => (rnix::tokenizer::tokens::TOKEN_SQUARE_B_CLOSE);
-    ('(') => (rnix::tokenizer::tokens::TOKEN_PAREN_OPEN);
-    (')') => (rnix::tokenizer::tokens::TOKEN_PAREN_CLOSE);
-    (++) => (rnix::tokenizer::tokens::TOKEN_CONCAT);
-    (+) => (rnix::tokenizer::tokens::TOKEN_ADD);
-    (-) => (rnix::tokenizer::tokens::TOKEN_SUB);
-    (*) => (rnix::tokenizer::tokens::TOKEN_MUL);
-    (/) => (rnix::tokenizer::tokens::TOKEN_DIV);
-    (==) => (rnix::tokenizer::tokens::TOKEN_EQUAL);
-    (:) => (rnix::tokenizer::tokens::TOKEN_COLON);
-    (;) => (rnix::tokenizer::tokens::TOKEN_SEMICOLON);
-    (.) => (rnix::tokenizer::tokens::TOKEN_DOT);
-    (,) => (rnix::tokenizer::tokens::TOKEN_COMMA);
-    (let) => (rnix::tokenizer::tokens::TOKEN_LET);
-    (in) => (rnix::tokenizer::tokens::TOKEN_IN);
-}

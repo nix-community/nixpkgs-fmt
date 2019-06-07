@@ -3,6 +3,7 @@ use rnix::{
     parser::nodes::*,
     types::{Apply, Lambda, TypedNode, With},
     SyntaxElement, SyntaxKind,
+    T,
 };
 
 use crate::{
@@ -44,22 +45,22 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LAMBDA).before(T![:]).no_space()
 
         // [1 2 3] => [ 1 2 3 ]
-        .inside(NODE_LIST).after(T!['[']).single_space_or_newline()
-        .inside(NODE_LIST).before(T![']']).single_space_or_newline()
+        .inside(NODE_LIST).after(T!["["]).single_space_or_newline()
+        .inside(NODE_LIST).before(T!["]"]).single_space_or_newline()
         // [ ] => []
-        .inside(NODE_LIST).between(T!['['], T![']']).no_space()
+        .inside(NODE_LIST).between(T!["["], T!["]"]).no_space()
 
         // {foo = 92;} => { foo = 92; }
-        .inside(NODE_SET).after(T!['{']).single_space_or_newline()
-        .inside(NODE_SET).before(T!['}']).single_space_or_newline()
+        .inside(NODE_SET).after(T!["{"]).single_space_or_newline()
+        .inside(NODE_SET).before(T!["}"]).single_space_or_newline()
         // { } => {}
-        .inside(NODE_SET).between(T!['{'], T!['}']).no_space()
+        .inside(NODE_SET).between(T!["{"], T!["}"]).no_space()
 
         // {arg}: 92 => { arg }: 92
-        .inside(NODE_PATTERN).after(T!['{']).single_space()
-        .inside(NODE_PATTERN).before(T!['}']).single_space_or_newline()
+        .inside(NODE_PATTERN).after(T!["{"]).single_space()
+        .inside(NODE_PATTERN).before(T!["}"]).single_space_or_newline()
         // { }: 92 => {}: 92
-        .inside(NODE_PATTERN).between(T!['{'], T!['}']).no_space()
+        .inside(NODE_PATTERN).between(T!["{"], T!["}"]).no_space()
 
         // { foo,bar }: 92 => { foo, bar }: 92
         .inside(NODE_PATTERN).after(T![,]).single_space()
@@ -69,8 +70,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_INHERIT).around(NODE_INHERIT_FROM).single_space()
         .inside(NODE_INHERIT).before(T![;]).no_space()
         .inside(NODE_INHERIT).before(NODE_IDENT).single_space()
-        .inside(NODE_INHERIT_FROM).after(T!['(']).no_space()
-        .inside(NODE_INHERIT_FROM).before(T![')']).no_space()
+        .inside(NODE_INHERIT_FROM).after(T!["("]).no_space()
+        .inside(NODE_INHERIT_FROM).before(T![")"]).no_space()
 
         // let   foo = bar;in  92 => let foo = bar; in 92
         .inside(NODE_LET_IN).after(T![let]).single_space_or_newline()
