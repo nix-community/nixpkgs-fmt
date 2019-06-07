@@ -1,8 +1,3 @@
-extern crate console_error_panic_hook;
-extern crate nixpkgs_fmt;
-extern crate wasm_bindgen;
-extern crate wee_alloc;
-
 use wasm_bindgen::prelude::*;
 use std::panic;
 
