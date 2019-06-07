@@ -1,5 +1,5 @@
 [package]
-name = "nixpkgs-fmt"
+name = "nixpkgs-fmt-wasm"
 version = "0.1.0"
 authors = [
   "Aleksey Kladov <aleksey.kladov@gmail.com>",
@@ -7,12 +7,14 @@ authors = [
 ]
 edition = "2018"
 license = "Apache-2.0"
-description = "Nix code formatter for nixpkgs"
+description = "WASM bindings to the nix code formatter for nixpkgs"
 repository = "https://github.com/nix-community/nixpkgs-fmt"
 
-[workspace]
-members = [ "./wasm" ]
+[lib]
+crate-type = ["cdylib"]
 
 [dependencies]
-clap = "2.33.0"
-rnix = { git = "https://gitlab.com/jD91mZM2/rnix.git" }
+nixpkgs-fmt = { "path" = "../." }
+wasm-bindgen = "0.2"
+wee_alloc = "0.4.4"
+console_error_panic_hook = "0.1.6"

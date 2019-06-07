@@ -21,6 +21,7 @@ vertically to minimize the chances of merge conflicts.
 ## Documents
 
 * [HOWTO write new rules](docs/howto_rules.md)
+* [HOWTO WASM](wasm/README.md)
 
 ## Related projects
 
@@ -41,6 +42,7 @@ vertically to minimize the chances of merge conflicts.
 * [nix-format](https://github.com/taktoa/nix-format) - Emacs-based Nix formatter
 * [nix-beautify](https://github.com/nixcloud/nix-beautify)
 * [nix-linter](https://github.com/Synthetica9/nix-linter)
+* [canonix](https://github.com/hercules-ci/canonix/) - Haskell bindings for tree-sitter-nix
 
 ## Discussions
 

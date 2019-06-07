@@ -1,0 +1,24 @@
+{
+    "nixpkgs": {
+        "url": "https://github.com/NixOS/nixpkgs-channels/archive/ae71c13a92f7e3b7968e8b7b1db9f6238dc00a25.tar.gz",
+        "owner": "NixOS",
+        "branch": "nixos-unstable",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "nixpkgs-channels",
+        "type": "tarball",
+        "sha256": "0khm8khgyfhmnnmm7wjs5mh2cfvk124drflwswn9q341bkc4bqnw",
+        "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
+        "rev": "ae71c13a92f7e3b7968e8b7b1db9f6238dc00a25"
+    },
+    "nixpkgs-mozilla": {
+        "url": "https://github.com/mozilla/nixpkgs-mozilla/archive/9f35c4b09fd44a77227e79ff0c1b4b6a69dff533.tar.gz",
+        "owner": "mozilla",
+        "branch": "master",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "nixpkgs-mozilla",
+        "type": "tarball",
+        "sha256": "18h0nvh55b5an4gmlgfbvwbyqj91bklf1zymis6lbdh75571qaz0",
+        "description": "mozilla related nixpkgs (extends nixos/nixpkgs repo)",
+        "rev": "9f35c4b09fd44a77227e79ff0c1b4b6a69dff533"
+    }
+}
