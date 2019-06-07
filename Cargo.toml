@@ -10,6 +10,9 @@ license = "Apache-2.0"
 description = "Nix code formatter for nixpkgs"
 repository = "https://github.com/nix-community/nixpkgs-fmt"
 
+[workspace]
+members = [ "./wasm" ]
+
 [dependencies]
 clap = "2.33.0"
 rnix = { git = "https://gitlab.com/jD91mZM2/rnix.git" }
