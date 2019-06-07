@@ -1,8 +1,14 @@
 [package]
 name = "nixpkgs-fmt"
 version = "0.1.0"
-authors = []
+authors = [
+  "Aleksey Kladov <aleksey.kladov@gmail.com>",
+  "zimbatm <zimbatm@zimbatm.com>"
+]
 edition = "2018"
+license = "Apache-2.0"
+description = "Nix code formatter for nixpkgs"
+repository = "https://github.com/nix-community/nixpkgs-fmt"
 
 [dependencies]
 clap = "2.33.0"
