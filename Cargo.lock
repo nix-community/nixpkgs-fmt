@@ -310,7 +310,7 @@ dependencies = [
 [[package]]
 name = "rnix"
 version = "0.6.0"
-source = "git+https://gitlab.com/jD91mZM2/rnix.git#d6c5363ceb756f11b3e5dd2ff6c3e79a5bb146eb"
+source = "git+https://gitlab.com/jD91mZM2/rnix.git#d1cef10f3a3fb7112184116a405b090a34215e03"
 dependencies = [
  "cbitset 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rowan 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
