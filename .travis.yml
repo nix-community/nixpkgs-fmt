@@ -1,4 +1,9 @@
-language: rust
+language: nix
+
+script: |
+  export TMPDIR=$HOME/tmpdir
+  mkdir -p "$TMPDIR"
+  ./ci.sh
 
 branches:
   only:
