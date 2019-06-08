@@ -34,11 +34,11 @@
     <form id=reformat-form onsubmit="alert('failed to load')">
       <div class="d-table table-fixed width-full">
         <div class="d-table-cell">
-          <dl class="form-group">
+          <dl class="form-group previewable-comment-form">
             <dt><label for=reformat-input>Input</label></dt>
             <dd>
               <textarea id=reformat-input class="form-control input-block"
-                height=200 autofocus>{foo,bar}:
+                autofocus>{foo,bar}:
                 foo+bar</textarea>
             </dd>
           </dl>
@@ -47,9 +47,7 @@
           <dl class="form-group">
             <dt><label for=reformat-output>Output</label></dt>
             <dd>
-              <pre id=reformat-output class=highlight></pre>
-              <!--<textarea id=reformat-output class="form-control
-                input-block" readonly></textarea>-->
+              <pre id=reformat-output></pre>
             </dd>
           </dl>
         </div>
@@ -70,7 +68,7 @@
         </dd>
       </dl>
 
-      <dl class="form-group">
+      <dl class="form-group previewable-comment-form">
         <dt><label for=body>Content</label></dt>
         <dd>
           <textarea name="body" id="issue-body" placeholder="Issue Body"
