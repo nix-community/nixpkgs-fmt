@@ -3,64 +3,79 @@
 <head>
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
   <title>nixpkgs-fmt-wasm</title>
-  <style>
-    * {
-      box-sizing: content-box;
-    }
-
-    textarea {
-      width: 100%;
-      height: 100%;
-    }
-
-    table {
-      width: 100%;
-      height: 400px;
-    }
-
-    tbody tr, tbody td {
-      height: 100%;
-    }
-  </style>
+  <link rel=stylesheet
+        href="https://cdnjs.cloudflare.com/ajax/libs/Primer/11.0.0/build.css">
 </head>
 <body>
-  <h2>nixpkgs-fmt testing area</h2>
+  <div class="container-lg px-3 my-5 markdown-body">
+    <h1>nixpkgs-fmt</h1>
 
-  <p>Try out the formatter by pasting your Nix code in the left pane.</p>
-  <form id=reformat-form onsubmit="alert('failed to load')" method="GET">
-  <table>
-    <thead>
-      <tr>
-        <th>Input</th>
-        <th>Output</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>
-          <textarea id=reformat-input autofocus>{foo,bar}:
-            foo+bar
-          </textarea>
-        </td>
-        <td>
-          <textarea id=reformat-output readonly></textarea>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <button type=submit>Reformat</button>
-  </form>
+    <ul>
+      <li>status: <em>alpha</em></li>
+    </ul>
 
-  <h2>Submit a GitHub issue</h2>
-  <p>
-    If the code is not re-formatted as expected, submit a new issue to the
-    project:
-  </p>
-  <form action="https://github.com/nix-community/nixpkgs-fmt/issues/new" method=get>
-    <input name="title" placeholder="Issue Title">
-    <textarea name="body" id="issue-body" placeholder="Issue Body"></textarea>
-    <button type="submit">Create new GitHub issue</button>
-  </form>
+    <p>This project's goal is to provide a nix code formatter that would be
+    applied on nixpkgs. Ideally automatically with a tool like ofborg.</p>
+
+    <h2>Demo</h2>
+
+    <p>Try this project out by pasting your Nix code in the left pane.</p>
+
+    <div class="flash">
+      nixpkgs-fmt is still under heavy development. Formatting issues should
+      happen quite often at this point.
+    </div>
+
+    <form id=reformat-form onsubmit="alert('failed to load')">
+      <div class="d-table table-fixed width-full">
+        <div class="d-table-cell">
+          <dl class="form-group">
+            <dt><label for=reformat-input>Input</label></dt>
+            <dd>
+              <textarea id=reformat-input class="form-control input-block"
+                height=200 autofocus>{foo,bar}:
+                foo+bar</textarea>
+            </dd>
+          </dl>
+        </div>
+        <div class="d-table-cell">
+          <dl class="form-group">
+            <dt><label for=reformat-output>Output</label></dt>
+            <dd>
+              <pre id=reformat-output class=highlight></pre>
+              <!--<textarea id=reformat-output class="form-control
+                input-block" readonly></textarea>-->
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </form>
+
+    <h2>Submit a GitHub issue</h2>
+    <p>
+      If the code is not re-formatted as expected or you just want to submit
+      a new code sample, submit a new issue to the project:
+    </p>
+    <form action="https://github.com/nix-community/nixpkgs-fmt/issues/new" method=get>
+      <dl class="form-group">
+        <dt><label for=title>Title</label></dt>
+        <dd>
+          <input type="text" name="title" class="form-control input-block
+        input-contrast" aria-describedby="test_input_help_good" value="sample: ">
+        </dd>
+      </dl>
+
+      <dl class="form-group">
+        <dt><label for=body>Content</label></dt>
+        <dd>
+          <textarea name="body" id="issue-body" placeholder="Issue Body"
+                      class="form-control input-block"></textarea>
+        </dd>
+      </dl>
+
+      <button class="btn btn-primary" type=submit>Submit new GitHub issue</button>
+    </form>
+  </div>
 
   <!-- Note the usage of `type=module` here as this is an ES6 module -->
   <script type="module">
@@ -78,21 +93,25 @@
     const issueBodyEl = document.getElementById("issue-body")
 
     const reformat = (ev) => {
-      ev.preventDefault()
+      if (ev) { ev.preventDefault() }
       console.log("reformatting...")
-      outputEl.value = reformat_string(inputEl.value)
+      const input = inputEl.value
+      var output
+      try {
+        output = reformat_string(input)
+      } catch (err) {
+        output = err
+      }
 
-      issueBodyEl.value = `
-## Input
-
+      outputEl.innerText = output
+      issueBodyEl.value = `## Input
 \`\`\`nix
-${inputEl.value}
+${input}
 \`\`\`
 
 ## Output
-
 \`\`\`nix
-${outputEl.value}
+${output}
 \`\`\`
 `
     }
@@ -110,10 +129,11 @@ ${outputEl.value}
       // modes
       await init('./pkg/nixpkgs_fmt_wasm_bg.wasm');
 
-      document.getElementById("reformat-form").onsubmit = reformat
+      //document.getElementById("reformat-form").onsubmit = reformat
       inputEl.onchange = reformat
       inputEl.onkeyup = reformat
       inputEl.onpaste = reformat
+      reformat()
     }
 
     run();
