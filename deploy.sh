@@ -31,14 +31,15 @@ run git clone --depth=1 --branch=gh-pages "$origin_url" "$workdir/repo"
 
 run rsync -rl --exclude .git --delete wasm/ "$workdir/repo"
 
+run rm "$workdir/repo/pkg/.gitignore"
+
 run cd "$workdir/repo"
 
-if ! git diff-files --quiet ; then
-  echo "No changes found, aborting"
+run git add -A .
+
+if ! run git commit --author "CI <ci@ci.com>" --message "." ; then
   exit
 fi
 
-run git add -A .
-run git commit --author "CI <ci@ci.com>" --message "."
 run git show --stat-count=10 HEAD
 run git push -f origin gh-pages
