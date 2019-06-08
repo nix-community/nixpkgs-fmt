@@ -40,6 +40,7 @@
               <textarea id=reformat-input class="form-control input-block"
                 autofocus>{foo,bar}:
                 foo+bar</textarea>
+              <input id=reformat-input-file type=file accept="text/*,.nix" class="form-control input-block">
             </dd>
           </dl>
         </div>
@@ -92,6 +93,7 @@
     import { reformat_string, default as init } from './pkg/nixpkgs_fmt_wasm.js';
 
     const inputEl = document.getElementById("reformat-input")
+    const inputFileEl = document.getElementById("reformat-input-file")
     const outputEl = document.getElementById("reformat-output")
     const issueBodyEl = document.getElementById("issue-body")
 
@@ -136,6 +138,18 @@ ${output}
       inputEl.onkeyup = reformat
       inputEl.onpaste = reformat
       reformat()
+
+      // load file
+      inputFileEl.onchange = () => {
+        console.log("loading file", inputFileEl)
+        const file = inputFileEl.files[0]
+        const fr = new FileReader()
+        fr.onload = () => {
+          inputEl.value = fr.result
+          reformat()
+        }
+        fr.readAsText(file)
+      }
     }
 
     run();
