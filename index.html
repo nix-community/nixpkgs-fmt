@@ -17,9 +17,13 @@
     <p>This project's goal is to provide a nix code formatter that would be
     applied on nixpkgs. Ideally automatically with a tool like ofborg.</p>
 
-    <h2>Demo</h2>
+    <h2>WASM Demo</h2>
 
-    <p>Try this project out by pasting your Nix code in the left pane.</p>
+    <p>This project is written in Rust and made available to the browser by
+    compiling it to WASM. This will require a modern web browser (Firefox,
+    Safari or Chrome).</p>
+
+    <p>Try the formatter out by pasting your Nix code in the left pane.</p>
 
     <div class="flash">
       nixpkgs-fmt is still under heavy development. Formatting issues should
@@ -92,8 +96,7 @@
     const outputEl = document.getElementById("reformat-output")
     const issueBodyEl = document.getElementById("issue-body")
 
-    const reformat = (ev) => {
-      if (ev) { ev.preventDefault() }
+    const reformat = () => {
       console.log("reformatting...")
       const input = inputEl.value
       var output
