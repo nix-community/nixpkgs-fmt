@@ -96,8 +96,7 @@
     const outputEl = document.getElementById("reformat-output")
     const issueBodyEl = document.getElementById("issue-body")
 
-    const reformat = (ev) => {
-      if (ev) { ev.preventDefault() }
+    const reformat = () => {
       console.log("reformatting...")
       const input = inputEl.value
       var output
