@@ -55,17 +55,40 @@ pub(crate) fn format(
     model.into_diff()
 }
 
+/// `FmtModel` is a data structure to which we apply formatting rules.
+///
+/// It wraps a syntax trees and adds `SpaceBlock`s. `SpaceBlock` represents a
+/// run (potentially empty) of whitespace characters. We create whitespace
+/// blocks for existing whitespace tokens. However, if two non-whitespace tokens
+/// are joined together in the syntax tree, we still create an empty
+/// `SpaceBlock` to represent the space between them. That way, rules don't have
+/// to separately handle a case when whitespace node is completely missing from
+/// the original tree.
+///
+/// The `FmtModel` is a mutable data structure, formatting rules work by
+/// changing the actual `SpacingBlock`s. For this reason, the order of
+/// application of the rules is significant.
+///
+/// We maintain the invariant that no two `SpaceBlock`s are directly adjoint to
+/// each other.
 #[derive(Debug)]
-pub(crate) struct FmtModel<'a> {
+struct FmtModel<'a> {
     original_node: &'a SyntaxNode,
+    /// We store `SpaceBlock`s in array. With this setup, we can refer to a
+    /// specific block by index, dodging many lifetime issues.
     blocks: Vec<SpaceBlock<'a>>,
+    /// Maps offset to an index of the block, for which the offset is the start
+    /// offset.
     by_start_offset: HashMap<TextUnit, usize>,
+    /// Maps offset to an index of the block, for which the offset is the end
+    /// offset.
     by_end_offset: HashMap<TextUnit, usize>,
 }
 
 #[derive(Debug)]
-pub(crate) struct SpaceBlock<'a> {
+struct SpaceBlock<'a> {
     original: OriginalSpace<'a>,
+    /// Block's textual content, which is seen and modified by formatting rules.
     new_text: Option<SmolStr>,
 }
 
@@ -75,6 +98,7 @@ enum BlockPosition {
     After,
 }
 
+/// Original whitespace token, if any, that backs a `SpaceBlock.
 #[derive(Debug)]
 enum OriginalSpace<'a> {
     Some(SyntaxToken<'a>),
@@ -158,6 +182,16 @@ impl<'a> FmtModel<'a> {
         diff
     }
 
+    /// This method gets a `SpaceBlock` before or after element. It's pretty
+    /// complicated, because it needs to handle these different cases:
+    /// * We could have already created the block. In this case, we should
+    ///   return the existing block instead of creating a new one.
+    /// * There may, or may not be, backing original whitespace token for the
+    ///   block.
+    /// * The necessary whitespace token is not necessary a sibling of
+    ///   `element`, it might be a sibling of `element`'s ancestor.
+    /// * Finally, root node is special, as it doesn't have siblings and instead
+    ///   leading and trailing whitespace appear as children.
     fn block_for(
         &mut self,
         element: SyntaxElement<'a>,
