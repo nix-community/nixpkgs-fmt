@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 
 use rnix::{
-    tokenizer::tokens::TOKEN_WHITESPACE, SmolStr, SyntaxElement, SyntaxNode, SyntaxToken,
-    TextRange, TextUnit,
+    nodes::NODE_ROOT, tokenizer::tokens::TOKEN_WHITESPACE, SmolStr, SyntaxElement, SyntaxNode,
+    SyntaxToken, TextRange, TextUnit,
 };
 
 use crate::{
@@ -161,6 +161,43 @@ impl<'a> FmtModel<'a> {
 
         assert!(element.kind() != TOKEN_WHITESPACE);
 
+        // Special case, for root node, leading and trailing ws are children of
+        // the root. For all other node types, they are siblings
+        if element.kind() == NODE_ROOT {
+            let root_node = element.as_node().unwrap();
+            let original_space = match position {
+                BlockPosition::Before => root_node.first_child_or_token(),
+                BlockPosition::After => root_node.last_child_or_token(),
+            };
+            return match original_space {
+                Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
+                    if let Some(&existing) = match position {
+                        Before => self.by_end_offset.get(&token.range().end()),
+                        After => self.by_start_offset.get(&token.range().start()),
+                    } {
+                        &mut self.blocks[existing]
+                    } else {
+                        self.push_block(SpaceBlock::new(OriginalSpace::Some(token)))
+                    }
+                }
+                _ => {
+                    let offset = match position {
+                        Before => root_node.range().start(),
+                        After => root_node.range().end(),
+                    };
+
+                    if let Some(&existing) = match position {
+                        Before => self.by_end_offset.get(&offset),
+                        After => self.by_start_offset.get(&offset),
+                    } {
+                        &mut self.blocks[existing]
+                    } else {
+                        self.push_block(SpaceBlock::new(OriginalSpace::None { offset }))
+                    }
+                }
+            };
+        }
+
         let offset = match position {
             Before => element.range().start(),
             After => element.range().end(),
@@ -240,6 +277,7 @@ impl SpaceLoc {
 fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValue) {
     match value {
         SpaceValue::Single => block.set_text(" "),
+        SpaceValue::Newline => block.set_text("\n"),
         SpaceValue::None => block.set_text(""),
         SpaceValue::SingleOrNewline => {
             let parent_is_multiline = element.parent().map_or(false, has_newline);
