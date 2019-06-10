@@ -271,6 +271,7 @@ impl SpaceLoc {
 fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValue) {
     match value {
         SpaceValue::Single => block.set_text(" "),
+        SpaceValue::Newline => block.set_text("\n"),
         SpaceValue::None => block.set_text(""),
         SpaceValue::SingleOrNewline => {
             let parent_is_multiline = element.parent().map_or(false, has_newline);

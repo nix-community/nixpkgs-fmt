@@ -6,7 +6,7 @@ use rnix::{
 };
 
 use crate::{
-    dsl::{IndentDsl, SpacingDsl},
+    dsl::{self, IndentDsl, SpacingDsl},
     tree_utils::prev_sibling,
 };
 
@@ -75,6 +75,16 @@ pub(crate) fn spacing() -> SpacingDsl {
         // let   foo = bar;in  92 => let foo = bar; in 92
         .inside(NODE_LET_IN).after(T![let]).single_space_or_newline()
         .inside(NODE_LET_IN).around(T![in]).single_space_or_newline()
+
+        // special-cased rules for leading and trailing whitespace
+        .rule(dsl::SpacingRule {
+            pattern: NODE_ROOT.into(),
+            space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::None }
+        })
+        .rule(dsl::SpacingRule {
+            pattern: NODE_ROOT.into(),
+            space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
+        })
         ;
 
     dsl
@@ -177,7 +187,8 @@ foo = x:
             after: "{
   foo = x:
     92;
-}"
+}
+"
             .into(),
         }
         .run();
@@ -213,8 +224,8 @@ foo = x:
     impl TestCase {
         fn try_from(line: &str) -> Option<TestCase> {
             let divisor = line.find("=>")?;
-            let before = line[..divisor].trim().to_string();
-            let after = line[divisor + 3..].trim().to_string();
+            let before = format!("{}\n", line[..divisor].trim());
+            let after = format!("{}\n", line[divisor + 3..].trim());
             Some(TestCase {
                 name: None,
                 before,

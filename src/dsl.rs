@@ -83,6 +83,7 @@ pub(crate) struct Space {
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum SpaceValue {
     Single,
+    Newline,
     None,
     SingleOrNewline,
     NoneOrNewline,
@@ -101,6 +102,10 @@ pub(crate) struct SpacingDsl {
 }
 
 impl SpacingDsl {
+    pub(crate) fn rule(&mut self, rule: SpacingRule) -> &mut SpacingDsl {
+        self.rules.push(rule);
+        self
+    }
     pub(crate) fn inside(&mut self, parent: impl Into<Pred>) -> SpacingRuleBuilder<'_> {
         SpacingRuleBuilder {
             dsl: self,
@@ -176,7 +181,7 @@ impl<'a> SpacingRuleBuilder<'a> {
                     loc: SpaceLoc::After,
                 },
             };
-            self.dsl.rules.push(rule);
+            self.dsl.rule(rule);
 
             let rule = SpacingRule {
                 pattern: Pred::parent_child(
@@ -192,7 +197,7 @@ impl<'a> SpacingRuleBuilder<'a> {
                     loc: SpaceLoc::Before,
                 },
             };
-            self.dsl.rules.push(rule);
+            self.dsl.rule(rule);
         } else {
             let rule = SpacingRule {
                 pattern: Pred::parent_child(self.parent, self.child.unwrap()),
@@ -201,7 +206,7 @@ impl<'a> SpacingRuleBuilder<'a> {
                     loc: self.loc.unwrap(),
                 },
             };
-            self.dsl.rules.push(rule);
+            self.dsl.rule(rule);
         }
         self.dsl
     }
