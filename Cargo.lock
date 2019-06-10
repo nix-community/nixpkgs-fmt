@@ -255,12 +255,12 @@ version = "0.6.0"
 source = "git+https://gitlab.com/jD91mZM2/rnix.git#d6c5363ceb756f11b3e5dd2ff6c3e79a5bb146eb"
 dependencies = [
  "cbitset 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rowan 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rowan 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "rowan"
-version = "0.5.2"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "colosseum 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -394,7 +394,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum redox_syscall 0.1.54 (registry+https://github.com/rust-lang/crates.io-index)" = "12229c14a0f65c4f1cb046a3b52047cdd9da1f4b30f8a39c5063c8bae515e252"
 "checksum redox_termios 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7e891cfe48e9100a70a3b6eb652fef28920c117d366339687bd5576160db0f76"
 "checksum rnix 0.6.0 (git+https://gitlab.com/jD91mZM2/rnix.git)" = "<none>"
-"checksum rowan 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "dbbf724d1e1f30669766ffc7e2490cd942d3b792367c12f9b00852b506b659f9"
+"checksum rowan 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)" = "695dbacb8b8e077caf0cdeb65b0fe0c27bd99a9b7bf5f6467681c4c94cbe6133"
 "checksum rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 "checksum scopeguard 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b42e15e59b18a828bbf5c58ea01debb36b9b096346de35d941dcb89009f24a0d"
 "checksum semver 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
