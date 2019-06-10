@@ -2,8 +2,7 @@
 use rnix::{
     parser::nodes::*,
     types::{Apply, Lambda, TypedNode, With},
-    SyntaxElement, SyntaxKind,
-    T,
+    SyntaxElement, SyntaxKind, T,
 };
 
 use crate::{
@@ -181,7 +180,9 @@ foo = x:
 }"
             .into(),
         }
-        .run();
+        .run()
+        .map_err(|e| panic!(e))
+        .unwrap();
     }
 
     /// For convenience, tests in this module are specified inline in comments,
@@ -256,32 +257,48 @@ foo = x:
             res
         }
 
-        fn run(&self) {
+        fn run(&self) -> Result<(), String> {
             let name = self.name.as_ref().map(|it| it.as_str()).unwrap_or("");
             let expected = &self.after;
             let actual = &reformat_string(&self.before);
             if expected != actual {
-                panic!(
-                    "assertion failed({}): wrong formatting\
+                return Err(format!(
+                    "\n\nAssertion failed: wrong formatting\
+                     \nTest: {}\n\
                      \nBefore:\n{}\n\
                      \nAfter:\n{}\n\
                      \nExpected:\n{}\n",
                     name, self.before, actual, self.after,
-                )
+                ));
             }
             let second_round = &reformat_string(actual);
             if actual != second_round {
-                panic!(
-                    "assertion failed({}): formatting is not idempotent\
+                return Err(format!(
+                    "\n\nAssertion failed: formatting is not idempotent\
+                     \nTest: {}\n\
                      \nBefore:\n{}\n\
                      \nAfter:\n{}\n",
                     name, actual, second_round,
-                )
+                ));
             }
+            Ok(())
         }
     }
 
     fn run(tests: &[TestCase]) {
-        tests.iter().for_each(|it| it.run())
+        let mut n_failed = 0;
+        for test in tests {
+            if let Err(msg) = test.run() {
+                n_failed += 1;
+                eprintln!("{}", msg)
+            }
+        }
+        if n_failed > 0 {
+            panic!(
+                "{} failed test cases out of {} total",
+                n_failed,
+                tests.len()
+            )
+        }
     }
 }
