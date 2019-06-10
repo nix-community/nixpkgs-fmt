@@ -1,18 +1,20 @@
+//! This module defines `Pattern`: a predicate over syntax elements
+
 use std::{fmt, ops, sync::Arc};
 
 use rnix::{SyntaxElement, SyntaxKind};
 
 #[derive(Clone)]
-pub(crate) struct Pred(Arc<dyn (Fn(SyntaxElement<'_>) -> bool)>);
+pub(crate) struct Pattern(Arc<dyn (Fn(SyntaxElement<'_>) -> bool)>);
 
-impl fmt::Debug for Pred {
+impl fmt::Debug for Pattern {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str("Pred { ... }")
+        f.write_str("Pattern { ... }")
     }
 }
 
-impl Pred {
-    pub(crate) fn parent_child(parent: Pred, child: Pred) -> Pred {
+impl Pattern {
+    pub(crate) fn parent_child(parent: Pattern, child: Pattern) -> Pattern {
         let p = move |element: SyntaxElement<'_>| {
             child.matches(element)
                 && element.parent().map(|it| parent.matches(it.into())) == Some(true)
@@ -24,40 +26,40 @@ impl Pred {
     }
 }
 
-impl ops::BitAnd for Pred {
-    type Output = Pred;
-    fn bitand(self, other: Pred) -> Pred {
-        Pred(Arc::new(move |it| self.matches(it) && other.matches(it)))
+impl ops::BitAnd for Pattern {
+    type Output = Pattern;
+    fn bitand(self, other: Pattern) -> Pattern {
+        Pattern(Arc::new(move |it| self.matches(it) && other.matches(it)))
     }
 }
 
-impl<F> From<F> for Pred
+impl<F> From<F> for Pattern
 where
     F: for<'a> Fn(SyntaxElement<'a>) -> bool + 'static,
 {
-    fn from(f: F) -> Pred {
-        Pred(Arc::new(f))
+    fn from(f: F) -> Pattern {
+        Pattern(Arc::new(f))
     }
 }
 
-impl From<SyntaxKind> for Pred {
-    fn from(kind: SyntaxKind) -> Pred {
-        Pred(Arc::new(move |it| it.kind() == kind))
+impl From<SyntaxKind> for Pattern {
+    fn from(kind: SyntaxKind) -> Pattern {
+        Pattern(Arc::new(move |it| it.kind() == kind))
     }
 }
 
-impl From<&'_ [SyntaxKind]> for Pred {
-    fn from(kinds: &[SyntaxKind]) -> Pred {
+impl From<&'_ [SyntaxKind]> for Pattern {
+    fn from(kinds: &[SyntaxKind]) -> Pattern {
         let kinds = kinds.to_vec();
-        Pred(Arc::new(move |it| kinds.contains(&it.kind())))
+        Pattern(Arc::new(move |it| kinds.contains(&it.kind())))
     }
 }
 
 macro_rules! from_array {
     ($($arity:literal),*) => {$(
-        impl From<[SyntaxKind; $arity]> for Pred {
-            fn from(kinds: [SyntaxKind; $arity]) -> Pred {
-                Pred::from(&kinds[..])
+        impl From<[SyntaxKind; $arity]> for Pattern {
+            fn from(kinds: [SyntaxKind; $arity]) -> Pattern {
+                Pattern::from(&kinds[..])
             }
         }
     )*}

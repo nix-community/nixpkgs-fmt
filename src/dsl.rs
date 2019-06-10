@@ -2,14 +2,14 @@
 use rnix::{SyntaxElement, SyntaxKind};
 
 use crate::{
-    pattern::Pred,
+    pattern::Pattern,
     tree_utils::{next_non_whitespace_sibling, prev_non_whitespace_sibling}
 };
 
 
 #[derive(Debug)]
 pub(crate) struct SpacingRule {
-    pub(crate) pattern: Pred,
+    pub(crate) pattern: Pattern,
     pub(crate) space: Space,
 }
 
@@ -45,7 +45,7 @@ impl SpacingDsl {
         self.rules.push(rule);
         self
     }
-    pub(crate) fn inside(&mut self, parent: impl Into<Pred>) -> SpacingRuleBuilder<'_> {
+    pub(crate) fn inside(&mut self, parent: impl Into<Pattern>) -> SpacingRuleBuilder<'_> {
         SpacingRuleBuilder {
             dsl: self,
             parent: parent.into(),
@@ -58,24 +58,24 @@ impl SpacingDsl {
 
 pub(crate) struct SpacingRuleBuilder<'a> {
     dsl: &'a mut SpacingDsl,
-    parent: Pred,
-    child: Option<Pred>,
+    parent: Pattern,
+    child: Option<Pattern>,
     between: Option<(SyntaxKind, SyntaxKind)>,
     loc: Option<SpaceLoc>,
 }
 
 impl<'a> SpacingRuleBuilder<'a> {
-    pub(crate) fn around(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder<'a> {
+    pub(crate) fn around(mut self, kind: impl Into<Pattern>) -> SpacingRuleBuilder<'a> {
         self.child = Some(kind.into());
         self.loc = Some(SpaceLoc::Around);
         self
     }
-    pub(crate) fn before(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder<'a> {
+    pub(crate) fn before(mut self, kind: impl Into<Pattern>) -> SpacingRuleBuilder<'a> {
         self.child = Some(kind.into());
         self.loc = Some(SpaceLoc::Before);
         self
     }
-    pub(crate) fn after(mut self, kind: impl Into<Pred>) -> SpacingRuleBuilder<'a> {
+    pub(crate) fn after(mut self, kind: impl Into<Pattern>) -> SpacingRuleBuilder<'a> {
         self.child = Some(kind.into());
         self.loc = Some(SpaceLoc::After);
         self
@@ -107,10 +107,10 @@ impl<'a> SpacingRuleBuilder<'a> {
         assert!(self.between.is_some() ^ self.child.is_some());
         if let Some((left, right)) = self.between {
             let rule = SpacingRule {
-                pattern: Pred::parent_child(
+                pattern: Pattern::parent_child(
                     self.parent.clone(),
-                    Pred::from(left)
-                        & Pred::from(move |it: SyntaxElement<'_>| {
+                    Pattern::from(left)
+                        & Pattern::from(move |it: SyntaxElement<'_>| {
                             next_non_whitespace_sibling(it).map(|it| it.kind() == right)
                                 == Some(true)
                         }),
@@ -123,10 +123,10 @@ impl<'a> SpacingRuleBuilder<'a> {
             self.dsl.rule(rule);
 
             let rule = SpacingRule {
-                pattern: Pred::parent_child(
+                pattern: Pattern::parent_child(
                     self.parent,
-                    Pred::from(right)
-                        & Pred::from(move |it: SyntaxElement<'_>| {
+                    Pattern::from(right)
+                        & Pattern::from(move |it: SyntaxElement<'_>| {
                             prev_non_whitespace_sibling(it).map(|it| it.kind() == left)
                                 == Some(true)
                         }),
@@ -139,7 +139,7 @@ impl<'a> SpacingRuleBuilder<'a> {
             self.dsl.rule(rule);
         } else {
             let rule = SpacingRule {
-                pattern: Pred::parent_child(self.parent, self.child.unwrap()),
+                pattern: Pattern::parent_child(self.parent, self.child.unwrap()),
                 space: Space {
                     value,
                     loc: self.loc.unwrap(),
@@ -153,7 +153,7 @@ impl<'a> SpacingRuleBuilder<'a> {
 
 #[derive(Debug)]
 pub(crate) struct IndentRule {
-    pub(crate) pattern: Pred,
+    pub(crate) pattern: Pattern,
 }
 
 #[derive(Default)]
@@ -162,7 +162,7 @@ pub(crate) struct IndentDsl {
 }
 
 impl IndentDsl {
-    pub(crate) fn inside(&mut self, parent: impl Into<Pred>) -> IndentRuleBuilder<'_> {
+    pub(crate) fn inside(&mut self, parent: impl Into<Pattern>) -> IndentRuleBuilder<'_> {
         IndentRuleBuilder {
             dsl: self,
             parent: parent.into(),
@@ -173,8 +173,8 @@ impl IndentDsl {
 
 pub(crate) struct IndentRuleBuilder<'a> {
     dsl: &'a mut IndentDsl,
-    parent: Pred,
-    when: Option<Pred>,
+    parent: Pattern,
+    when: Option<Pattern>,
 }
 
 impl<'a> IndentRuleBuilder<'a> {
@@ -183,13 +183,13 @@ impl<'a> IndentRuleBuilder<'a> {
         self
     }
 
-    pub(crate) fn indent(self, child: impl Into<Pred>) -> &'a mut IndentDsl {
-        let mut child: Pred = child.into();
+    pub(crate) fn indent(self, child: impl Into<Pattern>) -> &'a mut IndentDsl {
+        let mut child: Pattern = child.into();
         if let Some(cond) = self.when {
             child = child & cond;
         }
         let indent_rule = IndentRule {
-            pattern: Pred::parent_child(self.parent, child),
+            pattern: Pattern::parent_child(self.parent, child),
         };
         self.dsl.rules.push(indent_rule);
         self.dsl
