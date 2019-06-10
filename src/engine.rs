@@ -9,6 +9,7 @@ use rnix::{
 
 use crate::{
     dsl::{IndentDsl, IndentRule, SpaceLoc, SpaceValue, SpacingDsl, SpacingRule},
+    pattern::PatternSet,
     tree_utils::{has_newline, walk_non_whitespace},
     AtomEdit, FmtDiff,
 };
@@ -24,25 +25,30 @@ pub(crate) fn format(
 
     // First, adjust spacing rules between the nodes.
     // This can force some newlines.
+    let spacing_rule_set = PatternSet::new(spacing_dsl.rules.iter());
     for element in walk_non_whitespace(root) {
-        for rule in spacing_dsl.rules.iter() {
+        for rule in spacing_rule_set.matching(element) {
             rule.apply(element, &mut model)
         }
     }
 
     // Next, for each node which starts the newline, adjust the indent.
+    let indent_rule_set = PatternSet::new(indent_dsl.rules.iter());
     for element in walk_non_whitespace(root) {
         let block = model.block_for(element, BlockPosition::Before);
         if !block.has_newline() {
+            // No need to indent an element if it doesn't start a line
             continue;
         }
-        match indent_dsl
-            .rules
-            .iter()
-            .find(|it| it.pattern.matches(element))
-        {
-            Some(rule) => rule.apply(element, &mut model),
-            None => default_indent(element, &mut model),
+        let mut matching = indent_rule_set.matching(element);
+        if let Some(rule) = matching.next() {
+            rule.apply(element, &mut model);
+            assert!(
+                matching.next().is_none(),
+                "more that one indent rule matched"
+            );
+        } else {
+            default_indent(element, &mut model)
         }
     }
 

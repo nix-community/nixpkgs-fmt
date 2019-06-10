@@ -3,14 +3,19 @@ use rnix::{SyntaxElement, SyntaxKind};
 
 use crate::{
     pattern::Pattern,
-    tree_utils::{next_non_whitespace_sibling, prev_non_whitespace_sibling}
+    tree_utils::{next_non_whitespace_sibling, prev_non_whitespace_sibling},
 };
-
 
 #[derive(Debug)]
 pub(crate) struct SpacingRule {
     pub(crate) pattern: Pattern,
     pub(crate) space: Space,
+}
+
+impl AsRef<Pattern> for SpacingRule {
+    fn as_ref(&self) -> &Pattern {
+        &self.pattern
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -106,15 +111,12 @@ impl<'a> SpacingRuleBuilder<'a> {
     fn finish(self, value: SpaceValue) -> &'a mut SpacingDsl {
         assert!(self.between.is_some() ^ self.child.is_some());
         if let Some((left, right)) = self.between {
+            let child = Pattern::from(left)
+                & Pattern::from(move |it: SyntaxElement<'_>| {
+                    next_non_whitespace_sibling(it).map(|it| it.kind() == right) == Some(true)
+                });
             let rule = SpacingRule {
-                pattern: Pattern::parent_child(
-                    self.parent.clone(),
-                    Pattern::from(left)
-                        & Pattern::from(move |it: SyntaxElement<'_>| {
-                            next_non_whitespace_sibling(it).map(|it| it.kind() == right)
-                                == Some(true)
-                        }),
-                ),
+                pattern: child.with_parent(self.parent.clone()),
                 space: Space {
                     value,
                     loc: SpaceLoc::After,
@@ -122,15 +124,12 @@ impl<'a> SpacingRuleBuilder<'a> {
             };
             self.dsl.rule(rule);
 
+            let child = Pattern::from(right)
+                & Pattern::from(move |it: SyntaxElement<'_>| {
+                    prev_non_whitespace_sibling(it).map(|it| it.kind() == left) == Some(true)
+                });
             let rule = SpacingRule {
-                pattern: Pattern::parent_child(
-                    self.parent,
-                    Pattern::from(right)
-                        & Pattern::from(move |it: SyntaxElement<'_>| {
-                            prev_non_whitespace_sibling(it).map(|it| it.kind() == left)
-                                == Some(true)
-                        }),
-                ),
+                pattern: child.with_parent(self.parent),
                 space: Space {
                     value,
                     loc: SpaceLoc::Before,
@@ -139,7 +138,7 @@ impl<'a> SpacingRuleBuilder<'a> {
             self.dsl.rule(rule);
         } else {
             let rule = SpacingRule {
-                pattern: Pattern::parent_child(self.parent, self.child.unwrap()),
+                pattern: self.child.unwrap().with_parent(self.parent),
                 space: Space {
                     value,
                     loc: self.loc.unwrap(),
@@ -154,6 +153,12 @@ impl<'a> SpacingRuleBuilder<'a> {
 #[derive(Debug)]
 pub(crate) struct IndentRule {
     pub(crate) pattern: Pattern,
+}
+
+impl AsRef<Pattern> for IndentRule {
+    fn as_ref(&self) -> &Pattern {
+        &self.pattern
+    }
 }
 
 #[derive(Default)]
@@ -189,7 +194,7 @@ impl<'a> IndentRuleBuilder<'a> {
             child = child & cond;
         }
         let indent_rule = IndentRule {
-            pattern: Pattern::parent_child(self.parent, child),
+            pattern: child.with_parent(self.parent),
         };
         self.dsl.rules.push(indent_rule);
         self.dsl
