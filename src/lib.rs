@@ -3,6 +3,7 @@ mod dsl;
 mod engine;
 mod rules;
 mod tree_utils;
+mod pattern;
 
 use rnix::{SmolStr, SyntaxNode, TextRange, TreeArc};
 
@@ -77,4 +78,3 @@ pub fn reformat_string(text: &str) -> String {
     let diff = reformat_node(root_node);
     diff.to_string()
 }
-
