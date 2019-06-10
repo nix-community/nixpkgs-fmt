@@ -91,6 +91,12 @@ impl<'a> SpaceBlock<'a> {
             new_text: None,
         }
     }
+    fn set_line_break_preserving_existing_newlines(&mut self) {
+        if self.text().contains('\n') {
+            return;
+        }
+        self.set_text("\n");
+    }
     fn set_text(&mut self, text: &str) {
         match self.original {
             OriginalSpace::Some(token) if token.text() == text && self.new_text.is_none() => return,
@@ -237,11 +243,19 @@ fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValu
         SpaceValue::None => block.set_text(""),
         SpaceValue::SingleOrNewline => {
             let parent_is_multiline = element.parent().map_or(false, has_newline);
-            block.set_text(if parent_is_multiline { "\n" } else { " " });
+            if parent_is_multiline {
+                block.set_line_break_preserving_existing_newlines()
+            } else {
+                block.set_text(" ")
+            }
         }
         SpaceValue::NoneOrNewline => {
             let parent_is_multiline = element.parent().map_or(false, has_newline);
-            block.set_text(if parent_is_multiline { "\n" } else { "" });
+            if parent_is_multiline {
+                block.set_line_break_preserving_existing_newlines()
+            } else {
+                block.set_text("")
+            }
         }
     }
 }
