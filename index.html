@@ -24,60 +24,41 @@
     compiling it to WASM. This will require a modern web browser (Firefox,
     Safari or Chrome).</p>
 
-    <p>Try the formatter out by pasting your Nix code in the left pane.</p>
+    <p>Try the formatter out by pasting your Nix code in the left pane or
+    using the file selector.</p>
 
     <div class="flash">
       nixpkgs-fmt is still under heavy development. Formatting issues should
       happen quite often at this point.
     </div>
 
-    <form id=reformat-form onsubmit="alert('failed to load')">
-      <div class="d-table table-fixed width-full">
-        <div class="d-table-cell">
-          <dl class="form-group previewable-comment-form">
-            <dt><label for=reformat-input>Input</label></dt>
-            <dd>
-              <textarea id=reformat-input class="form-control input-block"
-                autofocus>{foo,bar}:
-                foo+bar</textarea>
-              <input id=reformat-input-file type=file accept="text/*,.nix" class="form-control input-block">
-            </dd>
-          </dl>
-        </div>
-        <div class="d-table-cell">
-          <dl class="form-group">
-            <dt><label for=reformat-output>Output</label></dt>
-            <dd>
-              <pre id=reformat-output></pre>
-            </dd>
-          </dl>
-        </div>
+    <div class="d-table table-fixed width-full">
+      <div class="d-table-cell">
+        <dl class="form-group previewable-comment-form">
+          <dt><label for=reformat-input>Input</label></dt>
+          <dd>
+            <textarea id=reformat-input class="form-control input-block"
+              autofocus>{foo,bar}:
+              foo+bar</textarea>
+            <input id=reformat-input-file type=file accept="text/*,.nix" class="form-control input-block">
+          </dd>
+        </dl>
       </div>
-    </form>
+      <div class="d-table-cell">
+        <dl class="form-group">
+          <dt><label for=reformat-output>Output</label></dt>
+          <dd>
+            <pre id=reformat-output></pre>
+          </dd>
+        </dl>
+      </div>
+    </div>
 
-    <h2>Submit a GitHub issue</h2>
-    <p>
-      If the code is not re-formatted as expected or you just want to submit
-      a new code sample, submit a new issue to the project:
-    </p>
     <form action="https://github.com/nix-community/nixpkgs-fmt/issues/new" method=get>
-      <dl class="form-group">
-        <dt><label for=title>Title</label></dt>
-        <dd>
-          <input type="text" name="title" class="form-control input-block
-        input-contrast" aria-describedby="test_input_help_good" value="sample: ">
-        </dd>
-      </dl>
-
-      <dl class="form-group previewable-comment-form">
-        <dt><label for=body>Content</label></dt>
-        <dd>
-          <textarea name="body" id="issue-body" placeholder="Issue Body"
-                      class="form-control input-block"></textarea>
-        </dd>
-      </dl>
-
-      <button class="btn btn-primary" type=submit>Submit new GitHub issue</button>
+      <input type="hidden" name="title" value="sample: ">
+      <input type="hidden" name="body" id="issue-body" required>
+      <p>Not liking the result?</p>
+      <button class="btn btn-primary" type=submit>Submit code sample</button>
     </form>
   </div>
 
@@ -133,7 +114,6 @@ ${output}
       // modes
       await init('./pkg/nixpkgs_fmt_wasm_bg.wasm');
 
-      //document.getElementById("reformat-form").onsubmit = reformat
       inputEl.onchange = reformat
       inputEl.onkeyup = reformat
       inputEl.onpaste = reformat
