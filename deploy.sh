@@ -13,7 +13,7 @@ run() {
 
 ## Main ##
 
-origin_url=$(git remote get-url origin)
+origin_url=git@github.com:nix-community/nixpkgs-fmt.git
 workdir=$(mktemp -d)
 cleanup() {
   rm -rf "$workdir"
