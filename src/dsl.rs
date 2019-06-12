@@ -197,7 +197,25 @@ impl<'a> SpacingRuleBuilder<'a> {
 /// For this reason, `IndentRule` specifies only the pattern.
 #[derive(Debug)]
 pub(crate) struct IndentRule {
+    /// Pattern that should match the element which is indented
     pub(crate) pattern: Pattern,
+    /// Pattern that should match the anchoring element, relative to which we
+    /// calculate the indent
+    ///
+    /// in
+    ///
+    /// ```nix
+    /// {
+    ///   f = x:
+    ///      x * 2
+    ///   ;
+    /// }
+    /// ```
+    ///
+    /// when we indent lambda body, `x * 2` is the thing to which the `pattern`
+    /// applies and `f = x ...` is the thing to which the `anchor_pattern`
+    /// applies.
+    pub(crate) anchor_pattern: Option<Pattern>,
 }
 
 /// Make `IndentRule` usable with `PatternSet`
@@ -220,6 +238,7 @@ impl IndentDsl {
             dsl: self,
             parent: parent.into(),
             when: None,
+            when_anchor: None,
         }
     }
 }
@@ -229,6 +248,7 @@ pub(crate) struct IndentRuleBuilder<'a> {
     dsl: &'a mut IndentDsl,
     parent: Pattern,
     when: Option<Pattern>,
+    when_anchor: Option<Pattern>,
 }
 
 impl<'a> IndentRuleBuilder<'a> {
@@ -240,6 +260,7 @@ impl<'a> IndentRuleBuilder<'a> {
         }
         let indent_rule = IndentRule {
             pattern: child.with_parent(self.parent),
+            anchor_pattern: self.when_anchor,
         };
         self.dsl.rules.push(indent_rule);
         self.dsl
@@ -247,6 +268,11 @@ impl<'a> IndentRuleBuilder<'a> {
     /// Only apply this rule when `cond` is true.
     pub(crate) fn when(mut self, cond: fn(SyntaxElement<'_>) -> bool) -> IndentRuleBuilder<'a> {
         self.when = Some(cond.into());
+        self
+    }
+    #[allow(unused)]
+    pub(crate) fn when_anchor(mut self, cond: fn(SyntaxElement<'_>) -> bool) -> IndentRuleBuilder<'a> {
+        self.when_anchor = Some(cond.into());
         self
     }
 }
