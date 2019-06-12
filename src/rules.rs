@@ -24,18 +24,13 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_SET_ENTRY).before(T![;]).when(after_bin_op).no_space_or_newline()
 
         // a==  b => a == b
-        .inside(NODE_OPERATION).around(T![==]).single_space()
-
         // a++  b => a ++ b
-        .inside(NODE_OPERATION).after(T![++]).single_space()
-        .inside(NODE_OPERATION).before(T![++]).single_space_or_newline()
-
         // a+  b => a + b
         // a  -   b => a - b
         // a*  b => a * b
         // a/  b => a / b
-        .inside(NODE_OPERATION).after([T![++], T![+], T![-], T![*], T![/]]).single_space()
-        .inside(NODE_OPERATION).before([T![++], T![+], T![-], T![*], T![/]]).single_space_or_newline()
+        .inside(NODE_OPERATION).after(BIN_OPS).single_space()
+        .inside(NODE_OPERATION).before(BIN_OPS).single_space_or_newline()
 
         // foo . bar . baz => foo.bar.baz
         .inside(NODE_INDEX_SET).around(T![.]).no_space()
@@ -119,44 +114,38 @@ pub(crate) fn indentation() -> IndentDsl {
 }
 
 fn lambda_body_not_on_top_level(body: SyntaxElement<'_>) -> bool {
-    let body = match body {
-        SyntaxElement::Node(it) => it,
-        SyntaxElement::Token(_) => return false,
-    };
-    let lambda = match body.parent().and_then(Lambda::cast) {
-        None => return false,
-        Some(it) => it,
-    };
-    lambda.body() == body && lambda.node().parent().map(|it| it.kind()) != Some(NODE_ROOT)
+    fn find(body: SyntaxElement<'_>) -> Option<bool> {
+        let body = body.as_node()?;
+        let lambda = body.parent().and_then(Lambda::cast)?;
+        Some(lambda.body() == body && lambda.node().parent()?.kind() != NODE_ROOT)
+    }
+
+    find(body) == Some(true)
 }
 
 fn with_body(body: SyntaxElement<'_>) -> bool {
-    let body = match body {
-        SyntaxElement::Node(it) => it,
-        SyntaxElement::Token(_) => return false,
-    };
-    let with = match body.parent().and_then(With::cast) {
-        None => return false,
-        Some(it) => it,
-    };
-    with.body() == body
+    fn find(body: SyntaxElement<'_>) -> Option<bool> {
+        let body = body.as_node()?;
+        let with = body.parent().and_then(With::cast)?;
+        Some(with.body() == body)
+    }
+
+    find(body) == Some(true)
 }
 
 fn apply_arg(arg: SyntaxElement<'_>) -> bool {
-    let arg = match arg {
-        SyntaxElement::Node(it) => it,
-        SyntaxElement::Token(_) => return false,
-    };
-    let apply = match arg.parent().and_then(Apply::cast) {
-        None => return false,
-        Some(it) => it,
-    };
-    apply.value() == arg
+    fn find(arg: SyntaxElement<'_>) -> Option<bool> {
+        let arg = arg.as_node()?;
+        let apply = arg.parent().and_then(Apply::cast)?;
+        Some(apply.value() == arg)
+    }
+
+    find(arg) == Some(true)
 }
 
-static ENTRY_OWNERS: &'static [SyntaxKind] = &[NODE_SET, NODE_LET_IN];
+static ENTRY_OWNERS: &[SyntaxKind] = &[NODE_SET, NODE_LET_IN];
 
-static VALUES: &'static [SyntaxKind] = &[
+static VALUES: &[SyntaxKind] = &[
     NODE_IDENT,
     NODE_INDEX_SET,
     NODE_LAMBDA,
@@ -168,6 +157,8 @@ static VALUES: &'static [SyntaxKind] = &[
     NODE_STRING,
     NODE_VALUE,
 ];
+
+static BIN_OPS: &[SyntaxKind] = &[T![==], T![++], T![+], T![-], T![*], T![/]];
 
 #[cfg(test)]
 mod tests {
