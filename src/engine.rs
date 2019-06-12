@@ -342,7 +342,15 @@ impl IndentRule {
     fn apply<'a>(&self, element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
         assert!(self.pattern.matches(element));
         let anchor_indent = match indent_anchor(element, model) {
-            Some((_anchor, indent)) => indent,
+            Some((anchor, indent)) => {
+                if let Some(p) = &self.anchor_pattern {
+                    if !p.matches(anchor.into()) {
+                        default_indent(element, model);
+                        return;
+                    }
+                }
+                indent
+            }
             _ => 0,
         };
         let block = model.block_for(element, BlockPosition::Before);
