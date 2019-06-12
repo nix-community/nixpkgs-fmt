@@ -122,7 +122,7 @@ impl<'a> SpaceBlock<'a> {
         }
     }
     fn set_line_break_preserving_existing_newlines(&mut self) {
-        if self.text().contains('\n') {
+        if self.has_newline() {
             return;
         }
         self.set_text("\n");
@@ -317,6 +317,11 @@ impl SpaceLoc {
 fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValue) {
     match value {
         SpaceValue::Single => block.set_text(" "),
+        SpaceValue::SingleOptionalNewline => {
+            if !block.has_newline() {
+                block.set_text(" ")
+            }
+        },
         SpaceValue::Newline => block.set_text("\n"),
         SpaceValue::None => block.set_text(""),
         SpaceValue::SingleOrNewline => {

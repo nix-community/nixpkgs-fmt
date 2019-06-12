@@ -36,6 +36,8 @@ pub(crate) struct Space {
 pub(crate) enum SpaceValue {
     /// Single whitespace char, like ` `
     Single,
+    /// Single whitespace char, like ` `, but preserve existing line break.
+    SingleOptionalNewline,
     /// A single newline (`\n`) char
     Newline,
     /// No whitespace at all.
@@ -131,6 +133,9 @@ impl<'a> SpacingRuleBuilder<'a> {
     /// Enforce single whitespace character.
     pub(crate) fn single_space(self) -> &'a mut SpacingDsl {
         self.finish(SpaceValue::Single)
+    }
+    pub(crate) fn single_space_or_optional_newline(self) -> &'a mut SpacingDsl {
+        self.finish(SpaceValue::SingleOptionalNewline)
     }
     /// Enforce the absence of any space.
     pub(crate) fn no_space(self) -> &'a mut SpacingDsl {

@@ -17,7 +17,8 @@ pub(crate) fn spacing() -> SpacingDsl {
 
     dsl
         // { a=92; } => { a = 92; }
-        .inside(NODE_SET_ENTRY).around(T![=]).single_space()
+        .inside(NODE_SET_ENTRY).before(T![=]).single_space()
+        .inside(NODE_SET_ENTRY).after(T![=]).single_space_or_optional_newline()
 
         // { a = 92 ; } => { a = 92; }
         .inside(NODE_SET_ENTRY).before(T![;]).no_space()
@@ -105,6 +106,7 @@ pub(crate) fn indentation() -> IndentDsl {
         .inside(NODE_LAMBDA).when(lambda_body_not_on_top_level).indent(VALUES)
         .inside(NODE_WITH).when(with_body).indent(VALUES)
         .inside(NODE_APPLY).when(apply_arg).indent(VALUES)
+        .inside(NODE_SET_ENTRY).indent(VALUES)
 
         // FIXME: don't force indent if comment is on the first line
         .inside(NODE_LIST).indent(TOKEN_COMMENT)
