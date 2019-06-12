@@ -114,39 +114,33 @@ pub(crate) fn indentation() -> IndentDsl {
 }
 
 fn lambda_body_not_on_top_level(body: SyntaxElement<'_>) -> bool {
-    let body = match body {
-        SyntaxElement::Node(it) => it,
-        SyntaxElement::Token(_) => return false,
-    };
-    let lambda = match body.parent().and_then(Lambda::cast) {
-        None => return false,
-        Some(it) => it,
-    };
-    lambda.body() == body && lambda.node().parent().map(|it| it.kind()) != Some(NODE_ROOT)
+    fn find(body: SyntaxElement<'_>) -> Option<bool> {
+        let body = body.as_node()?;
+        let lambda = body.parent().and_then(Lambda::cast)?;
+        Some(lambda.body() == body && lambda.node().parent()?.kind() != NODE_ROOT)
+    }
+
+    find(body) == Some(true)
 }
 
 fn with_body(body: SyntaxElement<'_>) -> bool {
-    let body = match body {
-        SyntaxElement::Node(it) => it,
-        SyntaxElement::Token(_) => return false,
-    };
-    let with = match body.parent().and_then(With::cast) {
-        None => return false,
-        Some(it) => it,
-    };
-    with.body() == body
+    fn find(body: SyntaxElement<'_>) -> Option<bool> {
+        let body = body.as_node()?;
+        let with = body.parent().and_then(With::cast)?;
+        Some(with.body() == body)
+    }
+
+    find(body) == Some(true)
 }
 
 fn apply_arg(arg: SyntaxElement<'_>) -> bool {
-    let arg = match arg {
-        SyntaxElement::Node(it) => it,
-        SyntaxElement::Token(_) => return false,
-    };
-    let apply = match arg.parent().and_then(Apply::cast) {
-        None => return false,
-        Some(it) => it,
-    };
-    apply.value() == arg
+    fn find(arg: SyntaxElement<'_>) -> Option<bool> {
+        let arg = arg.as_node()?;
+        let apply = arg.parent().and_then(Apply::cast)?;
+        Some(apply.value() == arg)
+    }
+
+    find(arg) == Some(true)
 }
 
 static ENTRY_OWNERS: &[SyntaxKind] = &[NODE_SET, NODE_LET_IN];
