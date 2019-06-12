@@ -24,18 +24,13 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_SET_ENTRY).before(T![;]).when(after_bin_op).no_space_or_newline()
 
         // a==  b => a == b
-        .inside(NODE_OPERATION).around(T![==]).single_space()
-
         // a++  b => a ++ b
-        .inside(NODE_OPERATION).after(T![++]).single_space()
-        .inside(NODE_OPERATION).before(T![++]).single_space_or_newline()
-
         // a+  b => a + b
         // a  -   b => a - b
         // a*  b => a * b
         // a/  b => a / b
-        .inside(NODE_OPERATION).after([T![++], T![+], T![-], T![*], T![/]]).single_space()
-        .inside(NODE_OPERATION).before([T![++], T![+], T![-], T![*], T![/]]).single_space_or_newline()
+        .inside(NODE_OPERATION).after(BIN_OPS).single_space()
+        .inside(NODE_OPERATION).before(BIN_OPS).single_space_or_newline()
 
         // foo . bar . baz => foo.bar.baz
         .inside(NODE_INDEX_SET).around(T![.]).no_space()
@@ -154,9 +149,9 @@ fn apply_arg(arg: SyntaxElement<'_>) -> bool {
     apply.value() == arg
 }
 
-static ENTRY_OWNERS: &'static [SyntaxKind] = &[NODE_SET, NODE_LET_IN];
+static ENTRY_OWNERS: &[SyntaxKind] = &[NODE_SET, NODE_LET_IN];
 
-static VALUES: &'static [SyntaxKind] = &[
+static VALUES: &[SyntaxKind] = &[
     NODE_IDENT,
     NODE_INDEX_SET,
     NODE_LAMBDA,
@@ -168,6 +163,8 @@ static VALUES: &'static [SyntaxKind] = &[
     NODE_STRING,
     NODE_VALUE,
 ];
+
+static BIN_OPS: &[SyntaxKind] = &[T![==], T![++], T![+], T![-], T![*], T![/]];
 
 #[cfg(test)]
 mod tests {
