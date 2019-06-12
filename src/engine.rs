@@ -341,32 +341,39 @@ fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValu
 impl IndentRule {
     fn apply<'a>(&self, element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
         assert!(self.pattern.matches(element));
-        let parent_indent = match element.parent() {
-            None => return,
-            Some(it) => current_indent(it, model),
+        let anchor_indent = match indent_anchor(element, model) {
+            Some((_anchor, indent)) => indent,
+            _ => 0,
         };
         let block = model.block_for(element, BlockPosition::Before);
-        block.set_indent(parent_indent + 1);
+        block.set_indent(anchor_indent + 1);
     }
 }
 
 fn default_indent<'a>(element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
-    let parent_indent = match element.parent() {
-        None => return,
-        Some(it) => current_indent(it, model),
+    let anchor_indent = match indent_anchor(element, model) {
+        Some((_anchor, indent)) => indent,
+        _ => 0,
     };
     let block = model.block_for(element, BlockPosition::Before);
-    block.set_indent(parent_indent);
+    block.set_indent(anchor_indent);
 }
 
-fn current_indent<'a>(node: &'a SyntaxNode, model: &mut FmtModel<'a>) -> usize {
-    for node in node.ancestors() {
+/// Computes an anchoring element, together wit its indent.
+/// An ancestor of `element` which starts on a new line. We do indent relative
+/// to the anchor
+fn indent_anchor<'a>(
+    element: SyntaxElement<'a>,
+    model: &mut FmtModel<'a>,
+) -> Option<(&'a SyntaxNode, usize)> {
+    let parent = element.parent()?;
+    for node in parent.ancestors() {
         let block = model.block_for(node.into(), BlockPosition::Before);
         if block.has_newline() {
-            return block.indent_level();
+            return Some((node, block.indent_level()));
         }
     }
-    0
+    None
 }
 
 impl FmtDiff {
