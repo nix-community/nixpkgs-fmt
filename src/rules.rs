@@ -1,13 +1,13 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
     parser::nodes::*,
-    types::{Apply, Lambda, TypedNode, With},
+    types::{Apply, Lambda, SetEntry, TypedNode, With, Operation},
     SyntaxElement, SyntaxKind, T,
 };
 
 use crate::{
     dsl::{self, IndentDsl, SpacingDsl},
-    tree_utils::prev_sibling,
+    tree_utils::{has_newline, prev_sibling},
 };
 
 #[rustfmt::skip]
@@ -106,7 +106,9 @@ pub(crate) fn indentation() -> IndentDsl {
         .inside(NODE_LAMBDA).when(lambda_body_not_on_top_level).indent(VALUES)
         .inside(NODE_WITH).when(with_body).indent(VALUES)
         .inside(NODE_APPLY).when(apply_arg).indent(VALUES)
+
         .inside(NODE_SET_ENTRY).indent(VALUES)
+        .inside(NODE_OPERATION).when_anchor(set_entry_with_single_line_value).indent(BIN_OPS)
 
         // FIXME: don't force indent if comment is on the first line
         .inside(NODE_LIST).indent(TOKEN_COMMENT)
@@ -143,6 +145,18 @@ fn apply_arg(arg: SyntaxElement<'_>) -> bool {
     }
 
     find(arg) == Some(true)
+}
+
+fn set_entry_with_single_line_value(entry: SyntaxElement<'_>) -> bool {
+    fn find(entry: SyntaxElement<'_>) -> Option<bool> {
+        let entry = entry.as_node().and_then(SetEntry::cast)?;
+        let mut value = entry.value();
+        while let Some(op) = Operation::cast(value) {
+            value = op.value1()
+        }
+        Some(!has_newline(value))
+    }
+    find(entry) == Some(true)
 }
 
 static ENTRY_OWNERS: &[SyntaxKind] = &[NODE_SET, NODE_LET_IN];

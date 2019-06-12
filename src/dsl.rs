@@ -275,7 +275,8 @@ impl<'a> IndentRuleBuilder<'a> {
         self.when = Some(cond.into());
         self
     }
-    #[allow(unused)]
+    /// Only apply this rule when `cond` is true for the anchor node, relative
+    /// to which we compute indentation level.
     pub(crate) fn when_anchor(mut self, cond: fn(SyntaxElement<'_>) -> bool) -> IndentRuleBuilder<'a> {
         self.when_anchor = Some(cond.into());
         self
