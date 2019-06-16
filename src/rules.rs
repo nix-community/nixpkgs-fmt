@@ -25,6 +25,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_SET_ENTRY).before(T![;]).when(after_bin_op).no_space_or_newline()
 
         // a==  b => a == b
+        // a!=  b => a != b
         // a++  b => a ++ b
         // a+  b => a + b
         // a  -   b => a - b
@@ -178,7 +179,25 @@ static VALUES: &[SyntaxKind] = &[
     NODE_VALUE,
 ];
 
-static BIN_OPS: &[SyntaxKind] = &[T![==], T![++], T![+], T![-], T![*], T![/]];
+static BIN_OPS: &[SyntaxKind] = &[
+    T!["//"],
+    T![++],
+
+    T![+],
+    T![-],
+    T![*],
+    T![/],
+
+    T![==],
+    T![=>],
+    T![<],
+    T![>],
+    T![<=],
+    T![!=],
+
+    T![||],
+    T![&&],
+];
 
 #[cfg(test)]
 mod tests {
