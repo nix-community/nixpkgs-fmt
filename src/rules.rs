@@ -75,6 +75,9 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LET_IN).after(T![let]).single_space_or_newline()
         .inside(NODE_LET_IN).around(T![in]).single_space_or_newline()
 
+        // {a?3}: a => { a ? 3 }: a
+        .inside(NODE_PAT_ENTRY).around(T![?]).single_space_or_newline()
+
         // special-cased rules for leading and trailing whitespace
         .rule(dsl::SpacingRule {
             pattern: NODE_ROOT.into(),
