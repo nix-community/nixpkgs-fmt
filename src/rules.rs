@@ -36,8 +36,9 @@ pub(crate) fn spacing() -> SpacingDsl {
         // foo . bar . baz => foo.bar.baz
         .inside(NODE_INDEX_SET).around(T![.]).no_space()
 
-        // {} : 92 => {}: 92
+        // {} :92 => {}: 92
         .inside(NODE_LAMBDA).before(T![:]).no_space()
+        .inside(NODE_LAMBDA).after(T![:]).single_space_or_optional_newline()
 
         // [1 2 3] => [ 1 2 3 ]
         .inside(NODE_LIST).after(T!["["]).single_space_or_newline()
