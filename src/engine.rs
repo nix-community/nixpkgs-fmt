@@ -8,7 +8,7 @@ use rnix::{SmolStr, SyntaxNode, TextRange};
 
 use crate::{
     dsl::{IndentDsl, SpacingDsl},
-    engine::fmt_model::{BlockPosition, FmtModel, SpaceBlock},
+    engine::fmt_model::{BlockPosition, FmtModel, SpaceBlock, SpaceBlockOrToken},
     pattern::PatternSet,
     tree_utils::walk_non_whitespace,
     AtomEdit, FmtDiff,

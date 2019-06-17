@@ -1,10 +1,9 @@
-use rnix::{SyntaxElement, SyntaxNode, tokenizer::tokens::TOKEN_WHITESPACE};
+use rnix::{SyntaxElement, SyntaxNode};
 
 use crate::{
-    engine::{FmtModel, BlockPosition, INDENT_SIZE},
     dsl::IndentRule,
+    engine::{BlockPosition, FmtModel, SpaceBlockOrToken, INDENT_SIZE},
     pattern::{Pattern, PatternSet},
-    tree_utils::preceding_tokens
 };
 
 impl IndentRule {
@@ -76,27 +75,15 @@ fn calc_indent<'a>(node: &'a SyntaxNode, model: &mut FmtModel<'a>) -> usize {
     // The impl is tricky: we need to account for whitespace in `model`, which
     // might be different from original whitespace in the syntax tree
     let mut node_indent = 0;
-
-    let block = model.block_for(node.into(), BlockPosition::Before);
-    let (len, has_newline) = len_of_last_line(block.text());
-    node_indent += len;
-
-    if !has_newline {
-        for token in preceding_tokens(node).filter(|it| it.kind() != TOKEN_WHITESPACE) {
-            let (len, has_newline) = len_of_last_line(token.text());
-            node_indent += len;
-            if has_newline {
-                break;
-            }
-
-            let block = model.block_for(token.into(), BlockPosition::Before);
-            let (len, has_newline) = len_of_last_line(block.text());
-            node_indent += len;
-            if has_newline {
-                break;
-            }
-        }
-    }
+    model.with_preceding_elements(node, &mut |element| {
+        let text = match element {
+            SpaceBlockOrToken::Token(it) => it.text(),
+            SpaceBlockOrToken::SpaceBlock(it) => it.text(),
+        };
+        let (len, has_newline) = len_of_last_line(text);
+        node_indent += len;
+        has_newline
+    });
 
     return node_indent / INDENT_SIZE;
 

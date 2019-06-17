@@ -5,8 +5,10 @@ use rnix::{
     SyntaxToken, TextRange, TextUnit,
 };
 
-use crate::engine::{INDENT_SIZE, FmtDiff};
-
+use crate::{
+    engine::{FmtDiff, INDENT_SIZE},
+    tree_utils::preceding_tokens,
+};
 
 /// `FmtModel` is a data structure to which we apply formatting rules.
 ///
@@ -110,6 +112,11 @@ impl<'a> SpaceBlock<'a> {
     pub(super) fn has_newline(&self) -> bool {
         self.text().contains('\n')
     }
+}
+
+pub(super) enum SpaceBlockOrToken<'a, 'b> {
+    SpaceBlock(&'b mut SpaceBlock<'a>),
+    Token(SyntaxToken<'a>),
 }
 
 impl<'a> FmtModel<'a> {
@@ -220,6 +227,31 @@ impl<'a> FmtModel<'a> {
         };
 
         self.push_block(SpaceBlock::new(original_space))
+    }
+
+    /// Traverses tokens and space blocks that precede the given `node`.
+    ///
+    /// This is implemented as internal iterator due to lifetime issues.
+    pub(super) fn with_preceding_elements(
+        &mut self,
+        node: &'a SyntaxNode,
+        f: &mut impl FnMut(SpaceBlockOrToken<'a, '_>) -> bool,
+    ) {
+        let block = self.block_for(node.into(), BlockPosition::Before);
+        if f(SpaceBlockOrToken::SpaceBlock(block)) {
+            return;
+        }
+
+        for token in preceding_tokens(node).filter(|it| it.kind() != TOKEN_WHITESPACE) {
+            if f(SpaceBlockOrToken::Token(token)) {
+                return;
+            }
+
+            let block = self.block_for(token.into(), BlockPosition::Before);
+            if f(SpaceBlockOrToken::SpaceBlock(block)) {
+                return;
+            }
+        }
     }
 
     fn push_block(&mut self, block: SpaceBlock<'a>) -> &mut SpaceBlock<'a> {
