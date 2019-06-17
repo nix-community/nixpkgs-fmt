@@ -22,6 +22,11 @@ pub(crate) struct Pattern {
     pred: Arc<dyn (Fn(SyntaxElement<'_>) -> bool)>,
 }
 
+impl AsRef<Pattern> for Pattern {
+    fn as_ref(&self) -> &Pattern { self }
+
+}
+
 impl fmt::Debug for Pattern {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("Pattern { ... }")

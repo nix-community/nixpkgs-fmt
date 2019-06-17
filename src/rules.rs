@@ -105,6 +105,8 @@ fn after_bin_op(node: SyntaxElement<'_>) -> bool {
 pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
+        .anchor(NODE_PAT_ENTRY)
+
         .inside(NODE_LIST).indent(VALUES)
         .inside(ENTRY_OWNERS).indent([NODE_SET_ENTRY, NODE_INHERIT])
 
