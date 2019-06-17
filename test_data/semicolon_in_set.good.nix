@@ -12,9 +12,13 @@
   c = [ x ]
     ++ [ y ]
     ++ [ z ]
-  ;
+    ;
 
   d = with foo; [
     bar
   ];
+
+  e = a: b:
+    a + b
+    ;
 }

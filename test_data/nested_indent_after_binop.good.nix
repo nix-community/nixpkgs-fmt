@@ -3,5 +3,5 @@ pkgs.example rec {
     ++ pkgs.stdenv.lib.optionals pkgs.stdenv.isDarwin [
          pkgs.bar
        ]
-  ;
+    ;
 }
