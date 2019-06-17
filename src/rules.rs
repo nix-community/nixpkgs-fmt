@@ -22,8 +22,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_SET_ENTRY).after(T![=]).single_space_or_optional_newline()
 
         // { a = 92 ; } => { a = 92; }
-        .inside(NODE_SET_ENTRY).before(T![;]).no_space()
-        .inside(NODE_SET_ENTRY).before(T![;]).when(after_bin_op).no_space_or_newline()
+        .inside(NODE_SET_ENTRY).before(T![;]).no_space_or_newline()
+        .inside(NODE_SET_ENTRY).before(T![;]).when(after_literal).no_space()
 
         // a==  b => a == b
         // a!=  b => a != b
@@ -95,10 +95,16 @@ pub(crate) fn spacing() -> SpacingDsl {
     dsl
 }
 
-fn after_bin_op(node: SyntaxElement<'_>) -> bool {
-    match prev_sibling(node).map(|it| it.kind()) {
-        Some(NODE_OPERATION) => true,
-        _ => false,
+fn after_literal(node: SyntaxElement<'_>) -> bool {
+    let prev = prev_sibling(node);
+    return if let Some(w) = prev.and_then(With::cast) {
+        is_literal(w.body().kind())
+    } else {
+        prev.map(|it| is_literal(it.kind())) == Some(true)
+    };
+
+    fn is_literal(kind: SyntaxKind) -> bool {
+        kind == NODE_SET || kind == NODE_LIST
     }
 }
 
@@ -117,6 +123,7 @@ pub(crate) fn indentation() -> IndentDsl {
         .inside(NODE_APPLY).when(apply_arg).indent(VALUES)
 
         .inside(NODE_SET_ENTRY).indent(VALUES)
+        .inside(NODE_SET_ENTRY).when_anchor(set_entry_with_single_line_value).indent(T![;])
         .inside(NODE_OPERATION).when_anchor(set_entry_with_single_line_value).indent(BIN_OPS)
 
         // FIXME: don't force indent if comment is on the first line
@@ -160,6 +167,9 @@ fn set_entry_with_single_line_value(entry: SyntaxElement<'_>) -> bool {
     fn find(entry: SyntaxElement<'_>) -> Option<bool> {
         let entry = entry.as_node().and_then(SetEntry::cast)?;
         let mut value = entry.value();
+        if Operation::cast(value).is_none() {
+            return Some(true);
+        }
         while let Some(op) = Operation::cast(value) {
             value = op.value1()
         }
@@ -229,7 +239,8 @@ foo = x:
             .into(),
             after: "{
   foo = x:
-    92;
+    92
+    ;
 }
 "
             .into(),
