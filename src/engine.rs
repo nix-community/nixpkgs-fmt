@@ -14,8 +14,6 @@ use crate::{
     AtomEdit, FmtDiff,
 };
 
-const INDENT_SIZE: usize = 2;
-
 pub(crate) fn format(
     spacing_dsl: &SpacingDsl,
     indent_dsl: &IndentDsl,

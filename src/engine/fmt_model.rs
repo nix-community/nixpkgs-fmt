@@ -5,10 +5,7 @@ use rnix::{
     SyntaxToken, TextRange, TextUnit,
 };
 
-use crate::{
-    engine::{FmtDiff, INDENT_SIZE},
-    tree_utils::preceding_tokens,
-};
+use crate::{engine::FmtDiff, tree_utils::preceding_tokens};
 
 /// `FmtModel` is a data structure to which we apply formatting rules.
 ///
@@ -88,11 +85,6 @@ impl<'a> SpaceBlock<'a> {
             _ => self.new_text = Some(text.into()),
         }
     }
-    pub(super) fn set_indent(&mut self, level: usize) {
-        let indent = " ".repeat(INDENT_SIZE * level);
-        let newlines: String = self.text().chars().filter(|&it| it == '\n').collect();
-        self.set_text(&format!("{}{}", newlines, indent));
-    }
     pub(super) fn text(&self) -> &str {
         if let Some(text) = self.new_text.as_ref() {
             return text.as_str();
@@ -100,13 +92,6 @@ impl<'a> SpaceBlock<'a> {
         match self.original {
             OriginalSpace::Some(token) => token.text().as_str(),
             OriginalSpace::None { .. } => "",
-        }
-    }
-    pub(super) fn indent_level(&self) -> usize {
-        let text = self.text();
-        match text.rfind('\n') {
-            None => return 0,
-            Some(idx) => text[idx + 1..].chars().count() / INDENT_SIZE,
         }
     }
     pub(super) fn has_newline(&self) -> bool {
