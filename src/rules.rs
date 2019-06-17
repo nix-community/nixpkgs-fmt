@@ -1,12 +1,13 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
     parser::nodes::*,
-    types::{Apply, Lambda, SetEntry, TypedNode, With, Operation},
+    types::{Apply, Lambda, Operation, SetEntry, TypedNode, With},
     SyntaxElement, SyntaxKind, T,
 };
 
 use crate::{
     dsl::{self, IndentDsl, SpacingDsl},
+    pattern::Pattern,
     tree_utils::{has_newline, prev_sibling},
 };
 
@@ -106,6 +107,7 @@ pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
         .anchor(NODE_PAT_ENTRY)
+        .anchor(Pattern::from(rhs_of_binop))
 
         .inside(NODE_LIST).indent(VALUES)
         .inside(ENTRY_OWNERS).indent([NODE_SET_ENTRY, NODE_INHERIT])
@@ -166,6 +168,14 @@ fn set_entry_with_single_line_value(entry: SyntaxElement<'_>) -> bool {
     find(entry) == Some(true)
 }
 
+fn rhs_of_binop(rhs: SyntaxElement<'_>) -> bool {
+    fn find(rhs: SyntaxElement<'_>) -> Option<bool> {
+        let op = rhs.parent().and_then(Operation::cast)?;
+        Some(op.value2() == rhs.as_node()?)
+    }
+    find(rhs) == Some(true)
+}
+
 static ENTRY_OWNERS: &[SyntaxKind] = &[NODE_SET, NODE_LET_IN];
 
 static VALUES: &[SyntaxKind] = &[
@@ -179,24 +189,22 @@ static VALUES: &[SyntaxKind] = &[
     NODE_SET,
     NODE_STRING,
     NODE_VALUE,
+    NODE_APPLY,
 ];
 
 static BIN_OPS: &[SyntaxKind] = &[
     T!["//"],
     T![++],
-
     T![+],
     T![-],
     T![*],
     T![/],
-
     T![==],
     T![=>],
     T![<],
     T![>],
     T![<=],
     T![!=],
-
     T![||],
     T![&&],
 ];
