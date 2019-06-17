@@ -1,16 +1,16 @@
 //! This module applies the rules from `super::dsl` to a `SyntaxNode`, to
 //! get a `FmtDiff`.
-use std::collections::HashMap;
+mod fmt_model;
+mod indentation;
+mod spacing;
 
-use rnix::{
-    nodes::NODE_ROOT, tokenizer::tokens::TOKEN_WHITESPACE, SmolStr, SyntaxElement, SyntaxNode,
-    SyntaxToken, TextRange, TextUnit,
-};
+use rnix::{SmolStr, SyntaxNode, TextRange};
 
 use crate::{
-    dsl::{IndentDsl, IndentRule, SpaceLoc, SpaceValue, SpacingDsl, SpacingRule},
+    dsl::{IndentDsl, SpacingDsl},
+    engine::fmt_model::{BlockPosition, FmtModel, SpaceBlock},
     pattern::PatternSet,
-    tree_utils::{has_newline, walk_non_whitespace},
+    tree_utils::walk_non_whitespace,
     AtomEdit, FmtDiff,
 };
 
@@ -34,6 +34,7 @@ pub(crate) fn format(
 
     // Next, for each node which starts the newline, adjust the indent.
     let indent_rule_set = PatternSet::new(indent_dsl.rules.iter());
+    let anchor_set = PatternSet::new(indent_dsl.anchors.iter());
     for element in walk_non_whitespace(root) {
         let block = model.block_for(element, BlockPosition::Before);
         if !block.has_newline() {
@@ -42,351 +43,17 @@ pub(crate) fn format(
         }
         let mut matching = indent_rule_set.matching(element);
         if let Some(rule) = matching.next() {
-            rule.apply(element, &mut model);
+            rule.apply(element, &mut model, &anchor_set);
             assert!(
                 matching.next().is_none(),
                 "more that one indent rule matched"
             );
         } else {
-            default_indent(element, &mut model)
+            indentation::default_indent(element, &mut model, &anchor_set)
         }
     }
 
     model.into_diff()
-}
-
-/// `FmtModel` is a data structure to which we apply formatting rules.
-///
-/// It wraps a syntax trees and adds `SpaceBlock`s. `SpaceBlock` represents a
-/// run (potentially empty) of whitespace characters. We create whitespace
-/// blocks for existing whitespace tokens. However, if two non-whitespace tokens
-/// are joined together in the syntax tree, we still create an empty
-/// `SpaceBlock` to represent the space between them. That way, rules don't have
-/// to separately handle a case when whitespace node is completely missing from
-/// the original tree.
-///
-/// The `FmtModel` is a mutable data structure, formatting rules work by
-/// changing the actual `SpacingBlock`s. For this reason, the order of
-/// application of the rules is significant.
-///
-/// We maintain the invariant that no two `SpaceBlock`s are directly adjoint to
-/// each other.
-#[derive(Debug)]
-struct FmtModel<'a> {
-    original_node: &'a SyntaxNode,
-    /// We store `SpaceBlock`s in array. With this setup, we can refer to a
-    /// specific block by index, dodging many lifetime issues.
-    blocks: Vec<SpaceBlock<'a>>,
-    /// Maps offset to an index of the block, for which the offset is the start
-    /// offset.
-    by_start_offset: HashMap<TextUnit, usize>,
-    /// Maps offset to an index of the block, for which the offset is the end
-    /// offset.
-    by_end_offset: HashMap<TextUnit, usize>,
-}
-
-#[derive(Debug)]
-struct SpaceBlock<'a> {
-    original: OriginalSpace<'a>,
-    /// Block's textual content, which is seen and modified by formatting rules.
-    new_text: Option<SmolStr>,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum BlockPosition {
-    Before,
-    After,
-}
-
-/// Original whitespace token, if any, that backs a `SpaceBlock.
-#[derive(Debug)]
-enum OriginalSpace<'a> {
-    Some(SyntaxToken<'a>),
-    None { offset: TextUnit },
-}
-
-impl<'a> OriginalSpace<'a> {
-    fn text_range(&self) -> TextRange {
-        match *self {
-            OriginalSpace::Some(token) => token.range(),
-            OriginalSpace::None { offset } => TextRange::from_to(offset, offset),
-        }
-    }
-}
-
-impl<'a> SpaceBlock<'a> {
-    fn new(original: OriginalSpace<'a>) -> SpaceBlock<'a> {
-        SpaceBlock {
-            original,
-            new_text: None,
-        }
-    }
-    fn set_line_break_preserving_existing_newlines(&mut self) {
-        if self.has_newline() {
-            return;
-        }
-        self.set_text("\n");
-    }
-    fn set_text(&mut self, text: &str) {
-        match self.original {
-            OriginalSpace::Some(token) if token.text() == text && self.new_text.is_none() => return,
-            _ => self.new_text = Some(text.into()),
-        }
-    }
-    fn set_indent(&mut self, level: usize) {
-        let indent = " ".repeat(INDENT_SIZE * level);
-        let newlines: String = self.text().chars().filter(|&it| it == '\n').collect();
-        self.set_text(&format!("{}{}", newlines, indent));
-    }
-    fn text(&self) -> &str {
-        if let Some(text) = self.new_text.as_ref() {
-            return text.as_str();
-        }
-        match self.original {
-            OriginalSpace::Some(token) => token.text().as_str(),
-            OriginalSpace::None { .. } => "",
-        }
-    }
-    fn indent_level(&self) -> usize {
-        let text = self.text();
-        match text.rfind('\n') {
-            None => return 0,
-            Some(idx) => text[idx + 1..].chars().count() / INDENT_SIZE,
-        }
-    }
-    fn has_newline(&self) -> bool {
-        self.text().contains('\n')
-    }
-}
-
-impl<'a> FmtModel<'a> {
-    fn new(original_node: &'a SyntaxNode) -> FmtModel<'a> {
-        FmtModel {
-            original_node,
-            blocks: vec![],
-            by_start_offset: HashMap::default(),
-            by_end_offset: HashMap::default(),
-        }
-    }
-
-    fn into_diff(self) -> FmtDiff {
-        let mut diff = FmtDiff {
-            original_node: self.original_node.to_owned(),
-            edits: vec![],
-        };
-        for block in self.blocks {
-            if let Some(new_next) = block.new_text {
-                diff.replace(block.original.text_range(), new_next);
-            }
-        }
-        diff
-    }
-
-    /// This method gets a `SpaceBlock` before or after element. It's pretty
-    /// complicated, because it needs to handle these different cases:
-    /// * We could have already created the block. In this case, we should
-    ///   return the existing block instead of creating a new one.
-    /// * There may, or may not be, backing original whitespace token for the
-    ///   block.
-    /// * The necessary whitespace token is not necessary a sibling of
-    ///   `element`, it might be a sibling of `element`'s ancestor.
-    /// * Finally, root node is special, as it doesn't have siblings and instead
-    ///   leading and trailing whitespace appear as children.
-    fn block_for(
-        &mut self,
-        element: SyntaxElement<'a>,
-        position: BlockPosition,
-    ) -> &mut SpaceBlock<'a> {
-        use BlockPosition::{After, Before};
-
-        assert!(element.kind() != TOKEN_WHITESPACE);
-
-        // Special case, for root node, leading and trailing ws are children of
-        // the root. For all other node types, they are siblings
-        if element.kind() == NODE_ROOT {
-            let root_node = element.as_node().unwrap();
-            let original_space = match position {
-                BlockPosition::Before => root_node.first_child_or_token(),
-                BlockPosition::After => root_node.last_child_or_token(),
-            };
-            return match original_space {
-                Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
-                    if let Some(&existing) = match position {
-                        Before => self.by_end_offset.get(&token.range().end()),
-                        After => self.by_start_offset.get(&token.range().start()),
-                    } {
-                        &mut self.blocks[existing]
-                    } else {
-                        self.push_block(SpaceBlock::new(OriginalSpace::Some(token)))
-                    }
-                }
-                _ => {
-                    let offset = match position {
-                        Before => root_node.range().start(),
-                        After => root_node.range().end(),
-                    };
-
-                    if let Some(&existing) = match position {
-                        Before => self.by_end_offset.get(&offset),
-                        After => self.by_start_offset.get(&offset),
-                    } {
-                        &mut self.blocks[existing]
-                    } else {
-                        self.push_block(SpaceBlock::new(OriginalSpace::None { offset }))
-                    }
-                }
-            };
-        }
-
-        let offset = match position {
-            Before => element.range().start(),
-            After => element.range().end(),
-        };
-
-        if let Some(&existing) = match position {
-            Before => self.by_end_offset.get(&offset),
-            After => self.by_start_offset.get(&offset),
-        } {
-            return &mut self.blocks[existing];
-        }
-
-        let original_token = match position {
-            Before => element.prev_sibling_or_token(),
-            After => element.next_sibling_or_token(),
-        };
-
-        let original_space = match original_token {
-            Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
-                OriginalSpace::Some(token)
-            }
-            Some(_) => OriginalSpace::None { offset },
-            _ => match element.parent() {
-                Option::Some(parent) => return self.block_for(parent.into(), position),
-                None => OriginalSpace::None { offset },
-            },
-        };
-
-        self.push_block(SpaceBlock::new(original_space))
-    }
-
-    fn push_block(&mut self, block: SpaceBlock<'a>) -> &mut SpaceBlock<'a> {
-        let idx = self.blocks.len();
-        let range = block.original.text_range();
-
-        let prev = self.by_start_offset.insert(range.start(), idx);
-        assert!(prev.is_none());
-        let prev = self.by_end_offset.insert(range.end(), idx);
-        assert!(prev.is_none());
-
-        self.blocks.push(block);
-        self.blocks.last_mut().unwrap()
-    }
-}
-
-impl SpacingRule {
-    fn apply<'a>(&self, element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
-        if !self.pattern.matches(element) {
-            return;
-        }
-        if self.space.loc.is_before() {
-            let block = model.block_for(element, BlockPosition::Before);
-            ensure_space(element, block, self.space.value);
-        }
-        if self.space.loc.is_after() {
-            let block = model.block_for(element, BlockPosition::After);
-            ensure_space(element, block, self.space.value);
-        }
-    }
-}
-
-impl SpaceLoc {
-    fn is_before(self) -> bool {
-        match self {
-            SpaceLoc::Before | SpaceLoc::Around => true,
-            SpaceLoc::After => false,
-        }
-    }
-    fn is_after(self) -> bool {
-        match self {
-            SpaceLoc::After | SpaceLoc::Around => true,
-            SpaceLoc::Before => false,
-        }
-    }
-}
-
-fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValue) {
-    match value {
-        SpaceValue::Single => block.set_text(" "),
-        SpaceValue::SingleOptionalNewline => {
-            if !block.has_newline() {
-                block.set_text(" ")
-            }
-        },
-        SpaceValue::Newline => block.set_text("\n"),
-        SpaceValue::None => block.set_text(""),
-        SpaceValue::SingleOrNewline => {
-            let parent_is_multiline = element.parent().map_or(false, has_newline);
-            if parent_is_multiline {
-                block.set_line_break_preserving_existing_newlines()
-            } else {
-                block.set_text(" ")
-            }
-        }
-        SpaceValue::NoneOrNewline => {
-            let parent_is_multiline = element.parent().map_or(false, has_newline);
-            if parent_is_multiline {
-                block.set_line_break_preserving_existing_newlines()
-            } else {
-                block.set_text("")
-            }
-        }
-    }
-}
-
-impl IndentRule {
-    fn apply<'a>(&self, element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
-        assert!(self.pattern.matches(element));
-        let anchor_indent = match indent_anchor(element, model) {
-            Some((anchor, indent)) => {
-                if let Some(p) = &self.anchor_pattern {
-                    if !p.matches(anchor.into()) {
-                        default_indent(element, model);
-                        return;
-                    }
-                }
-                indent
-            }
-            _ => 0,
-        };
-        let block = model.block_for(element, BlockPosition::Before);
-        block.set_indent(anchor_indent + 1);
-    }
-}
-
-fn default_indent<'a>(element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
-    let anchor_indent = match indent_anchor(element, model) {
-        Some((_anchor, indent)) => indent,
-        _ => 0,
-    };
-    let block = model.block_for(element, BlockPosition::Before);
-    block.set_indent(anchor_indent);
-}
-
-/// Computes an anchoring element, together wit its indent.
-/// An ancestor of `element` which starts on a new line. We do indent relative
-/// to the anchor
-fn indent_anchor<'a>(
-    element: SyntaxElement<'a>,
-    model: &mut FmtModel<'a>,
-) -> Option<(&'a SyntaxNode, usize)> {
-    let parent = element.parent()?;
-    for node in parent.ancestors() {
-        let block = model.block_for(node.into(), BlockPosition::Before);
-        if block.has_newline() {
-            return Some((node, block.indent_level()));
-        }
-    }
-    None
 }
 
 impl FmtDiff {

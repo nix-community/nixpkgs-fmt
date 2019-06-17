@@ -234,9 +234,29 @@ impl AsRef<Pattern> for IndentRule {
 #[derive(Default)]
 pub(crate) struct IndentDsl {
     pub(crate) rules: Vec<IndentRule>,
+    pub(crate) anchors: Vec<Pattern>,
 }
 
 impl IndentDsl {
+    /// Specifies that an element should be treated as indent anchor even if it
+    /// isn't the first on the line.
+    ///
+    /// For example, in
+    ///
+    /// ```nix
+    /// { foo ? bar
+    /// , baz ? quux {
+    ///     y = z;
+    ///   }
+    /// }
+    /// ```
+    ///
+    /// we want to indent `y = z;` relative to `baz ? ...`, although it doesn't
+    /// start on the first line.
+    pub(crate) fn anchor(&mut self, pattern: impl Into<Pattern>) -> &mut IndentDsl {
+        self.anchors.push(pattern.into());
+        self
+    }
     /// Specify a rule for an element which is a child of `parent`.
     pub(crate) fn inside(&mut self, parent: impl Into<Pattern>) -> IndentRuleBuilder<'_> {
         IndentRuleBuilder {
@@ -277,7 +297,10 @@ impl<'a> IndentRuleBuilder<'a> {
     }
     /// Only apply this rule when `cond` is true for the anchor node, relative
     /// to which we compute indentation level.
-    pub(crate) fn when_anchor(mut self, cond: fn(SyntaxElement<'_>) -> bool) -> IndentRuleBuilder<'a> {
+    pub(crate) fn when_anchor(
+        mut self,
+        cond: fn(SyntaxElement<'_>) -> bool,
+    ) -> IndentRuleBuilder<'a> {
         self.when_anchor = Some(cond.into());
         self
     }

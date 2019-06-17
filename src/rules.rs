@@ -78,7 +78,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LET_IN).around(T![in]).single_space_or_newline()
 
         // {a?3}: a => { a ? 3 }: a
-        .inside(NODE_PAT_ENTRY).around(T![?]).single_space_or_newline()
+        .inside(NODE_PAT_ENTRY).around(T![?]).single_space()
 
         // special-cased rules for leading and trailing whitespace
         .rule(dsl::SpacingRule {
@@ -105,6 +105,8 @@ fn after_bin_op(node: SyntaxElement<'_>) -> bool {
 pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
+        .anchor(NODE_PAT_ENTRY)
+
         .inside(NODE_LIST).indent(VALUES)
         .inside(ENTRY_OWNERS).indent([NODE_SET_ENTRY, NODE_INHERIT])
 
