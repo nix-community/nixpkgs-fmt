@@ -1,7 +1,7 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
     parser::nodes::*,
-    types::{Apply, Lambda, Operation, SetEntry, TypedNode, With},
+    types::{Apply, Operation, SetEntry, TypedNode, With},
     SyntaxElement, SyntaxKind, T,
 };
 
@@ -149,9 +149,16 @@ pub(crate) fn indentation() -> IndentDsl {
 
 fn lambda_body_not_on_top_level(body: SyntaxElement<'_>) -> bool {
     fn find(body: SyntaxElement<'_>) -> Option<bool> {
-        let body = body.as_node()?;
-        let lambda = body.parent().and_then(Lambda::cast)?;
-        Some(lambda.body() == body && lambda.node().parent()?.kind() != NODE_ROOT)
+        let mut node = body.as_node()?;
+        loop {
+            node = node.parent()?;
+            if node.kind() == NODE_ROOT {
+                return None
+            }
+            if node.kind() != NODE_LAMBDA {
+                return Some(true)
+            }
+        }
     }
 
     find(body) == Some(true)
