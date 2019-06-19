@@ -42,6 +42,8 @@ pub(crate) enum SpaceValue {
     Newline,
     /// No whitespace at all.
     None,
+    /// No space, but preserve existing line break.
+    NoneOptionalNewline,
     /// If the parent element fits into a single line, a single space.
     /// Otherwise, at least one newline.
     /// Existing newlines are preserved.
@@ -136,6 +138,9 @@ impl<'a> SpacingRuleBuilder<'a> {
     }
     pub(crate) fn single_space_or_optional_newline(self) -> &'a mut SpacingDsl {
         self.finish(SpaceValue::SingleOptionalNewline)
+    }
+    pub(crate) fn no_space_or_optional_newline(self) -> &'a mut SpacingDsl {
+        self.finish(SpaceValue::NoneOptionalNewline)
     }
     /// Enforce the absence of any space.
     pub(crate) fn no_space(self) -> &'a mut SpacingDsl {
