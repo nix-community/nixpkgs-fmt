@@ -1,8 +1,8 @@
 use rnix::SyntaxElement;
 
 use crate::{
-    engine::{FmtModel, SpaceBlock, BlockPosition},
-    dsl::{SpacingRule, SpaceLoc, SpaceValue},
+    dsl::{SpaceLoc, SpaceValue, SpacingRule},
+    engine::{BlockPosition, FmtModel, SpaceBlock},
     tree_utils::has_newline,
 };
 
@@ -47,6 +47,11 @@ fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValu
         }
         SpaceValue::Newline => block.set_text("\n"),
         SpaceValue::None => block.set_text(""),
+        SpaceValue::NoneOptionalNewline => {
+            if !block.has_newline() {
+                block.set_text("")
+            }
+        }
         SpaceValue::SingleOrNewline => {
             let parent_is_multiline = element.parent().map_or(false, has_newline);
             if parent_is_multiline {

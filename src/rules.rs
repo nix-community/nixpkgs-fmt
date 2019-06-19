@@ -22,8 +22,9 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_SET_ENTRY).after(T![=]).single_space_or_optional_newline()
 
         // { a = 92 ; } => { a = 92; }
-        .inside(NODE_SET_ENTRY).before(T![;]).no_space_or_newline()
+        .inside(NODE_SET_ENTRY).before(T![;]).no_space_or_optional_newline()
         .inside(NODE_SET_ENTRY).before(T![;]).when(after_literal).no_space()
+        .inside(NODE_SET_ENTRY).before(T![;]).when(after_multiline_binop).single_space_or_newline()
 
         // a==  b => a == b
         // a!=  b => a != b
@@ -106,6 +107,15 @@ fn after_literal(node: SyntaxElement<'_>) -> bool {
     fn is_literal(kind: SyntaxKind) -> bool {
         kind == NODE_SET || kind == NODE_LIST
     }
+}
+
+fn after_multiline_binop(node: SyntaxElement<'_>) -> bool {
+    let prev = prev_sibling(node);
+    return if let Some(op) = prev.and_then(Operation::cast) {
+        has_newline(op.node())
+    } else {
+        false
+    };
 }
 
 #[rustfmt::skip]
@@ -239,8 +249,7 @@ foo = x:
             .into(),
             after: "{
   foo = x:
-    92
-    ;
+    92;
 }
 "
             .into(),

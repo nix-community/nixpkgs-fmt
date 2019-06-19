@@ -2,9 +2,7 @@
   mkValueStringDefault = {}: v: with builtins;
     let
       err = t: v: abort
-        "oups"
-        ;
+        "oups";
     in
-    92
-    ;
+    92;
 }
