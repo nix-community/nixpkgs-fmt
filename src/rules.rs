@@ -48,15 +48,16 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LIST).before(T!["]"]).single_space_or_newline()
         // [ ] => []
         .inside(NODE_LIST).between(T!["["], T!["]"]).no_space()
-        .inside(NODE_LIST).after(VALUES).single_space_or_newline()
-        .inside(NODE_LIST).after(TOKEN_COMMENT).single_space_or_newline()
+        .inside(NODE_LIST).between(VALUES, VALUES).single_space_or_newline()
+        .inside(NODE_LIST).between(VALUES, TOKEN_COMMENT).single_space_or_optional_newline()
 
         // {foo = 92;} => { foo = 92; }
         .inside(NODE_SET).after(T!["{"]).single_space_or_newline()
         .inside(NODE_SET).before(T!["}"]).single_space_or_newline()
         // { } => {}
         .inside(NODE_SET).between(T!["{"], T!["}"]).no_space()
-        .inside(NODE_SET).after(NODE_SET_ENTRY).single_space_or_newline()
+        .inside(NODE_SET).between(NODE_SET_ENTRY, NODE_SET_ENTRY).single_space_or_newline()
+        .inside(NODE_SET).between(NODE_SET_ENTRY, TOKEN_COMMENT).single_space_or_optional_newline()
 
         // {arg}: 92 => { arg }: 92
         .inside(NODE_PATTERN).after(T!["{"]).single_space()
