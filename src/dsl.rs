@@ -1,5 +1,5 @@
 //! This module contains a definition of pattern-based formatting DSL.
-use rnix::{SyntaxElement, SyntaxKind};
+use rnix::SyntaxElement;
 
 use crate::{
     pattern::Pattern,
@@ -96,7 +96,7 @@ pub(crate) struct SpacingRuleBuilder<'a> {
     dsl: &'a mut SpacingDsl,
     parent: Pattern,
     child: Option<Pattern>,
-    between: Option<(SyntaxKind, SyntaxKind)>,
+    between: Option<(Pattern, Pattern)>,
     loc: Option<SpaceLoc>,
 }
 
@@ -120,8 +120,12 @@ impl<'a> SpacingRuleBuilder<'a> {
         self
     }
     /// The rule applies to the whitespace between the two nodes.
-    pub(crate) fn between(mut self, left: SyntaxKind, right: SyntaxKind) -> SpacingRuleBuilder<'a> {
-        self.between = Some((left, right));
+    pub(crate) fn between(
+        mut self,
+        left: impl Into<Pattern>,
+        right: impl Into<Pattern>,
+    ) -> SpacingRuleBuilder<'a> {
+        self.between = Some((left.into(), right.into()));
         self.loc = Some(SpaceLoc::After);
         self
     }
@@ -157,10 +161,13 @@ impl<'a> SpacingRuleBuilder<'a> {
     fn finish(self, value: SpaceValue) -> &'a mut SpacingDsl {
         assert!(self.between.is_some() ^ self.child.is_some());
         if let Some((left, right)) = self.between {
-            let child = Pattern::from(left)
-                & Pattern::from(move |it: SyntaxElement<'_>| {
-                    next_non_whitespace_sibling(it).map(|it| it.kind() == right) == Some(true)
-                });
+            let child = {
+                let left = left.clone();
+                let right = right.clone();
+                left & Pattern::from(move |it: SyntaxElement<'_>| {
+                    next_non_whitespace_sibling(it).map(|it| right.matches(it)) == Some(true)
+                })
+            };
             let rule = SpacingRule {
                 pattern: child.with_parent(self.parent.clone()),
                 space: Space {
@@ -170,9 +177,9 @@ impl<'a> SpacingRuleBuilder<'a> {
             };
             self.dsl.rule(rule);
 
-            let child = Pattern::from(right)
+            let child = right
                 & Pattern::from(move |it: SyntaxElement<'_>| {
-                    prev_non_whitespace_sibling(it).map(|it| it.kind() == left) == Some(true)
+                    prev_non_whitespace_sibling(it).map(|it| left.matches(it)) == Some(true)
                 });
             let rule = SpacingRule {
                 pattern: child.with_parent(self.parent),
