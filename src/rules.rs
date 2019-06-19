@@ -129,12 +129,15 @@ pub(crate) fn indentation() -> IndentDsl {
         .inside(ENTRY_OWNERS).indent([NODE_SET_ENTRY, NODE_INHERIT])
 
         .inside(NODE_LAMBDA).when(lambda_body_not_on_top_level).indent(VALUES)
-        .inside(NODE_WITH).when(with_body).indent(VALUES)
         .inside(NODE_APPLY).when(apply_arg).indent(VALUES)
 
         .inside(NODE_SET_ENTRY).indent(VALUES)
         .inside(NODE_SET_ENTRY).when_anchor(set_entry_with_single_line_value).indent(T![;])
         .inside(NODE_OPERATION).when_anchor(set_entry_with_single_line_value).indent(BIN_OPS)
+        .inside(NODE_WITH)
+            .when(with_body)
+            .when_anchor(set_entry_with_single_line_value)
+            .indent(VALUES)
 
         // FIXME: don't force indent if comment is on the first line
         .inside(NODE_LIST).indent(TOKEN_COMMENT)
