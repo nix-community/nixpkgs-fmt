@@ -60,7 +60,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_SET).between(NODE_SET_ENTRY, TOKEN_COMMENT).single_space_or_optional_newline()
 
         // {arg}: 92 => { arg }: 92
-        .inside(NODE_PATTERN).after(T!["{"]).single_space()
+        .inside(NODE_PATTERN).after(T!["{"]).single_space_or_newline()
         .inside(NODE_PATTERN).before(T!["}"]).single_space_or_newline()
         // { }: 92 => {}: 92
         .inside(NODE_PATTERN).between(T!["{"], T!["}"]).no_space()
@@ -129,6 +129,7 @@ pub(crate) fn indentation() -> IndentDsl {
         .inside(NODE_LIST).indent(VALUES)
         .inside(ENTRY_OWNERS).indent([NODE_SET_ENTRY, NODE_INHERIT])
 
+        .inside(NODE_PATTERN).indent(NODE_PAT_ENTRY)
         .inside(NODE_LAMBDA).when(lambda_body_not_on_top_level).indent(VALUES)
         .inside(NODE_APPLY).when(apply_arg).indent(VALUES)
 
