@@ -1,5 +1,5 @@
-use wasm_bindgen::prelude::*;
 use std::panic;
+use wasm_bindgen::prelude::*;
 
 // Use the smaller `wee_alloc` as the global allocator.
 #[global_allocator]
