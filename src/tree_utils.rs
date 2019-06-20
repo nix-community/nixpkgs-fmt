@@ -30,31 +30,24 @@ pub(crate) fn has_newline(node: &SyntaxNode) -> bool {
 }
 
 pub(crate) fn prev_sibling(element: SyntaxElement<'_>) -> Option<&SyntaxNode> {
-    successors(element.prev_sibling_or_token(), |it| {
-        it.prev_sibling_or_token()
-    })
-    .find_map(|element| match element {
-        SyntaxElement::Node(it) => Some(it),
-        SyntaxElement::Token(_) => None,
-    })
+    successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token()).find_map(
+        |element| match element {
+            SyntaxElement::Node(it) => Some(it),
+            SyntaxElement::Token(_) => None,
+        },
+    )
 }
 
 pub(crate) fn prev_non_whitespace_sibling(element: SyntaxElement<'_>) -> Option<SyntaxElement<'_>> {
-    successors(element.prev_sibling_or_token(), |it| {
-        it.prev_sibling_or_token()
-    })
-    .find(|it| it.kind() != TOKEN_WHITESPACE)
+    successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token())
+        .find(|it| it.kind() != TOKEN_WHITESPACE)
 }
 
 pub(crate) fn next_non_whitespace_sibling(element: SyntaxElement<'_>) -> Option<SyntaxElement<'_>> {
-    successors(element.next_sibling_or_token(), |it| {
-        it.next_sibling_or_token()
-    })
-    .find(|it| it.kind() != TOKEN_WHITESPACE)
+    successors(element.next_sibling_or_token(), |it| it.next_sibling_or_token())
+        .find(|it| it.kind() != TOKEN_WHITESPACE)
 }
 
 pub(crate) fn preceding_tokens<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxToken<'a>> {
-    successors(node.first_token().and_then(|it| it.prev_token()), |it| {
-        it.prev_token()
-    })
+    successors(node.first_token().and_then(|it| it.prev_token()), |it| it.prev_token())
 }

@@ -32,9 +32,8 @@ impl FmtDiff {
 
     pub fn to_string(&self) -> String {
         // TODO: don't copy strings all over the place
-        let old_text = walk_tokens(&self.original_node)
-            .map(|it| it.text().as_str())
-            .collect::<String>();
+        let old_text =
+            walk_tokens(&self.original_node).map(|it| it.text().as_str()).collect::<String>();
 
         let mut total_len = old_text.len();
         let mut edits = self.edits.clone();

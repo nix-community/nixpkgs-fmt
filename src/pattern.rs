@@ -23,8 +23,9 @@ pub(crate) struct Pattern {
 }
 
 impl AsRef<Pattern> for Pattern {
-    fn as_ref(&self) -> &Pattern { self }
-
+    fn as_ref(&self) -> &Pattern {
+        self
+    }
 }
 
 impl fmt::Debug for Pattern {
@@ -38,10 +39,7 @@ impl Pattern {
         kinds: Option<HashSet<SyntaxKind>>,
         pred: impl Fn(SyntaxElement<'_>) -> bool + 'static,
     ) -> Pattern {
-        Pattern {
-            kinds,
-            pred: Arc::new(pred),
-        }
+        Pattern { kinds, pred: Arc::new(pred) }
     }
 
     fn filter_by_kind(kinds: impl Iterator<Item = SyntaxKind>) -> Pattern {
@@ -141,10 +139,7 @@ impl<'a, P: AsRef<Pattern>> PatternSet<&'a P> {
                 unconstrained.push(item)
             }
         });
-        PatternSet {
-            by_kind,
-            unconstrained,
-        }
+        PatternSet { by_kind, unconstrained }
     }
 
     /// Returns an iterator of patterns that match

@@ -153,10 +153,10 @@ fn lambda_body_not_on_top_level(body: SyntaxElement<'_>) -> bool {
         loop {
             node = node.parent()?;
             if node.kind() == NODE_ROOT {
-                return None
+                return None;
             }
             if node.kind() != NODE_LAMBDA {
-                return Some(true)
+                return Some(true);
             }
         }
     }
@@ -302,11 +302,7 @@ foo = x:
             let divisor = line.find("=>")?;
             let before = format!("{}\n", line[..divisor].trim());
             let after = format!("{}\n", line[divisor + 3..].trim());
-            Some(TestCase {
-                name: None,
-                before,
-                after,
-            })
+            Some(TestCase { name: None, before, after })
         }
 
         fn collect_from_comments(text: &str) -> Vec<TestCase> {
@@ -379,11 +375,7 @@ foo = x:
             }
         }
         if n_failed > 0 {
-            panic!(
-                "{} failed test cases out of {} total",
-                n_failed,
-                tests.len()
-            )
+            panic!("{} failed test cases out of {} total", n_failed, tests.len())
         }
     }
 }
