@@ -42,10 +42,7 @@ pub(crate) fn format(
         let mut matching = indent_rule_set.matching(element);
         if let Some(rule) = matching.next() {
             rule.apply(element, &mut model, &anchor_set);
-            assert!(
-                matching.next().is_none(),
-                "more that one indent rule matched"
-            );
+            assert!(matching.next().is_none(), "more that one indent rule matched");
         } else {
             indentation::default_indent(element, &mut model, &anchor_set)
         }
@@ -56,9 +53,6 @@ pub(crate) fn format(
 
 impl FmtDiff {
     fn replace(&mut self, range: TextRange, text: SmolStr) {
-        self.edits.push(AtomEdit {
-            delete: range,
-            insert: text,
-        })
+        self.edits.push(AtomEdit { delete: range, insert: text })
     }
 }

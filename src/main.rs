@@ -46,11 +46,7 @@ fn parse_args() -> Result<Args> {
     let matches = App::new("nixpkgs-fmt")
         .version("0.1")
         .about("Format Nix code")
-        .arg(
-            Arg::with_name("src")
-                .value_name("FILE")
-                .help("File to reformat"),
-        )
+        .arg(Arg::with_name("src").value_name("FILE").help("File to reformat"))
         .arg(
             Arg::with_name("in-place")
                 .long("--in-place")
@@ -80,22 +76,11 @@ fn parse_args() -> Result<Args> {
     let dst = if matches.is_present("in-place") {
         Dst::File(src_path.unwrap())
     } else {
-        matches
-            .value_of("dst")
-            .map(PathBuf::from)
-            .map_or(Dst::Stdout, Dst::File)
+        matches.value_of("dst").map(PathBuf::from).map_or(Dst::Stdout, Dst::File)
     };
-    let operation = if matches.is_present("parse") {
-        Operation::Parse
-    } else {
-        Operation::Fmt
-    };
+    let operation = if matches.is_present("parse") { Operation::Parse } else { Operation::Fmt };
 
-    Ok(Args {
-        operation,
-        src,
-        dst,
-    })
+    Ok(Args { operation, src, dst })
 }
 
 fn try_main(args: Args) -> Result<()> {

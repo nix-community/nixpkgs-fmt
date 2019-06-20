@@ -68,10 +68,7 @@ impl<'a> OriginalSpace<'a> {
 
 impl<'a> SpaceBlock<'a> {
     fn new(original: OriginalSpace<'a>) -> SpaceBlock<'a> {
-        SpaceBlock {
-            original,
-            new_text: None,
-        }
+        SpaceBlock { original, new_text: None }
     }
     pub(super) fn set_line_break_preserving_existing_newlines(&mut self) {
         if self.has_newline() {
@@ -115,10 +112,7 @@ impl<'a> FmtModel<'a> {
     }
 
     pub(super) fn into_diff(self) -> FmtDiff {
-        let mut diff = FmtDiff {
-            original_node: self.original_node.to_owned(),
-            edits: vec![],
-        };
+        let mut diff = FmtDiff { original_node: self.original_node.to_owned(), edits: vec![] };
         for block in self.blocks {
             if let Some(new_next) = block.new_text {
                 diff.replace(block.original.text_range(), new_next);

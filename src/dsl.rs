@@ -170,10 +170,7 @@ impl<'a> SpacingRuleBuilder<'a> {
             };
             let rule = SpacingRule {
                 pattern: child.with_parent(self.parent.clone()),
-                space: Space {
-                    value,
-                    loc: SpaceLoc::After,
-                },
+                space: Space { value, loc: SpaceLoc::After },
             };
             self.dsl.rule(rule);
 
@@ -183,19 +180,13 @@ impl<'a> SpacingRuleBuilder<'a> {
                 });
             let rule = SpacingRule {
                 pattern: child.with_parent(self.parent),
-                space: Space {
-                    value,
-                    loc: SpaceLoc::Before,
-                },
+                space: Space { value, loc: SpaceLoc::Before },
             };
             self.dsl.rule(rule);
         } else {
             let rule = SpacingRule {
                 pattern: self.child.unwrap().with_parent(self.parent),
-                space: Space {
-                    value,
-                    loc: self.loc.unwrap(),
-                },
+                space: Space { value, loc: self.loc.unwrap() },
             };
             self.dsl.rule(rule);
         }
@@ -271,12 +262,7 @@ impl IndentDsl {
     }
     /// Specify a rule for an element which is a child of `parent`.
     pub(crate) fn inside(&mut self, parent: impl Into<Pattern>) -> IndentRuleBuilder<'_> {
-        IndentRuleBuilder {
-            dsl: self,
-            parent: parent.into(),
-            when: None,
-            when_anchor: None,
-        }
+        IndentRuleBuilder { dsl: self, parent: parent.into(), when: None, when_anchor: None }
     }
 }
 

@@ -38,10 +38,7 @@ impl std::ops::AddAssign for IndentLevel {
 
 impl IndentLevel {
     fn indent(self) -> IndentLevel {
-        IndentLevel {
-            level: self.level + 1,
-            alignment: self.alignment,
-        }
+        IndentLevel { level: self.level + 1, alignment: self.alignment }
     }
 
     pub(super) fn as_str(&self) -> &str {
@@ -92,10 +89,7 @@ impl SpaceBlock<'_> {
             None => IndentLevel::default(),
             Some(idx) => {
                 let len = len_for_indent(&text[idx + 1..]);
-                IndentLevel {
-                    level: len / INDENT_SIZE,
-                    alignment: len % INDENT_SIZE,
-                }
+                IndentLevel { level: len / INDENT_SIZE, alignment: len % INDENT_SIZE }
             }
         }
     }
