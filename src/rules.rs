@@ -144,6 +144,7 @@ pub(crate) fn indentation() -> IndentDsl {
         // FIXME: don't force indent if comment is on the first line
         .inside(NODE_LIST).indent(TOKEN_COMMENT)
         .inside(ENTRY_OWNERS).indent(TOKEN_COMMENT)
+        .inside(NODE_PATTERN).indent(TOKEN_COMMENT)
         ;
     dsl
 }
