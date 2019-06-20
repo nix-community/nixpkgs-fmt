@@ -1,4 +1,5 @@
-{ pkgs ? import ./nix/nixpkgs.nix {}
+{
+  pkgs ? import ./nix/nixpkgs.nix {}
 , src ? builtins.fetchGit {
     url = ./.;
     ref = "HEAD";
