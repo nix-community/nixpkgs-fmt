@@ -42,7 +42,7 @@ vertically to minimize the chances of merge conflicts.
 * [nix-format](https://github.com/taktoa/nix-format) - Emacs-based Nix formatter
 * [nix-beautify](https://github.com/nixcloud/nix-beautify)
 * [nix-linter](https://github.com/Synthetica9/nix-linter)
-* [canonix](https://github.com/hercules-ci/canonix/) - Haskell bindings for tree-sitter-nix
+* [canonix](https://github.com/hercules-ci/canonix/) - Nix formatter prototype written in Haskell using tree-sitter-nix grammar.
 
 ## Discussions
 
