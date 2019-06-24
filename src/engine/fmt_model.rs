@@ -5,7 +5,7 @@ use rnix::{
     SyntaxToken, TextRange, TextUnit,
 };
 
-use crate::{engine::FmtDiff, tree_utils::preceding_tokens};
+use crate::{engine::FmtDiff, tree_utils::preceding_tokens, AtomEdit};
 
 /// `FmtModel` is a data structure to which we apply formatting rules.
 ///
@@ -35,6 +35,8 @@ pub(super) struct FmtModel<'a> {
     /// Maps offset to an index of the block, for which the offset is the end
     /// offset.
     by_end_offset: HashMap<TextUnit, usize>,
+    /// Arbitrary non-whitespace edits created by the last formatter phase.
+    fixes: Vec<AtomEdit>,
 }
 
 #[derive(Debug)]
@@ -108,6 +110,7 @@ impl<'a> FmtModel<'a> {
             blocks: vec![],
             by_start_offset: HashMap::default(),
             by_end_offset: HashMap::default(),
+            fixes: vec![],
         }
     }
 
@@ -118,6 +121,7 @@ impl<'a> FmtModel<'a> {
                 diff.replace(block.original.text_range(), new_next);
             }
         }
+        diff.edits.extend(self.fixes.into_iter());
         diff
     }
 
@@ -231,6 +235,10 @@ impl<'a> FmtModel<'a> {
                 return;
             }
         }
+    }
+
+    pub(super) fn raw_edit(&mut self, edit: AtomEdit) {
+        self.fixes.push(edit)
     }
 
     fn push_block(&mut self, block: SpaceBlock<'a>) -> &mut SpaceBlock<'a> {
