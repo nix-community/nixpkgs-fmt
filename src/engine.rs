@@ -54,7 +54,7 @@ pub(crate) fn format(
     // Finally, do custom touch-ups like re-indenting of string literals and
     // replacing URLs with string literals.
     for element in walk_non_whitespace(root) {
-        fixes::fix(element, &mut model)
+        fixes::fix(element, &mut model, &anchor_set)
     }
 
     model.into_diff()

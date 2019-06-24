@@ -143,7 +143,7 @@ pub(super) fn default_indent<'a>(
 ///
 /// Elements from `anchor_set` are considered anchors even if they don't begin
 /// the line.
-fn indent_anchor<'a>(
+pub(super) fn indent_anchor<'a>(
     element: SyntaxElement<'a>,
     model: &mut FmtModel<'a>,
     anchor_set: &PatternSet<&Pattern>,
@@ -164,7 +164,7 @@ fn indent_anchor<'a>(
 
 impl<'a> FmtModel<'a> {
     /// Calculates current indent level for node.
-    pub(super) fn indent_of(&mut self, node: &'a SyntaxNode) -> IndentLevel {
+    fn indent_of(&mut self, node: &'a SyntaxNode) -> IndentLevel {
         // The impl is tricky: we need to account for whitespace in `model`, which
         // might be different from original whitespace in the syntax tree
         let mut indent = IndentLevel::default();

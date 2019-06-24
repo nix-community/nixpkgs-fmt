@@ -4,23 +4,27 @@ use rnix::{
 };
 
 use crate::{
-    engine::{indentation::IndentLevel, FmtModel},
+    pattern::{PatternSet, Pattern},
+    engine::{indentation::{IndentLevel, indent_anchor}, FmtModel},
     AtomEdit,
 };
 
-pub(super) fn fix<'a>(element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
+pub(super) fn fix<'a>(element: SyntaxElement<'a>, model: &mut FmtModel<'a>, anchor_set: &PatternSet<&Pattern>) {
     let node = match element.as_node() {
         Some(it) => it,
         None => return,
     };
     match node.kind() {
-        NODE_STRING => fix_string_indentation(node, model),
+        NODE_STRING => fix_string_indentation(node, model, anchor_set),
         _ => return,
     }
 }
 
-fn fix_string_indentation<'a>(node: &'a SyntaxNode, model: &mut FmtModel<'a>) {
-    let indent = model.indent_of(node);
+fn fix_string_indentation<'a>(node: &'a SyntaxNode, model: &mut FmtModel<'a>, anchor_set: &PatternSet<&Pattern>) {
+    let indent = match indent_anchor(node.into(), model, anchor_set) {
+        None => return,
+        Some((_element, indent)) => indent,
+    };
     let target_indent = indent.indent();
     let string_bits = node
         .children()
@@ -75,7 +79,7 @@ fn fix_string_indentation<'a>(node: &'a SyntaxNode, model: &mut FmtModel<'a>) {
             let from = to - last_blank.map(TextUnit::of_str).unwrap_or_default();
             model.raw_edit(AtomEdit {
                 delete: TextRange::from_to(from, to),
-                insert: indent.as_str().into(),
+                insert: target_indent.as_str().into(),
             })
         }
     }
