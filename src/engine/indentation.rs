@@ -1,3 +1,5 @@
+use std::cmp::{Ord, Ordering, PartialOrd};
+
 use rnix::{SyntaxElement, SyntaxNode};
 
 use crate::{
@@ -36,8 +38,33 @@ impl std::ops::AddAssign for IndentLevel {
     }
 }
 
+impl PartialEq for IndentLevel {
+    fn eq(&self, other: &IndentLevel) -> bool {
+        self.len_as_spaces() == other.len_as_spaces()
+    }
+}
+
+impl Eq for IndentLevel {}
+
+impl PartialOrd for IndentLevel {
+    fn partial_cmp(&self, other: &IndentLevel) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for IndentLevel {
+    fn cmp(&self, other: &IndentLevel) -> Ordering {
+        self.len_as_spaces().cmp(&other.len_as_spaces())
+    }
+}
+
 impl IndentLevel {
-    fn indent(self) -> IndentLevel {
+    pub(super) fn from_str(s: &str) -> IndentLevel {
+        let len = len_for_indent(s);
+        IndentLevel { level: len / INDENT_SIZE, alignment: len % INDENT_SIZE }
+    }
+
+    pub(super) fn indent(self) -> IndentLevel {
         IndentLevel { level: self.level + 1, alignment: self.alignment }
     }
 
@@ -45,10 +72,14 @@ impl IndentLevel {
         #[rustfmt::skip]
         const SPACES: &str =
 "                                                                                                ";
-        let len = self.level * INDENT_SIZE + self.alignment;
+        let len = self.len_as_spaces();
         let len = len as usize;
         assert!(len <= SPACES.len(), "don't support indent this large");
         &SPACES[..len]
+    }
+
+    fn len_as_spaces(&self) -> u32 {
+        self.level * INDENT_SIZE + self.alignment
     }
 }
 
@@ -87,10 +118,7 @@ impl SpaceBlock<'_> {
         let text = self.text();
         match text.rfind('\n') {
             None => IndentLevel::default(),
-            Some(idx) => {
-                let len = len_for_indent(&text[idx + 1..]);
-                IndentLevel { level: len / INDENT_SIZE, alignment: len % INDENT_SIZE }
-            }
+            Some(idx) => IndentLevel::from_str(&text[idx + 1..]),
         }
     }
 }
@@ -115,7 +143,7 @@ pub(super) fn default_indent<'a>(
 ///
 /// Elements from `anchor_set` are considered anchors even if they don't begin
 /// the line.
-fn indent_anchor<'a>(
+pub(super) fn indent_anchor<'a>(
     element: SyntaxElement<'a>,
     model: &mut FmtModel<'a>,
     anchor_set: &PatternSet<&Pattern>,
@@ -127,42 +155,44 @@ fn indent_anchor<'a>(
             return Some((node, block.indent()));
         }
         if anchor_set.matching(node.into()).next().is_some() {
-            let indent = calc_indent(node, model);
+            let indent = model.indent_of(node);
             return Some((node, indent));
         }
     }
     None
 }
 
-/// Calculates current indent level for node.
-fn calc_indent<'a>(node: &'a SyntaxNode, model: &mut FmtModel<'a>) -> IndentLevel {
-    // The impl is tricky: we need to account for whitespace in `model`, which
-    // might be different from original whitespace in the syntax tree
-    let mut indent = IndentLevel::default();
-    model.with_preceding_elements(node, &mut |element| match element {
-        SpaceBlockOrToken::Token(it) => {
-            let (len, has_newline) = len_of_last_line(it.text());
-            indent.alignment += len;
-            has_newline
-        }
-        SpaceBlockOrToken::SpaceBlock(it) => {
-            let (len, has_newline) = len_of_last_line(it.text());
-            if has_newline {
-                indent += it.indent();
-            } else {
+impl<'a> FmtModel<'a> {
+    /// Calculates current indent level for node.
+    fn indent_of(&mut self, node: &'a SyntaxNode) -> IndentLevel {
+        // The impl is tricky: we need to account for whitespace in `model`, which
+        // might be different from original whitespace in the syntax tree
+        let mut indent = IndentLevel::default();
+        self.with_preceding_elements(node, &mut |element| match element {
+            SpaceBlockOrToken::Token(it) => {
+                let (len, has_newline) = len_of_last_line(it.text());
                 indent.alignment += len;
+                has_newline
             }
-            has_newline
-        }
-    });
+            SpaceBlockOrToken::SpaceBlock(it) => {
+                let (len, has_newline) = len_of_last_line(it.text());
+                if has_newline {
+                    indent += it.indent();
+                } else {
+                    indent.alignment += len;
+                }
+                has_newline
+            }
+        });
 
-    return indent;
+        return indent;
 
-    fn len_of_last_line(s: &str) -> (u32, bool) {
-        if let Some(idx) = s.rfind('\n') {
-            return (len_for_indent(&s[idx + 1..]), true);
+        fn len_of_last_line(s: &str) -> (u32, bool) {
+            if let Some(idx) = s.rfind('\n') {
+                return (len_for_indent(&s[idx + 1..]), true);
+            }
+            (len_for_indent(s), false)
         }
-        (len_for_indent(s), false)
     }
 }
 

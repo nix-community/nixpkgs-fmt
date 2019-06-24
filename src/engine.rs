@@ -3,6 +3,7 @@
 mod fmt_model;
 mod indentation;
 mod spacing;
+mod fixes;
 
 use rnix::{SmolStr, SyntaxNode, TextRange};
 
@@ -14,6 +15,8 @@ use crate::{
     AtomEdit, FmtDiff,
 };
 
+
+/// The main entry point for formatting
 pub(crate) fn format(
     spacing_dsl: &SpacingDsl,
     indent_dsl: &IndentDsl,
@@ -46,6 +49,12 @@ pub(crate) fn format(
         } else {
             indentation::default_indent(element, &mut model, &anchor_set)
         }
+    }
+
+    // Finally, do custom touch-ups like re-indenting of string literals and
+    // replacing URLs with string literals.
+    for element in walk_non_whitespace(root) {
+        fixes::fix(element, &mut model, &anchor_set)
     }
 
     model.into_diff()
