@@ -17,5 +17,5 @@ export function reformat_string(text: string): string;
 *
 * @returns {Promise<any>}
 */
-export default function init (module_or_path: RequestInfo | BufferSource | WebAssembly.Module): Promise<any>;
+export default function init (module_or_path?: RequestInfo | BufferSource | WebAssembly.Module): Promise<any>;
         

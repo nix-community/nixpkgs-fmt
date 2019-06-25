@@ -1,5 +1,4 @@
 
-const __exports = {};
 let wasm;
 
 /**
@@ -8,7 +7,6 @@ let wasm;
 export function main() {
     return wasm.main();
 }
-__exports.main = main
 
 let WASM_VECTOR_LEN = 0;
 
@@ -123,17 +121,6 @@ export function reformat_string(text) {
     }
 
 }
-__exports.reformat_string = reformat_string
-
-function __wbg_error_4bb6c2a97407129a(arg0, arg1) {
-    let varg0 = getStringFromWasm(arg0, arg1);
-
-    varg0 = varg0.slice();
-    wasm.__wbindgen_free(arg0, arg1 * 1);
-
-    console.error(varg0);
-}
-__exports.__wbg_error_4bb6c2a97407129a = __wbg_error_4bb6c2a97407129a
 
 const heap = new Array(32);
 
@@ -152,23 +139,7 @@ function addHeapObject(obj) {
     return idx;
 }
 
-function __wbg_new_59cb74e423758ede() {
-    return addHeapObject(new Error());
-}
-__exports.__wbg_new_59cb74e423758ede = __wbg_new_59cb74e423758ede
-
 function getObject(idx) { return heap[idx]; }
-
-function __wbg_stack_558ba5917b466edd(ret, arg0) {
-
-    const retptr = passStringToWasm(getObject(arg0).stack);
-    const retlen = WASM_VECTOR_LEN;
-    const mem = getUint32Memory();
-    mem[ret / 4] = retptr;
-    mem[ret / 4 + 1] = retlen;
-
-}
-__exports.__wbg_stack_558ba5917b466edd = __wbg_stack_558ba5917b466edd
 
 function dropObject(idx) {
     if (idx < 36) return;
@@ -176,12 +147,42 @@ function dropObject(idx) {
     heap_next = idx;
 }
 
-function __wbindgen_object_drop_ref(i) { dropObject(i); }
-__exports.__wbindgen_object_drop_ref = __wbindgen_object_drop_ref
+function takeObject(idx) {
+    const ret = getObject(idx);
+    dropObject(idx);
+    return ret;
+}
 
 function init(module) {
+    if (typeof module === 'undefined') {
+        module = import.meta.url.replace(/\.js$/, '_bg.wasm');
+    }
     let result;
-    const imports = { './nixpkgs_fmt_wasm': __exports };
+    const imports = {};
+    imports.wbg = {};
+    imports.wbg.__wbg_new_59cb74e423758ede = function() {
+        return addHeapObject(new Error());
+    };
+    imports.wbg.__wbg_stack_558ba5917b466edd = function(ret, arg0) {
+
+        const retptr = passStringToWasm(getObject(arg0).stack);
+        const retlen = WASM_VECTOR_LEN;
+        const mem = getUint32Memory();
+        mem[ret / 4] = retptr;
+        mem[ret / 4 + 1] = retlen;
+
+    };
+    imports.wbg.__wbg_error_4bb6c2a97407129a = function(arg0, arg1) {
+        let varg0 = getStringFromWasm(arg0, arg1);
+
+        varg0 = varg0.slice();
+        wasm.__wbindgen_free(arg0, arg1 * 1);
+
+        console.error(varg0);
+    };
+    imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
+        takeObject(arg0);
+    };
 
     if (module instanceof URL || typeof module === 'string' || module instanceof Request) {
 
