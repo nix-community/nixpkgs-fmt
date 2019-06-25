@@ -142,6 +142,7 @@ pub(crate) fn indentation() -> IndentDsl {
             .indent(VALUES)
 
         .inside(NODE_INHERIT).indent([NODE_IDENT, NODE_INHERIT_FROM, T![;]])
+        .inside(NODE_IF_ELSE).indent(VALUES)
 
         // FIXME: don't force indent if comment is on the first line
         .inside(ENTRY_OWNERS).indent(TOKEN_COMMENT)
@@ -228,6 +229,7 @@ static VALUES: &[SyntaxKind] = &[
     NODE_STRING,
     NODE_VALUE,
     NODE_APPLY,
+    NODE_IF_ELSE,
 ];
 
 static BIN_OPS: &[SyntaxKind] = &[
