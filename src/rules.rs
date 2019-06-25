@@ -70,9 +70,9 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PATTERN).before(T![,]).no_space_or_newline()
 
         // { inherit( x )  y  z  ; } => { inherit (x) y z; }
-        .inside(NODE_INHERIT).around(NODE_INHERIT_FROM).single_space()
-        .inside(NODE_INHERIT).before(T![;]).no_space()
-        .inside(NODE_INHERIT).before(NODE_IDENT).single_space()
+        .inside(NODE_INHERIT).around(NODE_INHERIT_FROM).single_space_or_optional_newline()
+        .inside(NODE_INHERIT).before(T![;]).no_space_or_newline()
+        .inside(NODE_INHERIT).before(NODE_IDENT).single_space_or_optional_newline()
         .inside(NODE_INHERIT_FROM).after(T!["("]).no_space()
         .inside(NODE_INHERIT_FROM).before(T![")"]).no_space()
 
@@ -141,10 +141,15 @@ pub(crate) fn indentation() -> IndentDsl {
             .when_anchor(set_entry_with_single_line_value)
             .indent(VALUES)
 
+        .inside(NODE_INHERIT).indent([NODE_IDENT, NODE_INHERIT_FROM, T![;]])
+
         // FIXME: don't force indent if comment is on the first line
-        .inside(NODE_LIST).indent(TOKEN_COMMENT)
         .inside(ENTRY_OWNERS).indent(TOKEN_COMMENT)
-        .inside(NODE_PATTERN).indent(TOKEN_COMMENT)
+        .inside([
+            NODE_LIST,
+            NODE_PATTERN,
+            NODE_INHERIT,
+        ]).indent(TOKEN_COMMENT)
         ;
     dsl
 }

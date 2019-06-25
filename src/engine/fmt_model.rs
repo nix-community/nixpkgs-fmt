@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use rnix::{
-    nodes::NODE_ROOT, tokenizer::tokens::TOKEN_WHITESPACE, SmolStr, SyntaxElement, SyntaxNode,
-    SyntaxToken, TextRange, TextUnit,
+    nodes::NODE_ROOT,
+    tokenizer::tokens::{TOKEN_COMMENT, TOKEN_WHITESPACE},
+    SmolStr, SyntaxElement, SyntaxNode, SyntaxToken, TextRange, TextUnit,
 };
 
 use crate::{engine::FmtDiff, tree_utils::preceding_tokens, AtomEdit};
@@ -44,6 +45,11 @@ pub(super) struct SpaceBlock<'a> {
     original: OriginalSpace<'a>,
     /// Block's textual content, which is seen and modified by formatting rules.
     new_text: Option<SmolStr>,
+    /// If this block requires a newline to preserve semantics.
+    ///
+    /// True for blocks after comments. The engine takes care to never remove
+    /// newline, even if some interaction of rules asks us to do so.
+    semantic_newline: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -70,7 +76,13 @@ impl<'a> OriginalSpace<'a> {
 
 impl<'a> SpaceBlock<'a> {
     fn new(original: OriginalSpace<'a>) -> SpaceBlock<'a> {
-        SpaceBlock { original, new_text: None }
+        let semantic_newline = match original {
+            OriginalSpace::Some(token) => {
+                token.text().contains('\n') && is_line_comment(token.prev_sibling_or_token())
+            }
+            OriginalSpace::None { .. } => false,
+        };
+        SpaceBlock { original, new_text: None, semantic_newline }
     }
     pub(super) fn set_line_break_preserving_existing_newlines(&mut self) {
         if self.has_newline() {
@@ -79,6 +91,9 @@ impl<'a> SpaceBlock<'a> {
         self.set_text("\n");
     }
     pub(super) fn set_text(&mut self, text: &str) {
+        if self.semantic_newline && !text.contains('\n') {
+            return;
+        }
         match self.original {
             OriginalSpace::Some(token) if token.text() == text && self.new_text.is_none() => return,
             _ => self.new_text = Some(text.into()),
@@ -252,5 +267,14 @@ impl<'a> FmtModel<'a> {
 
         self.blocks.push(block);
         self.blocks.last_mut().unwrap()
+    }
+}
+
+fn is_line_comment(node: Option<SyntaxElement<'_>>) -> bool {
+    match node {
+        Some(SyntaxElement::Token(token)) => {
+            token.kind() == TOKEN_COMMENT && token.text().starts_with('#')
+        }
+        _ => false,
     }
 }

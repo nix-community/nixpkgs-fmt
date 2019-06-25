@@ -1,0 +1,6 @@
+{
+  inherit (builtins)
+    # comment
+    toString
+    ;
+}
