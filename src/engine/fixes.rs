@@ -47,8 +47,12 @@ fn fix_string_indentation<'a>(node: &'a SyntaxNode, model: &mut FmtModel<'a>, an
             &s[..idx]
         })
         .map(IndentLevel::from_str)
-        .min()
-        .unwrap();
+        .min();
+
+    let common_indent = match common_indent {
+        None => return,
+        Some(indent) => indent,
+    };
 
     if target_indent == common_indent {
         return;
