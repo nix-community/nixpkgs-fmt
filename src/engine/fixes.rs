@@ -1,5 +1,6 @@
 use rnix::{
-    nodes::{NODE_STRING, NODE_STRING_LITERAL},
+    nodes::NODE_STRING,
+    tokenizer::tokens::TOKEN_STRING_CONTENT,
     SyntaxElement, SyntaxNode, TextRange, TextUnit,
 };
 
@@ -27,9 +28,9 @@ fn fix_string_indentation<'a>(node: &'a SyntaxNode, model: &mut FmtModel<'a>, an
     };
     let target_indent = indent.indent();
     let string_bits = node
-        .children()
-        .filter(|it| it.kind() == NODE_STRING_LITERAL)
-        .map(|it| it.first_token().unwrap())
+        .children_with_tokens()
+        .filter_map(|it| it.as_token())
+        .filter(|it| it.kind() == TOKEN_STRING_CONTENT)
         .collect::<Vec<_>>();
     let lines = string_bits.iter().flat_map(|it| it.text().lines());
 
