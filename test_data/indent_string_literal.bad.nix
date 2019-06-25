@@ -30,4 +30,7 @@ for i in range(10):
 nix.extraOptions = ''
   builders-use-substitutes = true
 '';
+
+  empty = '''';
+  blank = '' '';
 }
