@@ -5,6 +5,8 @@ mod rules;
 mod tree_utils;
 mod pattern;
 
+use std::borrow::Cow;
+
 use rnix::{SmolStr, SyntaxNode, TextRange, TreeArc};
 
 use crate::tree_utils::walk_tokens;
@@ -72,8 +74,47 @@ pub fn reformat_node(node: &SyntaxNode) -> FmtDiff {
 }
 
 pub fn reformat_string(text: &str) -> String {
-    let ast = rnix::parse(text);
+    let (text, line_endings) = convert_to_unix_line_endings(text);
+    let ast = rnix::parse(&*text);
     let root_node = ast.node();
     let diff = reformat_node(root_node);
-    diff.to_string()
+    let res = diff.to_string();
+    match line_endings {
+        LineEndings::Unix => res,
+        LineEndings::Dos => convert_to_dos_line_endings(res),
+    }
+}
+
+enum LineEndings {
+    Unix,
+    Dos,
+}
+
+fn convert_to_unix_line_endings(text: &str) -> (Cow<str>, LineEndings) {
+    if !text.contains("\r\n") {
+        return (Cow::Borrowed(text), LineEndings::Unix);
+    }
+    (Cow::Owned(text.replace("\r\n", "\n")), LineEndings::Dos)
+}
+
+fn convert_to_dos_line_endings(text: String) -> String {
+    text.replace('\n', "\r\n")
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preserves_dos_line_endings() {
+        assert_eq!(
+            &reformat_string("{foo = 92;\n}"),
+            "{\n  foo = 92;\n}\n"
+        );
+        assert_eq!(
+            &reformat_string("{foo = 92;\r\n}"),
+            "{\r\n  foo = 92;\r\n}\r\n"
+        )
+    }
 }
