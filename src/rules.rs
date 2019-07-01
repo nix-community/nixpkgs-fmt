@@ -51,6 +51,10 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LIST).between(VALUES, VALUES).single_space_or_newline()
         .inside(NODE_LIST).between(VALUES, TOKEN_COMMENT).single_space_or_optional_newline()
 
+        // ( 92 ) => (92)
+        .inside(NODE_PAREN).after(T!["("]).no_space_or_newline()
+        .inside(NODE_PAREN).before(T![")"]).no_space_or_newline()
+
         // {foo = 92;} => { foo = 92; }
         .inside(NODE_SET).after(T!["{"]).single_space_or_newline()
         .inside(NODE_SET).before(T!["}"]).single_space_or_newline()
@@ -144,6 +148,7 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .inside(NODE_INHERIT).indent([NODE_IDENT, NODE_INHERIT_FROM, T![;]])
         .inside(NODE_IF_ELSE).indent(VALUES)
+        .inside(NODE_PAREN).indent(VALUES)
 
         // FIXME: don't force indent if comment is on the first line
         .inside(ENTRY_OWNERS).indent(TOKEN_COMMENT)

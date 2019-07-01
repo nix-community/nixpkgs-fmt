@@ -42,6 +42,19 @@ pub(crate) fn format(
             // No need to indent an element if it doesn't start a line
             continue;
         }
+
+        // In cases like
+        //
+        // ```nix
+        //   param:
+        //     body
+        // ```
+        //
+        // we only indent top-level node (lambda), and not it's first child (parameter)
+        if element.parent().map(|it| it.range().start()) == Some(element.range().start()) {
+            continue;
+        }
+
         let mut matching = indent_rule_set.matching(element);
         if let Some(rule) = matching.next() {
             rule.apply(element, &mut model, &anchor_set);
