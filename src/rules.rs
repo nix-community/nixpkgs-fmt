@@ -140,6 +140,7 @@ pub(crate) fn indentation() -> IndentDsl {
             .when(with_body)
             .when_anchor(set_entry_with_single_line_value)
             .indent(VALUES)
+        .inside(NODE_OR_DEFAULT).indent(VALUES)
 
         .inside(NODE_INHERIT).indent([NODE_IDENT, NODE_INHERIT_FROM, T![;]])
         .inside(NODE_IF_ELSE).indent(VALUES)
