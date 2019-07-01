@@ -1,6 +1,6 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 
-use rnix::{SyntaxElement, SyntaxNode};
+use rnix::{SyntaxElement, SyntaxNode, TextUnit};
 
 use crate::{
     dsl::IndentRule,
@@ -61,6 +61,11 @@ impl Ord for IndentLevel {
 impl IndentLevel {
     pub(super) fn from_str(s: &str) -> IndentLevel {
         let len = len_for_indent(s);
+        IndentLevel { level: len / INDENT_SIZE, alignment: len % INDENT_SIZE }
+    }
+
+    pub(super) fn from_len(len: TextUnit) -> IndentLevel {
+        let len: u32 = len.into();
         IndentLevel { level: len / INDENT_SIZE, alignment: len % INDENT_SIZE }
     }
 
