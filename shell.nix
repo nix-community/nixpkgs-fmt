@@ -20,6 +20,7 @@ in
 pkgs.mkShell {
   buildInputs = [
     rust
+    pkgs.mdsh
     pkgs.rustfmt
     pkgs.wasm-pack
     pkgs.pkgconfig
@@ -27,5 +28,9 @@ pkgs.mkShell {
   ] ++ stdenv.lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.Security
   ];
+
+  shellHook = ''
+    export PATH=$PWD/target/debug:$PATH
+  '';
 }
 
