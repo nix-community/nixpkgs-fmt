@@ -1,24 +1,62 @@
 # nixpkgs-fmt
 
+[![Build Status](https://travis-ci.com/nix-community/nixpkgs-fmt.svg?branch=master)](https://travis-ci.com/nix-community/nixpkgs-fmt) [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
+
 **STATUS: alpha**
 
 This project's goal is to provide a nix code formatter that would be applied
 on nixpkgs. Ideally automatically with a tool like ofborg.
+
+## Demo
+
+Try nixpkgs-fmt in your browser and submit code samples:
+https://nix-community.github.io/nixpkgs-fmt/
 
 ## Design decisions
 
 Use Rust because ofborg is written in rust. Rust also has a small chance of
 being included in nix upstream.
 
-Use a rule-based formatter (vs pretty-printing) because it allows some form of
-expressivity for the developers. For example double new-lines can be used when
-the developer wants a section of code to stand out. The important part is to
-avoid discussions on indent and brackets alignment.
+Use an incremental and rule-based formatter (vs pretty-printing). This allows
+to format partial code and leave more expressivity to the developer. For
+example double new-lines can be used when the developer wants a section of
+code to stand out. The important part is to avoid discussions on indent and
+brackets alignment.
 
 Favour mergeability. nixpkgs is seeing a lot of traffic. Spread things out
 vertically to minimize the chances of merge conflicts.
 
-## Documents
+## Usage
+
+`$ nixpkgs-fmt --help 2>&1`
+```
+nixpkgs-fmt 0.1
+Format Nix code
+
+USAGE:
+    nixpkgs-fmt [FLAGS] [OPTIONS] [FILE]
+
+FLAGS:
+    -h, --help        Prints help information
+    -i, --in-place    Overwrite FILE in place
+        --parse       Show syntax tree instead of reformatting
+    -V, --version     Prints version information
+
+OPTIONS:
+    -o, --output <file>    Place the output into <file>
+
+ARGS:
+    <FILE>    File to reformat
+
+```
+
+## Development
+
+Install Rust and Cargo or run `nix-shell` to load the project dependencies.
+
+Then use `cargo run` to build and run the software.
+
+## Documentation
 
 * [HOWTO write new rules](docs/howto_rules.md)
 * [HOWTO WASM](wasm/README.md)
