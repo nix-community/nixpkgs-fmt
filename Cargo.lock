@@ -123,7 +123,7 @@ name = "nixpkgs-fmt"
 version = "0.1.0"
 dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rnix 0.6.0 (git+https://gitlab.com/jD91mZM2/rnix.git)",
+ "rnix 0.6.0 (git+https://gitlab.com/matklad/rnix.git?branch=errors-versus-whitespace)",
 ]
 
 [[package]]
@@ -310,7 +310,7 @@ dependencies = [
 [[package]]
 name = "rnix"
 version = "0.6.0"
-source = "git+https://gitlab.com/jD91mZM2/rnix.git#43c7f16c17910b20c54ed0d56be8c28181aa9d9c"
+source = "git+https://gitlab.com/matklad/rnix.git?branch=errors-versus-whitespace#5d8b8f0172793607b1dc1f207316249b848eceee"
 dependencies = [
  "cbitset 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rowan 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -546,7 +546,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum rdrand 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "678054eb77286b51581ba43620cc911abf02758c91f93f479767aed0f90458b2"
 "checksum redox_syscall 0.1.54 (registry+https://github.com/rust-lang/crates.io-index)" = "12229c14a0f65c4f1cb046a3b52047cdd9da1f4b30f8a39c5063c8bae515e252"
 "checksum redox_termios 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7e891cfe48e9100a70a3b6eb652fef28920c117d366339687bd5576160db0f76"
-"checksum rnix 0.6.0 (git+https://gitlab.com/jD91mZM2/rnix.git)" = "<none>"
+"checksum rnix 0.6.0 (git+https://gitlab.com/matklad/rnix.git?branch=errors-versus-whitespace)" = "<none>"
 "checksum rowan 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)" = "695dbacb8b8e077caf0cdeb65b0fe0c27bd99a9b7bf5f6467681c4c94cbe6133"
 "checksum rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 "checksum scopeguard 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b42e15e59b18a828bbf5c58ea01debb36b9b096346de35d941dcb89009f24a0d"
