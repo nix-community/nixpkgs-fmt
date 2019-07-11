@@ -15,4 +15,4 @@ members = [ "./wasm" ]
 
 [dependencies]
 clap = "2.33.0"
-rnix = { git = "https://gitlab.com/matklad/rnix.git", branch = "errors-versus-whitespace" }
+rnix = { git = "https://gitlab.com/jD91mZM2/rnix.git" }
