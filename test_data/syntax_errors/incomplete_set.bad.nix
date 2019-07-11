@@ -1,0 +1,3 @@
+{
+  traceIf =
+    pred:

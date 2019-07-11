@@ -1,6 +1,6 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 
-use rnix::{SyntaxElement, SyntaxNode, TextUnit};
+use rnix::{nodes::NODE_ROOT, SyntaxElement, SyntaxNode, TextUnit};
 
 use crate::{
     dsl::IndentRule,
@@ -162,6 +162,11 @@ pub(super) fn indent_anchor<'a>(
         if anchor_set.matching(node.into()).next().is_some() {
             let indent = model.indent_of(node);
             return Some((node, indent));
+        }
+        // For the root node, the block will typically be empty, but it still
+        // should be considered an indent anchor.
+        if node.kind() == NODE_ROOT {
+            return Some((node, IndentLevel::default()));
         }
     }
     None

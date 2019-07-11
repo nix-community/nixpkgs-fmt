@@ -103,8 +103,8 @@ pub(crate) fn spacing() -> SpacingDsl {
 
 fn after_literal(node: SyntaxElement<'_>) -> bool {
     let prev = prev_sibling(node);
-    return if let Some(w) = prev.and_then(With::cast) {
-        is_literal(w.body().kind())
+    return if let Some(body) = prev.and_then(With::cast).and_then(|w| w.body()) {
+        is_literal(body.kind())
     } else {
         prev.map(|it| is_literal(it.kind())) == Some(true)
     };
@@ -182,7 +182,7 @@ fn with_body(body: SyntaxElement<'_>) -> bool {
     fn find(body: SyntaxElement<'_>) -> Option<bool> {
         let body = body.as_node()?;
         let with = body.parent().and_then(With::cast)?;
-        Some(with.body() == body)
+        Some(with.body()? == body)
     }
 
     find(body) == Some(true)
@@ -192,7 +192,7 @@ fn apply_arg(arg: SyntaxElement<'_>) -> bool {
     fn find(arg: SyntaxElement<'_>) -> Option<bool> {
         let arg = arg.as_node()?;
         let apply = arg.parent().and_then(Apply::cast)?;
-        Some(apply.value() == arg)
+        Some(apply.value()? == arg)
     }
 
     find(arg) == Some(true)
@@ -201,12 +201,12 @@ fn apply_arg(arg: SyntaxElement<'_>) -> bool {
 fn set_entry_with_single_line_value(entry: SyntaxElement<'_>) -> bool {
     fn find(entry: SyntaxElement<'_>) -> Option<bool> {
         let entry = entry.as_node().and_then(SetEntry::cast)?;
-        let mut value = entry.value();
+        let mut value = entry.value()?;
         if Operation::cast(value).is_none() {
             return Some(true);
         }
         while let Some(op) = Operation::cast(value) {
-            value = op.value1()
+            value = op.value1()?
         }
         Some(!has_newline(value))
     }
@@ -216,7 +216,7 @@ fn set_entry_with_single_line_value(entry: SyntaxElement<'_>) -> bool {
 fn rhs_of_binop(rhs: SyntaxElement<'_>) -> bool {
     fn find(rhs: SyntaxElement<'_>) -> Option<bool> {
         let op = rhs.parent().and_then(Operation::cast)?;
-        Some(op.value2() == rhs.as_node()?)
+        Some(op.value2()? == rhs.as_node()?)
     }
     find(rhs) == Some(true)
 }
@@ -300,6 +300,16 @@ foo = x:
         let test_data = {
             let dir = env!("CARGO_MANIFEST_DIR");
             PathBuf::from(dir).join("test_data")
+        };
+        let tests = TestCase::collect_from_dir(&test_data);
+        run(&tests);
+    }
+
+    #[test]
+    fn test_syntax_errors_tests() {
+        let test_data = {
+            let dir = env!("CARGO_MANIFEST_DIR");
+            PathBuf::from(dir).join("test_data").join("syntax_errors")
         };
         let tests = TestCase::collect_from_dir(&test_data);
         run(&tests);
