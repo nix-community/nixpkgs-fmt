@@ -134,7 +134,7 @@ pub(crate) fn indentation() -> IndentDsl {
         .inside(ENTRY_OWNERS).indent([NODE_SET_ENTRY, NODE_INHERIT])
 
         .inside(NODE_PATTERN).indent(NODE_PAT_ENTRY)
-        .inside(NODE_LAMBDA).when(lambda_body_not_on_top_level).indent(VALUES)
+        .inside(NODE_LAMBDA).when(lambda_body_not_on_top_level).indent(VALUES_NOT_LAMBDA)
         .inside(NODE_APPLY).when(apply_arg).indent(VALUES)
 
         .inside(NODE_SET_ENTRY).indent(VALUES)
@@ -224,9 +224,23 @@ fn rhs_of_binop(rhs: SyntaxElement<'_>) -> bool {
 static ENTRY_OWNERS: &[SyntaxKind] = &[NODE_SET, NODE_LET_IN];
 
 static VALUES: &[SyntaxKind] = &[
+    NODE_LAMBDA,
     NODE_IDENT,
     NODE_INDEX_SET,
-    NODE_LAMBDA,
+    NODE_LET_IN,
+    NODE_LIST,
+    NODE_OPERATION,
+    NODE_PAREN,
+    NODE_SET,
+    NODE_STRING,
+    NODE_VALUE,
+    NODE_APPLY,
+    NODE_IF_ELSE,
+];
+
+static VALUES_NOT_LAMBDA: &[SyntaxKind] = &[
+    NODE_IDENT,
+    NODE_INDEX_SET,
     NODE_LET_IN,
     NODE_LIST,
     NODE_OPERATION,
