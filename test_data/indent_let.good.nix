@@ -3,4 +3,4 @@ let
   y = 2;
   inherit z;
 in
-x + y + z
+  x + y + z

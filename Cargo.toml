@@ -16,3 +16,6 @@ members = [ "./wasm" ]
 [dependencies]
 clap = "2.33.0"
 rnix = { git = "https://gitlab.com/jD91mZM2/rnix.git" }
+
+[dev-dependencies]
+unindent = "0.1.3"

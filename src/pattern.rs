@@ -11,7 +11,7 @@ use rnix::{SyntaxElement, SyntaxKind};
 ///
 /// It is like `Box<dyn Fn(SyntaxElement)> -> bool`, but with additional
 /// convenience methods (for example, you can `&` two patterns). `Pattern` also
-/// knows the set of node types which *could* mach, which allows to implement
+/// knows the set of node types which *could* match, which allows to implement
 /// matching over a set of patterns efficiently.
 ///
 /// Currently, we liberally box predicates inside of `Pattern`s, as there's only

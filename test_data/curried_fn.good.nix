@@ -4,5 +4,5 @@
       err = t: v: abort
         "oups";
     in
-    92;
+      92;
 }

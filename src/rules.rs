@@ -1,12 +1,12 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
     parser::nodes::*,
-    types::{Apply, Operation, SetEntry, TypedNode, With},
+    types::{Operation, SetEntry, TypedNode, With},
     SyntaxElement, SyntaxKind, T,
 };
 
 use crate::{
-    dsl::{self, IndentDsl, SpacingDsl},
+    dsl::{self, IndentDsl, IndentValue::*, SpacingDsl},
     pattern::Pattern,
     tree_utils::{has_newline, prev_sibling},
 };
@@ -123,79 +123,288 @@ fn after_multiline_binop(node: SyntaxElement<'_>) -> bool {
     };
 }
 
+fn p(p: impl Into<Pattern>) -> Pattern {
+    p.into()
+}
+
 #[rustfmt::skip]
-pub(crate) fn indentation() -> IndentDsl {
+pub(crate) fn indentation2() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
         .anchor(NODE_PAT_ENTRY)
         .anchor(Pattern::from(rhs_of_binop))
 
-        .inside(NODE_LIST).indent(VALUES)
-        .inside(ENTRY_OWNERS).indent([NODE_SET_ENTRY, NODE_INHERIT])
+        .rule("Indent list content")
+            .inside(NODE_LIST)
+            .not_matching([T!["["], T!["]"]])
+            .set(Indent)
+            .test(r#"
+                [
+                92
+                ]
+            "#, r#"
+                [
+                  92
+                ]
+            "#)
 
-        .inside(NODE_PATTERN).indent(NODE_PAT_ENTRY)
-        .inside(NODE_LAMBDA).when(lambda_body_not_on_top_level).indent(VALUES_NOT_LAMBDA)
-        .inside(NODE_APPLY).when(apply_arg).indent(VALUES)
+        .rule("Indent parenthesized expressions")
+            .inside(NODE_PAREN)
+            .not_matching([T!["("], T![")"]])
+            .set(Indent)
+            .test(r#"
+                (
+                92
+                )
+            "#, r#"
+                (
+                  92
+                )
+            "#)
 
-        .inside(NODE_SET_ENTRY).indent(VALUES)
-        .inside(NODE_SET_ENTRY).when_anchor(set_entry_with_single_line_value).indent(T![;])
-        .inside(NODE_OPERATION).when_anchor(set_entry_with_single_line_value).indent(BIN_OPS)
-        .inside(NODE_WITH)
-            .when(with_body)
+        .rule("Indent attribute set content")
+            .inside(NODE_SET)
+            .not_matching([T!["{"], T!["}"]])
+            .set(Indent)
+            .test(r#"
+                {
+                foo = bar;
+                }
+            "#, r#"
+                {
+                  foo = bar;
+                }
+            "#)
+
+        .rule("Indent let bindings")
+            .inside(NODE_LET_IN)
+            .not_matching([T![let], T![in]])
+            .set(Indent)
+            .test(r#"
+                let
+                x = 1;
+                inherit z;
+                  in
+                  x
+            "#, r#"
+                let
+                  x = 1;
+                  inherit z;
+                in
+                  x
+            "#)
+
+        .rule("Indent attribute value")
+            .inside(NODE_SET_ENTRY)
+            .not_matching(T![;])
+            .set(Indent)
+            .test(r#"
+                {
+                  foo =
+                  92;
+                }
+            "#, r#"
+                {
+                  foo =
+                    92;
+                }
+            "#)
+
+        .rule("Indent semicolon in attribute")
+            .inside(NODE_SET_ENTRY)
             .when_anchor(set_entry_with_single_line_value)
-            .indent(VALUES)
-        .inside(NODE_OR_DEFAULT).indent(VALUES)
+            .matching(T![;])
+            .set(Indent)
+            .test(r#"
+                {
+                  foo = 92
+                  ;
 
-        .inside(NODE_INHERIT).indent([NODE_IDENT, NODE_INHERIT_FROM, T![;]])
-        .inside(NODE_IF_ELSE).indent(VALUES)
-        .inside(NODE_PAREN).indent(VALUES)
+                  bar = [
+                    1
+                  ]
+                  ++ [ 2 ]
+                    ;
+                }
+            "#, r#"
+                {
+                  foo = 92
+                    ;
 
-        // FIXME: don't force indent if comment is on the first line
-        .inside(ENTRY_OWNERS).indent(TOKEN_COMMENT)
-        .inside([
-            NODE_LIST,
-            NODE_PATTERN,
-            NODE_INHERIT,
-        ]).indent(TOKEN_COMMENT)
-        ;
+                  bar = [
+                    1
+                  ]
+                  ++ [ 2 ]
+                  ;
+                }
+            "#)
+
+        .rule("Indent concatenation to first element")
+            .inside(NODE_OPERATION)
+            .when_anchor(set_entry_with_single_line_value)
+            .matching(BIN_OPS)
+            .set(Indent)
+            .test(r#"
+                {
+                  foo = []
+                  ++ []
+                  ;
+                }
+            "#, r#"
+                {
+                  foo = []
+                    ++ []
+                    ;
+                }
+            "#)
+
+        .rule("Indent lambda parameters")
+            .inside(NODE_PATTERN)
+            .not_matching([T!["{"], T!["}"], T![,]])
+            .set(Indent)
+            .test(r#"
+                {
+                # comment
+                foo ? bar
+                , baz
+                }: foo
+            "#, r#"
+                {
+                  # comment
+                  foo ? bar
+                , baz
+                }: foo
+            "#)
+
+        .rule("Indent lambda body")
+            .inside(p(NODE_LAMBDA) & p(not_on_top_level))
+            .not_matching([NODE_LAMBDA, TOKEN_COMMENT])
+            .set(Indent)
+            .test(r#"
+                {}:
+                  {
+                foo =
+                  # describe bar
+                  bar:
+                  # describe baz
+                  baz:
+                  fnbody;
+                }
+            "#, r#"
+                {}:
+                {
+                  foo =
+                    # describe bar
+                    bar:
+                    # describe baz
+                    baz:
+                      fnbody;
+                }
+            "#)
+
+        .rule("Indent apply arg")
+            .inside(NODE_APPLY)
+            .set(Indent)
+            .test(r#"
+                foo
+                bar baz
+            "#, r#"
+                foo
+                  bar baz
+            "#)
+
+        .rule("Indent with body in attribute")
+            .inside(NODE_WITH)
+            .when_anchor(set_entry_with_single_line_value)
+            .set(Indent)
+            .test(r#"
+                with foo;
+                  {
+                  bar = with baz;
+                  body;
+                  }
+            "#, r#"
+                with foo;
+                {
+                  bar = with baz;
+                    body;
+                }
+            "#)
+
+        .rule("Indent or default")
+            .inside(NODE_OR_DEFAULT)
+            .set(Indent)
+            .test(r#"
+                {
+                  x = foo or
+                  bar;
+                }
+            "#, r#"
+                {
+                  x = foo or
+                    bar;
+                }
+            "#)
+
+        .rule("Indent if-then-else")
+            .inside(NODE_IF_ELSE)
+            .not_matching([T![if], T![then], T![else]])
+            .set(Indent)
+            .test(r#"
+                if
+                foo
+                then
+                bar
+                else
+                baz
+            "#, r#"
+                if
+                  foo
+                then
+                  bar
+                else
+                  baz
+            "#)
+
+        .rule("Indent inherit parts")
+            .inside(NODE_INHERIT)
+            .set(Indent)
+            .test(r#"
+                {
+                  inherit
+                  (builtins)
+                  # comment
+                  toString
+                  ;
+                }
+            "#, r#"
+                {
+                  inherit
+                    (builtins)
+                    # comment
+                    toString
+                    ;
+                }
+            "#)
+    ;
+
     dsl
 }
 
-fn lambda_body_not_on_top_level(body: SyntaxElement<'_>) -> bool {
-    fn find(body: SyntaxElement<'_>) -> Option<bool> {
-        let mut node = body.as_node()?;
-        loop {
-            node = node.parent()?;
-            if node.kind() == NODE_ROOT {
-                return None;
-            }
-            if node.kind() != NODE_LAMBDA {
-                return Some(true);
-            }
-        }
-    }
-
-    find(body) == Some(true)
+fn not_on_top_level(element: SyntaxElement<'_>) -> bool {
+    !on_top_level(element)
 }
 
-fn with_body(body: SyntaxElement<'_>) -> bool {
-    fn find(body: SyntaxElement<'_>) -> Option<bool> {
-        let body = body.as_node()?;
-        let with = body.parent().and_then(With::cast)?;
-        Some(with.body()? == body)
+fn on_top_level(element: SyntaxElement<'_>) -> bool {
+    let parent = match element.parent() {
+        None => return true,
+        Some(it) => it,
+    };
+    match parent.kind() {
+        NODE_ROOT => true,
+        NODE_LAMBDA => on_top_level(parent.into()),
+        _ => false,
     }
-
-    find(body) == Some(true)
-}
-
-fn apply_arg(arg: SyntaxElement<'_>) -> bool {
-    fn find(arg: SyntaxElement<'_>) -> Option<bool> {
-        let arg = arg.as_node()?;
-        let apply = arg.parent().and_then(Apply::cast)?;
-        Some(apply.value()? == arg)
-    }
-
-    find(arg) == Some(true)
 }
 
 fn set_entry_with_single_line_value(entry: SyntaxElement<'_>) -> bool {
@@ -221,24 +430,8 @@ fn rhs_of_binop(rhs: SyntaxElement<'_>) -> bool {
     find(rhs) == Some(true)
 }
 
-static ENTRY_OWNERS: &[SyntaxKind] = &[NODE_SET, NODE_LET_IN];
-
 static VALUES: &[SyntaxKind] = &[
     NODE_LAMBDA,
-    NODE_IDENT,
-    NODE_INDEX_SET,
-    NODE_LET_IN,
-    NODE_LIST,
-    NODE_OPERATION,
-    NODE_PAREN,
-    NODE_SET,
-    NODE_STRING,
-    NODE_VALUE,
-    NODE_APPLY,
-    NODE_IF_ELSE,
-];
-
-static VALUES_NOT_LAMBDA: &[SyntaxKind] = &[
     NODE_IDENT,
     NODE_INDEX_SET,
     NODE_LET_IN,
@@ -276,7 +469,7 @@ mod tests {
         path::{Path, PathBuf},
     };
 
-    use crate::reformat_string;
+    use crate::{reformat_string, rules::indentation2};
 
     #[test]
     fn smoke() {
@@ -303,10 +496,21 @@ foo = x:
     /// right next to the corresponding rule definition. This test looks at the
     /// text of this file, extracts test cases from comments and checks them.
     #[test]
-    fn test_inline_tests() {
+    fn test_inline_spacing_tests() {
         let this_file = include_str!("./rules.rs");
         let tests = TestCase::collect_from_comments(this_file);
         run(&tests);
+    }
+
+    #[test]
+    fn test_inline_indentation_tests() {
+        let rules = indentation2();
+        let tests: Vec<TestCase> = rules
+            .tests
+            .iter()
+            .map(|&(before, after)| TestCase::from_before_after(before, after))
+            .collect();
+        run(&tests)
     }
 
     #[test]
@@ -337,6 +541,14 @@ foo = x:
     }
 
     impl TestCase {
+        fn from_before_after(before: &str, after: &str) -> TestCase {
+            TestCase {
+                name: None,
+                before: unindent::unindent(before),
+                after: unindent::unindent(after),
+            }
+        }
+
         fn try_from(line: &str) -> Option<TestCase> {
             let divisor = line.find("=>")?;
             let before = format!("{}\n", line[..divisor].trim());
