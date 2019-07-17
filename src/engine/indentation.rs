@@ -3,7 +3,7 @@ use std::cmp::{Ord, Ordering, PartialOrd};
 use rnix::{nodes::NODE_ROOT, SyntaxElement, SyntaxNode, TextUnit};
 
 use crate::{
-    dsl::IndentRule,
+    dsl::{IndentRule, Modality},
     engine::{BlockPosition, FmtModel, SpaceBlock, SpaceBlockOrToken},
     pattern::{Pattern, PatternSet},
 };
@@ -89,13 +89,28 @@ impl IndentLevel {
 }
 
 impl IndentRule {
+    pub(super) fn matches(&self, element: SyntaxElement) -> bool {
+        let parent = match element.parent() {
+            None => return false,
+            Some(it) => it,
+        };
+        if !self.parent.matches(parent.into()) {
+            return false;
+        }
+        if let Some(child) = &self.child {
+            child.matches(element) == (self.child_modality == Modality::Positive)
+        } else {
+            true
+        }
+    }
+
     pub(super) fn apply<'a>(
         &self,
         element: SyntaxElement<'a>,
         model: &mut FmtModel<'a>,
         anchor_set: &PatternSet<&Pattern>,
     ) {
-        assert!(self.pattern.matches(element));
+        debug_assert!(self.matches(element));
         let anchor_indent = match indent_anchor(element, model, anchor_set) {
             Some((anchor, indent)) => {
                 if let Some(p) = &self.anchor_pattern {

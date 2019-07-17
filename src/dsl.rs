@@ -194,6 +194,28 @@ impl<'a> SpacingRuleBuilder<'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Modality {
+    Positive,
+    Negative,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum IndentValue {
+    Indent,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct RuleName(&'static str);
+
+impl RuleName {
+    fn new(name: &'static str) -> RuleName {
+        assert!(name.chars().next().unwrap().is_uppercase(), "rule names should be capitalized");
+        assert!(name.chars().last().unwrap() != '.', "rule names should not end in `.`");
+        RuleName(name)
+    }
+}
+
 /// `IndentRule` describes how an element should be indented.
 ///
 /// `IndentRule`s are only effective for elements which begin the line.
@@ -202,11 +224,16 @@ impl<'a> SpacingRuleBuilder<'a> {
 /// * the same, as parent (default)
 /// * indent relative to the parent.
 ///
-/// For this reason, `IndentRule` specifies only the pattern.
+/// For this reason, `indent_value` is mostly unused.
 #[derive(Debug)]
 pub(crate) struct IndentRule {
-    /// Pattern that should match the element which is indented
-    pub(crate) pattern: Pattern,
+    pub(crate) name: RuleName,
+    pub(crate) parent: Pattern,
+
+    /// Depending on `child_modality`, this pattern selects/discards elements
+    pub(crate) child: Option<Pattern>,
+    pub(crate) child_modality: Modality,
+
     /// Pattern that should match the anchoring element, relative to which we
     /// calculate the indent
     ///
@@ -224,13 +251,7 @@ pub(crate) struct IndentRule {
     /// applies and `f = x ...` is the thing to which the `anchor_pattern`
     /// applies.
     pub(crate) anchor_pattern: Option<Pattern>,
-}
-
-/// Make `IndentRule` usable with `PatternSet`
-impl AsRef<Pattern> for IndentRule {
-    fn as_ref(&self) -> &Pattern {
-        &self.pattern
-    }
+    pub(crate) indent_value: IndentValue,
 }
 
 /// A builder to conveniently specify a set of `IndentRule`s.
@@ -238,6 +259,8 @@ impl AsRef<Pattern> for IndentRule {
 pub(crate) struct IndentDsl {
     pub(crate) rules: Vec<IndentRule>,
     pub(crate) anchors: Vec<Pattern>,
+    #[cfg(test)]
+    pub(crate) tests: Vec<(&'static str, &'static str)>,
 }
 
 impl IndentDsl {
@@ -260,46 +283,87 @@ impl IndentDsl {
         self.anchors.push(pattern.into());
         self
     }
-    /// Specify a rule for an element which is a child of `parent`.
-    pub(crate) fn inside(&mut self, parent: impl Into<Pattern>) -> IndentRuleBuilder<'_> {
-        IndentRuleBuilder { dsl: self, parent: parent.into(), when: None, when_anchor: None }
+    /// Adds a new indent rule with the given name
+    pub(crate) fn rule<'a>(&'a mut self, rule_name: &'static str) -> IndentRuleBuilder<'a> {
+        IndentRuleBuilder::new(self, rule_name)
+    }
+    #[cfg(test)]
+    pub(crate) fn test(&mut self, before: &'static str, after: &'static str) -> &mut IndentDsl {
+        self.tests.push((before, after));
+        self
+    }
+    #[cfg(not(test))]
+    pub(crate) fn test(&mut self, _before: &'static str, _after: &'static str) -> &mut IndentDsl {
+        self
     }
 }
 
 /// A builder to conveniently specify a single `IndentRule`.
 pub(crate) struct IndentRuleBuilder<'a> {
     dsl: &'a mut IndentDsl,
-    parent: Pattern,
-    when: Option<Pattern>,
-    when_anchor: Option<Pattern>,
+    rule_name: &'static str,
+    parent: Option<Pattern>,
+    child: Option<Pattern>,
+    child_modality: Modality,
+    anchor_pattern: Option<Pattern>,
 }
 
 impl<'a> IndentRuleBuilder<'a> {
-    /// Indent the specified `child` element.
-    pub(crate) fn indent(self, child: impl Into<Pattern>) -> &'a mut IndentDsl {
-        let mut child: Pattern = child.into();
-        if let Some(cond) = self.when {
-            child = child & cond;
+    fn new(dsl: &'a mut IndentDsl, rule_name: &'static str) -> IndentRuleBuilder<'a> {
+        IndentRuleBuilder {
+            dsl,
+            rule_name,
+            parent: None,
+            child: None,
+            child_modality: Modality::Positive,
+            anchor_pattern: None,
         }
-        let indent_rule = IndentRule {
-            pattern: child.with_parent(self.parent),
-            anchor_pattern: self.when_anchor,
-        };
-        self.dsl.rules.push(indent_rule);
-        self.dsl
     }
-    /// Only apply this rule when `cond` is true.
-    pub(crate) fn when(mut self, cond: fn(SyntaxElement<'_>) -> bool) -> IndentRuleBuilder<'a> {
-        self.when = Some(cond.into());
+
+    /// Rule applies if element's parent matches.
+    pub(crate) fn inside(mut self, parent: impl Into<Pattern>) -> Self {
+        let prev = self.parent.replace(parent.into());
+        assert!(prev.is_none());
         self
     }
+
+    /// Rule applies if element itself matches.
+    pub(crate) fn matching(self, child: impl Into<Pattern>) -> Self {
+        self.matching_modality(child.into(), Modality::Positive)
+    }
+
+    /// Rule applies if element itself does *not* match.
+    pub(crate) fn not_matching(self, child: impl Into<Pattern>) -> Self {
+        self.matching_modality(child.into(), Modality::Negative)
+    }
+
+    fn matching_modality(mut self, child: Pattern, child_modality: Modality) -> Self {
+        let prev = self.child.replace(child);
+        assert!(prev.is_none());
+        self.child_modality = child_modality;
+        self
+    }
+
+    /// Which indent does the rule applies?
+    pub(crate) fn set(self, indent_value: IndentValue) -> &'a mut IndentDsl {
+        let dsl = self.dsl;
+        let name = self.rule_name;
+        let rule = IndentRule {
+            name: RuleName::new(name),
+            parent: self.parent.unwrap_or_else(|| panic!("incomplete rule: {}", name)),
+            child: self.child,
+            child_modality: self.child_modality,
+            anchor_pattern: self.anchor_pattern,
+            indent_value,
+        };
+        dsl.rules.push(rule);
+        dsl
+    }
+
     /// Only apply this rule when `cond` is true for the anchor node, relative
     /// to which we compute indentation level.
-    pub(crate) fn when_anchor(
-        mut self,
-        cond: fn(SyntaxElement<'_>) -> bool,
-    ) -> IndentRuleBuilder<'a> {
-        self.when_anchor = Some(cond.into());
+    pub(crate) fn when_anchor(mut self, cond: fn(SyntaxElement<'_>) -> bool) -> Self {
+        self.anchor_pattern = Some(cond.into());
         self
     }
 }

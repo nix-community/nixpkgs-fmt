@@ -8,7 +8,7 @@ mod fixes;
 use rnix::{SmolStr, SyntaxNode, TextRange};
 
 use crate::{
-    dsl::{IndentDsl, SpacingDsl},
+    dsl::{SpacingDsl, IndentDsl},
     engine::fmt_model::{BlockPosition, FmtModel, SpaceBlock, SpaceBlockOrToken},
     pattern::PatternSet,
     tree_utils::walk_non_whitespace,
@@ -34,7 +34,6 @@ pub(crate) fn format(
     }
 
     // Next, for each node which starts the newline, adjust the indent.
-    let indent_rule_set = PatternSet::new(indent_dsl.rules.iter());
     let anchor_set = PatternSet::new(indent_dsl.anchors.iter());
     for element in walk_non_whitespace(root) {
         let block = model.block_for(element, BlockPosition::Before);
@@ -55,7 +54,7 @@ pub(crate) fn format(
             continue;
         }
 
-        let mut matching = indent_rule_set.matching(element);
+        let mut matching = indent_dsl.rules.iter().filter(|it| it.matches(element));
         if let Some(rule) = matching.next() {
             rule.apply(element, &mut model, &anchor_set);
             assert!(matching.next().is_none(), "more that one indent rule matched");
