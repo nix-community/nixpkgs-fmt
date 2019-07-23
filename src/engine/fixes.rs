@@ -1,14 +1,15 @@
 use std::cmp::min;
 
 use rnix::{
-    nodes::NODE_STRING, tokenizer::tokens::TOKEN_STRING_CONTENT, SyntaxElement, SyntaxNode,
-    TextRange, TextUnit,
+    nodes::NODE_STRING,
+    tokenizer::tokens::{TOKEN_COMMENT, TOKEN_STRING_CONTENT},
+    SyntaxElement, SyntaxNode, SyntaxToken, TextRange, TextUnit,
 };
 
 use crate::{
     engine::{
         indentation::{indent_anchor, IndentLevel},
-        FmtModel,
+        BlockPosition, FmtModel,
     },
     pattern::{Pattern, PatternSet},
     AtomEdit,
@@ -19,13 +20,15 @@ pub(super) fn fix<'a>(
     model: &mut FmtModel<'a>,
     anchor_set: &PatternSet<&Pattern>,
 ) {
-    let node = match element.as_node() {
-        Some(it) => it,
-        None => return,
-    };
-    match node.kind() {
-        NODE_STRING => fix_string_indentation(node, model, anchor_set),
-        _ => return,
+    match element {
+        SyntaxElement::Node(node) => match node.kind() {
+            NODE_STRING => fix_string_indentation(node, model, anchor_set),
+            _ => (),
+        },
+        SyntaxElement::Token(token) => match token.kind() {
+            TOKEN_COMMENT => fix_comment_ident(token, model),
+            _ => (),
+        },
     }
 }
 
@@ -75,6 +78,55 @@ fn fix_string_indentation<'a>(
 
     if last_line_is_blank {
         model.raw_edit(AtomEdit { delete: *last_indent, insert: target_indent.as_str().into() })
+    }
+}
+
+/// If we indent multiline block comment, we should indent it's content as well.
+fn fix_comment_ident<'a>(token: SyntaxToken<'a>, model: &mut FmtModel<'a>) {
+    let is_block_comment = token.text().starts_with("/*");
+    if !is_block_comment {
+        return;
+    }
+    let block = model.block_for(token.into(), BlockPosition::Before);
+    let (old_indent, new_indent) =
+        match (indent_level(block.original_text()), indent_level(block.text())) {
+            (Some(old), Some(new)) => (old, new),
+            _ => return,
+        };
+    if old_indent == new_indent {
+        return;
+    }
+    let mut curr_offset = token.range().start();
+    let mut first = true;
+    for line in token.text().lines() {
+        let offset = curr_offset;
+        curr_offset += TextUnit::of_str(line) + TextUnit::of_char('\n');
+        if first {
+            first = false;
+            continue;
+        }
+
+        if let Some(ws_end) = line.find(|it| it != ' ') {
+            if let Some(to_add) = new_indent.checked_sub(old_indent) {
+                let indent = IndentLevel::from_len(TextUnit::from_usize(to_add));
+                model.raw_edit(AtomEdit {
+                    delete: TextRange::offset_len(offset, 0.into()),
+                    insert: indent.as_str().into(),
+                })
+            } else {
+                model.raw_edit(AtomEdit {
+                    delete: TextRange::offset_len(
+                        offset,
+                        TextUnit::from_usize(min(ws_end, old_indent - new_indent)),
+                    ),
+                    insert: "".into(),
+                })
+            }
+        }
+    }
+
+    fn indent_level(text: &str) -> Option<usize> {
+        text.rfind('\n').map(|idx| text.len() - idx - 1)
     }
 }
 

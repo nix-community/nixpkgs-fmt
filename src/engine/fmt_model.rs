@@ -103,6 +103,9 @@ impl<'a> SpaceBlock<'a> {
         if let Some(text) = self.new_text.as_ref() {
             return text.as_str();
         }
+        self.original_text()
+    }
+    pub(crate) fn original_text(&self) -> &str {
         match self.original {
             OriginalSpace::Some(token) => token.text().as_str(),
             OriginalSpace::None { .. } => "",

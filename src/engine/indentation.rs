@@ -59,9 +59,17 @@ impl Ord for IndentLevel {
 }
 
 impl IndentLevel {
+    /// Constructs `IndentLevel` from indent string (without \n)
     pub(super) fn from_str(s: &str) -> IndentLevel {
         let len = len_for_indent(s);
         IndentLevel { level: len / INDENT_SIZE, alignment: len % INDENT_SIZE }
+    }
+
+    pub(super) fn from_whitespace_block(s: &str) -> IndentLevel {
+        match s.rfind('\n') {
+            None => IndentLevel::default(),
+            Some(idx) => IndentLevel::from_str(&s[idx + 1..]),
+        }
     }
 
     pub(super) fn from_len(len: TextUnit) -> IndentLevel {
@@ -135,11 +143,7 @@ impl SpaceBlock<'_> {
     }
 
     fn indent(&self) -> IndentLevel {
-        let text = self.text();
-        match text.rfind('\n') {
-            None => IndentLevel::default(),
-            Some(idx) => IndentLevel::from_str(&text[idx + 1..]),
-        }
+        IndentLevel::from_whitespace_block(self.text())
     }
 }
 
