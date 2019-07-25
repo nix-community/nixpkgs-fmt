@@ -1,6 +1,6 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
-    parser::nodes::*,
+    SyntaxKind::*,
     types::{Operation, SetEntry, TypedNode, With},
     SyntaxElement, SyntaxKind, T,
 };
@@ -104,9 +104,9 @@ pub(crate) fn spacing() -> SpacingDsl {
     dsl
 }
 
-fn after_literal(node: SyntaxElement<'_>) -> bool {
+fn after_literal(node: &SyntaxElement) -> bool {
     let prev = prev_sibling(node);
-    return if let Some(body) = prev.and_then(With::cast).and_then(|w| w.body()) {
+    return if let Some(body) = prev.clone().and_then(With::cast).and_then(|w| w.body()) {
         is_literal(body.kind())
     } else {
         prev.map(|it| is_literal(it.kind())) == Some(true)
@@ -117,7 +117,7 @@ fn after_literal(node: SyntaxElement<'_>) -> bool {
     }
 }
 
-fn after_multiline_binop(node: SyntaxElement<'_>) -> bool {
+fn after_multiline_binop(node: &SyntaxElement) -> bool {
     let prev = prev_sibling(node);
     return if let Some(op) = prev.and_then(Operation::cast) {
         has_newline(op.node())
@@ -394,41 +394,41 @@ pub(crate) fn indentation2() -> IndentDsl {
     dsl
 }
 
-fn not_on_top_level(element: SyntaxElement<'_>) -> bool {
+fn not_on_top_level(element: &SyntaxElement) -> bool {
     !on_top_level(element)
 }
 
-fn on_top_level(element: SyntaxElement<'_>) -> bool {
+fn on_top_level(element: &SyntaxElement) -> bool {
     let parent = match element.parent() {
         None => return true,
         Some(it) => it,
     };
     match parent.kind() {
         NODE_ROOT => true,
-        NODE_LAMBDA => on_top_level(parent.into()),
+        NODE_LAMBDA => on_top_level(&parent.into()),
         _ => false,
     }
 }
 
-fn set_entry_with_single_line_value(entry: SyntaxElement<'_>) -> bool {
-    fn find(entry: SyntaxElement<'_>) -> Option<bool> {
-        let entry = entry.as_node().and_then(SetEntry::cast)?;
+fn set_entry_with_single_line_value(entry: &SyntaxElement) -> bool {
+    fn find(entry: SyntaxElement) -> Option<bool> {
+        let entry = entry.into_node().and_then(SetEntry::cast)?;
         let mut value = entry.value()?;
-        if Operation::cast(value).is_none() {
+        if Operation::cast(value.clone()).is_none() {
             return Some(true);
         }
-        while let Some(op) = Operation::cast(value) {
+        while let Some(op) = Operation::cast(value.clone()) {
             value = op.value1()?
         }
-        Some(!has_newline(value))
+        Some(!has_newline(&value))
     }
-    find(entry) == Some(true)
+    find(entry.clone()) == Some(true)
 }
 
-fn rhs_of_binop(rhs: SyntaxElement<'_>) -> bool {
-    fn find(rhs: SyntaxElement<'_>) -> Option<bool> {
+fn rhs_of_binop(rhs: &SyntaxElement) -> bool {
+    fn find(rhs: &SyntaxElement) -> Option<bool> {
         let op = rhs.parent().and_then(Operation::cast)?;
-        Some(op.value2()? == rhs.as_node()?)
+        Some(&op.value2()? == rhs.as_node()?)
     }
     find(rhs) == Some(true)
 }

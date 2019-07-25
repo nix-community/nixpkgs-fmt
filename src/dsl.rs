@@ -80,7 +80,7 @@ impl SpacingDsl {
         self
     }
     /// Specify a spacing rule for an element which is a child of `parent`.
-    pub(crate) fn inside(&mut self, parent: impl Into<Pattern>) -> SpacingRuleBuilder<'_> {
+    pub(crate) fn inside(&mut self, parent: impl Into<Pattern>) -> SpacingRuleBuilder {
         SpacingRuleBuilder {
             dsl: self,
             parent: parent.into(),
@@ -130,7 +130,7 @@ impl<'a> SpacingRuleBuilder<'a> {
         self
     }
     /// The rule applies if the `cond` is true.
-    pub(crate) fn when(mut self, cond: fn(SyntaxElement<'_>) -> bool) -> SpacingRuleBuilder<'a> {
+    pub(crate) fn when(mut self, cond: fn(&SyntaxElement) -> bool) -> SpacingRuleBuilder<'a> {
         let pred = cond.into();
         let prev = self.child.take().unwrap();
         self.child = Some(prev & pred);
@@ -164,8 +164,8 @@ impl<'a> SpacingRuleBuilder<'a> {
             let child = {
                 let left = left.clone();
                 let right = right.clone();
-                left & Pattern::from(move |it: SyntaxElement<'_>| {
-                    next_non_whitespace_sibling(it).map(|it| right.matches(it)) == Some(true)
+                left & Pattern::from(move |it: &SyntaxElement| {
+                    next_non_whitespace_sibling(it).map(|it| right.matches(&it)) == Some(true)
                 })
             };
             let rule = SpacingRule {
@@ -175,8 +175,8 @@ impl<'a> SpacingRuleBuilder<'a> {
             self.dsl.rule(rule);
 
             let child = right
-                & Pattern::from(move |it: SyntaxElement<'_>| {
-                    prev_non_whitespace_sibling(it).map(|it| left.matches(it)) == Some(true)
+                & Pattern::from(move |it: &SyntaxElement| {
+                    prev_non_whitespace_sibling(it).map(|it| left.matches(&it)) == Some(true)
                 });
             let rule = SpacingRule {
                 pattern: child.with_parent(self.parent),
@@ -362,7 +362,7 @@ impl<'a> IndentRuleBuilder<'a> {
 
     /// Only apply this rule when `cond` is true for the anchor node, relative
     /// to which we compute indentation level.
-    pub(crate) fn when_anchor(mut self, cond: fn(SyntaxElement<'_>) -> bool) -> Self {
+    pub(crate) fn when_anchor(mut self, cond: fn(&SyntaxElement) -> bool) -> Self {
         self.anchor_pattern = Some(cond.into());
         self
     }

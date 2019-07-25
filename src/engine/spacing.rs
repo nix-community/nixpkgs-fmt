@@ -7,7 +7,7 @@ use crate::{
 };
 
 impl SpacingRule {
-    pub(super) fn apply<'a>(&self, element: SyntaxElement<'a>, model: &mut FmtModel<'a>) {
+    pub(super) fn apply(&self, element: &SyntaxElement, model: &mut FmtModel) {
         if !self.pattern.matches(element) {
             return;
         }
@@ -37,7 +37,7 @@ impl SpaceLoc {
     }
 }
 
-fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValue) {
+fn ensure_space(element: &SyntaxElement, block: &mut SpaceBlock, value: SpaceValue) {
     match value {
         SpaceValue::Single => block.set_text(" "),
         SpaceValue::SingleOptionalNewline => {
@@ -53,7 +53,7 @@ fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValu
             }
         }
         SpaceValue::SingleOrNewline => {
-            let parent_is_multiline = element.parent().map_or(false, has_newline);
+            let parent_is_multiline = element.parent().map_or(false, |it| has_newline(&it));
             if parent_is_multiline {
                 block.set_line_break_preserving_existing_newlines()
             } else {
@@ -61,7 +61,7 @@ fn ensure_space(element: SyntaxElement, block: &mut SpaceBlock, value: SpaceValu
             }
         }
         SpaceValue::NoneOrNewline => {
-            let parent_is_multiline = element.parent().map_or(false, has_newline);
+            let parent_is_multiline = element.parent().map_or(false, |it| has_newline(&it));
             if parent_is_multiline {
                 block.set_line_break_preserving_existing_newlines()
             } else {

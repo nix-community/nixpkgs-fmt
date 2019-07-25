@@ -1,9 +1,9 @@
 use std::cmp::min;
 
 use rnix::{
-    nodes::NODE_STRING,
-    tokenizer::tokens::{TOKEN_COMMENT, TOKEN_STRING_CONTENT},
-    SyntaxElement, SyntaxNode, SyntaxToken, TextRange, TextUnit,
+    NodeOrToken, SyntaxElement,
+    SyntaxKind::{NODE_STRING, TOKEN_COMMENT, TOKEN_STRING_CONTENT},
+    SyntaxNode, SyntaxToken, TextRange, TextUnit,
 };
 
 use crate::{
@@ -15,29 +15,25 @@ use crate::{
     AtomEdit,
 };
 
-pub(super) fn fix<'a>(
-    element: SyntaxElement<'a>,
-    model: &mut FmtModel<'a>,
-    anchor_set: &PatternSet<&Pattern>,
-) {
+pub(super) fn fix(element: SyntaxElement, model: &mut FmtModel, anchor_set: &PatternSet<&Pattern>) {
     match element {
-        SyntaxElement::Node(node) => match node.kind() {
-            NODE_STRING => fix_string_indentation(node, model, anchor_set),
+        NodeOrToken::Node(node) => match node.kind() {
+            NODE_STRING => fix_string_indentation(&node, model, anchor_set),
             _ => (),
         },
-        SyntaxElement::Token(token) => match token.kind() {
-            TOKEN_COMMENT => fix_comment_ident(token, model),
+        NodeOrToken::Token(token) => match token.kind() {
+            TOKEN_COMMENT => fix_comment_ident(&token, model),
             _ => (),
         },
     }
 }
 
-fn fix_string_indentation<'a>(
-    node: &'a SyntaxNode,
-    model: &mut FmtModel<'a>,
+fn fix_string_indentation(
+    node: &SyntaxNode,
+    model: &mut FmtModel,
     anchor_set: &PatternSet<&Pattern>,
 ) {
-    let indent = match indent_anchor(node.into(), model, anchor_set) {
+    let indent = match indent_anchor(&node.clone().into(), model, anchor_set) {
         None => return,
         Some((_element, indent)) => indent,
     };
@@ -51,9 +47,9 @@ fn fix_string_indentation<'a>(
     };
 
     let first_line_is_blank =
-        first_indent.start() == node.range().start() + TextUnit::of_str("''\n");
+        first_indent.start() == node.text_range().start() + TextUnit::of_str("''\n");
 
-    let last_line_is_blank = last_indent.end() + TextUnit::of_str("''") == node.range().end();
+    let last_line_is_blank = last_indent.end() + TextUnit::of_str("''") == node.text_range().end();
 
     if !first_line_is_blank {
         return;
@@ -82,12 +78,12 @@ fn fix_string_indentation<'a>(
 }
 
 /// If we indent multiline block comment, we should indent it's content as well.
-fn fix_comment_ident<'a>(token: SyntaxToken<'a>, model: &mut FmtModel<'a>) {
+fn fix_comment_ident(token: &SyntaxToken, model: &mut FmtModel) {
     let is_block_comment = token.text().starts_with("/*");
     if !is_block_comment {
         return;
     }
-    let block = model.block_for(token.into(), BlockPosition::Before);
+    let block = model.block_for(&token.clone().into(), BlockPosition::Before);
     let (old_indent, new_indent) =
         match (indent_level(block.original_text()), indent_level(block.text())) {
             (Some(old), Some(new)) => (old, new),
@@ -96,7 +92,7 @@ fn fix_comment_ident<'a>(token: SyntaxToken<'a>, model: &mut FmtModel<'a>) {
     if old_indent == new_indent {
         return;
     }
-    let mut curr_offset = token.range().start();
+    let mut curr_offset = token.text_range().start();
     let mut first = true;
     for line in token.text().lines() {
         let offset = curr_offset;
@@ -141,18 +137,20 @@ fn fix_comment_ident<'a>(token: SyntaxToken<'a>, model: &mut FmtModel<'a>) {
 ///
 /// returns the ranges, corresponding to indentation. That is `"  "` before
 /// hello, `"    "` before world and `""` before the last `''`.
-fn node_indent_ranges(indented_string: &SyntaxNode) -> impl Iterator<Item = TextRange> + '_ {
+fn node_indent_ranges(indented_string: &SyntaxNode) -> impl Iterator<Item = TextRange> {
     indented_string
         .children_with_tokens()
-        .filter_map(|it| it.as_token())
+        .filter_map(|it| it.into_token())
         .filter(|it| it.kind() == TOKEN_STRING_CONTENT)
         .flat_map(|string_bit| {
-            let start_offset = string_bit.range().start();
-            string_indent_ranges(string_bit.text()).map(move |range| range + start_offset)
+            let start_offset = string_bit.text_range().start();
+            string_indent_ranges(string_bit.text())
+                .into_iter()
+                .map(move |range| range + start_offset)
         })
 }
 
-fn string_indent_ranges(mut s: &str) -> impl Iterator<Item = TextRange> + '_ {
+fn string_indent_ranges(mut s: &str) -> Vec<TextRange> {
     let mut offset = 0;
     std::iter::from_fn(move || loop {
         let indent_start = s.find('\n')? + 1;
@@ -171,6 +169,7 @@ fn string_indent_ranges(mut s: &str) -> impl Iterator<Item = TextRange> + '_ {
             TextUnit::from_usize(offset),
         ));
     })
+    .collect()
 }
 
 #[cfg(test)]
@@ -188,11 +187,11 @@ mod tests {
 }"#;
 
         let ast = rnix::parse(text);
-        let node = crate::tree_utils::walk(ast.node())
-            .filter_map(|it| it.as_node())
+        let node = crate::tree_utils::walk(&ast.node())
+            .filter_map(|it| it.into_node())
             .find(|node| node.kind() == NODE_STRING)
             .unwrap();
-        let indent_ranges: Vec<TextRange> = node_indent_ranges(node).collect();
+        let indent_ranges: Vec<TextRange> = node_indent_ranges(&node).collect();
         assert_eq!(
             indent_ranges,
             vec![
@@ -211,11 +210,11 @@ mod tests {
 }"#;
 
         let ast = rnix::parse(text);
-        let node = crate::tree_utils::walk(ast.node())
-            .filter_map(|it| it.as_node())
+        let node = crate::tree_utils::walk(&ast.node())
+            .filter_map(|it| it.into_node())
             .find(|node| node.kind() == NODE_STRING)
             .unwrap();
-        let indent_ranges: Vec<TextRange> = node_indent_ranges(node).collect();
+        let indent_ranges: Vec<TextRange> = node_indent_ranges(&node).collect();
         assert_eq!(
             indent_ranges,
             vec![
