@@ -90,6 +90,10 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("f  x", "f x")
         .inside(NODE_APPLY).between(VALUES, VALUES).single_space_or_optional_newline()
 
+        .test("if  cond  then  tru  else  fls", "if cond then tru else fls")
+        .inside(NODE_IF_ELSE).after(T![if]).single_space_or_optional_newline()
+        .inside(NODE_IF_ELSE).around([T![then], T![else]]).single_space_or_optional_newline()
+
         // special-cased rules for leading and trailing whitespace
         .rule(dsl::SpacingRule {
             pattern: NODE_ROOT.into(),
