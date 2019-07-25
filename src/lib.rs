@@ -69,7 +69,7 @@ impl FmtDiff {
 
 pub fn reformat_node(node: &SyntaxNode) -> FmtDiff {
     let spacing = rules::spacing();
-    let indentation = rules::indentation2();
+    let indentation = rules::indentation();
     engine::format(&spacing, &indentation, node)
 }
 
