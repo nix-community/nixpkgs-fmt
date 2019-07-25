@@ -1,8 +1,9 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
-    SyntaxKind::*,
     types::{Operation, SetEntry, TypedNode, With},
-    SyntaxElement, SyntaxKind, T,
+    SyntaxElement, SyntaxKind,
+    SyntaxKind::*,
+    T,
 };
 
 use crate::{
@@ -13,81 +14,80 @@ use crate::{
 
 #[rustfmt::skip]
 pub(crate) fn spacing() -> SpacingDsl {
-    // Note: comments with fat arrow are tests!
     let mut dsl = SpacingDsl::default();
 
     dsl
-        // { a=92; } => { a = 92; }
+        .test("{ a=92; }", "{ a = 92; }")
         .inside(NODE_SET_ENTRY).before(T![=]).single_space()
         .inside(NODE_SET_ENTRY).after(T![=]).single_space_or_optional_newline()
 
-        // { a = 92 ; } => { a = 92; }
+        .test("{ a = 92 ; }", "{ a = 92; }")
         .inside(NODE_SET_ENTRY).before(T![;]).no_space_or_optional_newline()
         .inside(NODE_SET_ENTRY).before(T![;]).when(after_literal).no_space()
         .inside(NODE_SET_ENTRY).before(T![;]).when(after_multiline_binop).single_space_or_newline()
 
-        // a==  b => a == b
-        // a!=  b => a != b
-        // a++  b => a ++ b
-        // a+  b => a + b
-        // a  -   b => a - b
-        // a*  b => a * b
-        // a/  b => a / b
+        .test("a==  b", "a == b")
+        .test("a!=  b", "a != b")
+        .test("a++  b", "a ++ b")
+        .test("a+  b", "a + b")
+        .test("a  -   b", "a - b")
+        .test("a*  b", "a * b")
+        .test("a/  b", "a / b")
         .inside(NODE_OPERATION).after(BIN_OPS).single_space()
         .inside(NODE_OPERATION).before(BIN_OPS).single_space_or_newline()
 
-        // foo . bar . baz => foo.bar.baz
+        .test("foo . bar . baz", "foo.bar.baz")
         .inside(NODE_INDEX_SET).around(T![.]).no_space()
 
-        // {} :92 => {}: 92
+        .test("{} :92", "{}: 92")
         .inside(NODE_LAMBDA).before(T![:]).no_space()
         .inside(NODE_LAMBDA).after(T![:]).single_space_or_optional_newline()
 
-        // [1 2 3] => [ 1 2 3 ]
+        .test("[1 2 3]", "[ 1 2 3 ]")
         .inside(NODE_LIST).after(T!["["]).single_space_or_newline()
         .inside(NODE_LIST).before(T!["]"]).single_space_or_newline()
-        // [ ] => []
+        .test("[ ]", "[]")
         .inside(NODE_LIST).between(T!["["], T!["]"]).no_space()
         .inside(NODE_LIST).between(VALUES, VALUES).single_space_or_newline()
         .inside(NODE_LIST).between(VALUES, TOKEN_COMMENT).single_space_or_optional_newline()
 
-        // ( 92 ) => (92)
+        .test("( 92 )", "(92)")
         .inside(NODE_PAREN).after(T!["("]).no_space_or_newline()
         .inside(NODE_PAREN).before(T![")"]).no_space_or_newline()
 
-        // {foo = 92;} => { foo = 92; }
+        .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_SET).after(T!["{"]).single_space_or_newline()
         .inside(NODE_SET).before(T!["}"]).single_space_or_newline()
-        // { } => {}
+        .test("{ }", "{}")
         .inside(NODE_SET).between(T!["{"], T!["}"]).no_space()
         .inside(NODE_SET).between(NODE_SET_ENTRY, NODE_SET_ENTRY).single_space_or_newline()
         .inside(NODE_SET).between(NODE_SET_ENTRY, TOKEN_COMMENT).single_space_or_optional_newline()
 
-        // {arg}: 92 => { arg }: 92
+        .test("{arg}: 92", "{ arg }: 92")
         .inside(NODE_PATTERN).after(T!["{"]).single_space_or_newline()
         .inside(NODE_PATTERN).before(T!["}"]).single_space_or_newline()
-        // { }: 92 => {}: 92
+        .test("{ }: 92", "{}: 92")
         .inside(NODE_PATTERN).between(T!["{"], T!["}"]).no_space()
 
-        // { foo,bar }: 92 => { foo, bar }: 92
+        .test("{ foo,bar }: 92", "{ foo, bar }: 92")
         .inside(NODE_PATTERN).after(T![,]).single_space()
         .inside(NODE_PATTERN).before(T![,]).no_space_or_newline()
 
-        // { inherit( x )  y  z  ; } => { inherit (x) y z; }
+        .test("{ inherit( x )  y  z  ; }", "{ inherit (x) y z; }")
         .inside(NODE_INHERIT).around(NODE_INHERIT_FROM).single_space_or_optional_newline()
         .inside(NODE_INHERIT).before(T![;]).no_space_or_newline()
         .inside(NODE_INHERIT).before(NODE_IDENT).single_space_or_optional_newline()
         .inside(NODE_INHERIT_FROM).after(T!["("]).no_space()
         .inside(NODE_INHERIT_FROM).before(T![")"]).no_space()
 
-        // let   foo = bar;in  92 => let foo = bar; in 92
+        .test("let   foo = bar;in  92", "let foo = bar; in 92")
         .inside(NODE_LET_IN).after(T![let]).single_space_or_newline()
         .inside(NODE_LET_IN).around(T![in]).single_space_or_newline()
 
-        // {a?3}: a => { a ? 3 }: a
+        .test("{a?3}: a", "{ a ? 3 }: a")
         .inside(NODE_PAT_ENTRY).around(T![?]).single_space()
 
-        // f  x => f x
+        .test("f  x", "f x")
         .inside(NODE_APPLY).between(VALUES, VALUES).single_space_or_optional_newline()
 
         // special-cased rules for leading and trailing whitespace
@@ -131,7 +131,7 @@ fn p(p: impl Into<Pattern>) -> Pattern {
 }
 
 #[rustfmt::skip]
-pub(crate) fn indentation2() -> IndentDsl {
+pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
         .anchor(NODE_PAT_ENTRY)
@@ -472,7 +472,10 @@ mod tests {
         path::{Path, PathBuf},
     };
 
-    use crate::{reformat_string, rules::indentation2};
+    use crate::{
+        reformat_string,
+        rules::{indentation, spacing},
+    };
 
     #[test]
     fn smoke() {
@@ -495,23 +498,35 @@ foo = x:
         .unwrap();
     }
 
-    /// For convenience, tests in this module are specified inline in comments,
-    /// right next to the corresponding rule definition. This test looks at the
-    /// text of this file, extracts test cases from comments and checks them.
+    /// For convenience, tests in this module are specified inline with a
+    /// `.test` dsl methods, right next to the corresponding rule definition.
+    /// This test extracts such test cases and checks them.
     #[test]
     fn test_inline_spacing_tests() {
-        let this_file = include_str!("./rules.rs");
-        let tests = TestCase::collect_from_comments(this_file);
-        run(&tests);
+        let rules = spacing();
+        let tests: Vec<TestCase> = rules
+            .tests
+            .iter()
+            .map(|&(before, after)| {
+                let before = before.to_string();
+                let after = format!("{}\n", after);
+                TestCase::from_before_after(before, after)
+            })
+            .collect();
+        run(&tests)
     }
 
     #[test]
     fn test_inline_indentation_tests() {
-        let rules = indentation2();
+        let rules = indentation();
         let tests: Vec<TestCase> = rules
             .tests
             .iter()
-            .map(|&(before, after)| TestCase::from_before_after(before, after))
+            .map(|&(before, after)| {
+                let before = unindent::unindent(before);
+                let after = unindent::unindent(after);
+                TestCase::from_before_after(before, after)
+            })
             .collect();
         run(&tests)
     }
@@ -544,30 +559,8 @@ foo = x:
     }
 
     impl TestCase {
-        fn from_before_after(before: &str, after: &str) -> TestCase {
-            TestCase {
-                name: None,
-                before: unindent::unindent(before),
-                after: unindent::unindent(after),
-            }
-        }
-
-        fn try_from(line: &str) -> Option<TestCase> {
-            let divisor = line.find("=>")?;
-            let before = format!("{}\n", line[..divisor].trim());
-            let after = format!("{}\n", line[divisor + 3..].trim());
-            Some(TestCase { name: None, before, after })
-        }
-
-        fn collect_from_comments(text: &str) -> Vec<TestCase> {
-            let res = text
-                .lines()
-                .filter_map(|line| line.find("// ").map(|idx| &line[idx + 3..]))
-                .filter_map(TestCase::try_from)
-                .collect::<Vec<_>>();
-
-            assert!(res.len() > 0);
-            res
+        fn from_before_after(before: String, after: String) -> TestCase {
+            TestCase { name: None, before, after }
         }
 
         fn collect_from_dir(dir: &Path) -> Vec<TestCase> {

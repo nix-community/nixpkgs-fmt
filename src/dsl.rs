@@ -68,6 +68,8 @@ pub(crate) enum SpaceLoc {
 #[derive(Debug, Default)]
 pub(crate) struct SpacingDsl {
     pub(crate) rules: Vec<SpacingRule>,
+    #[cfg(test)]
+    pub(crate) tests: Vec<(&'static str, &'static str)>,
 }
 
 impl SpacingDsl {
@@ -88,6 +90,14 @@ impl SpacingDsl {
             between: None,
             loc: None,
         }
+    }
+    pub(crate) fn test(&mut self, before: &'static str, after: &'static str) -> &mut SpacingDsl {
+        #[cfg(test)]
+        {
+            self.tests.push((before, after));
+        }
+        let _ = (before, after);
+        self
     }
 }
 
@@ -287,13 +297,12 @@ impl IndentDsl {
     pub(crate) fn rule<'a>(&'a mut self, rule_name: &'static str) -> IndentRuleBuilder<'a> {
         IndentRuleBuilder::new(self, rule_name)
     }
-    #[cfg(test)]
     pub(crate) fn test(&mut self, before: &'static str, after: &'static str) -> &mut IndentDsl {
-        self.tests.push((before, after));
-        self
-    }
-    #[cfg(not(test))]
-    pub(crate) fn test(&mut self, _before: &'static str, _after: &'static str) -> &mut IndentDsl {
+        #[cfg(test)]
+        {
+            self.tests.push((before, after));
+        }
+        let _ = (before, after);
         self
     }
 }
