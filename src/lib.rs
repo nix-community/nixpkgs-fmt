@@ -7,7 +7,7 @@ mod pattern;
 
 use std::borrow::Cow;
 
-use rnix::{SmolStr, SyntaxNode, TextRange, TreeArc};
+use rnix::{SmolStr, SyntaxNode, TextRange};
 
 use crate::tree_utils::walk_tokens;
 
@@ -17,7 +17,7 @@ use crate::tree_utils::walk_tokens;
 /// reformatted syntax node.
 #[derive(Debug)]
 pub struct FmtDiff {
-    original_node: TreeArc<SyntaxNode>,
+    original_node: SyntaxNode,
     edits: Vec<AtomEdit>,
 }
 
@@ -35,7 +35,7 @@ impl FmtDiff {
     pub fn to_string(&self) -> String {
         // TODO: don't copy strings all over the place
         let old_text =
-            walk_tokens(&self.original_node).map(|it| it.text().as_str()).collect::<String>();
+            walk_tokens(&self.original_node).map(|it| it.to_string()).collect::<String>();
 
         let mut total_len = old_text.len();
         let mut edits = self.edits.clone();
@@ -62,7 +62,7 @@ impl FmtDiff {
         buf
     }
 
-    pub fn to_node(&self) -> TreeArc<SyntaxNode> {
+    pub fn to_node(&self) -> SyntaxNode {
         unimplemented!()
     }
 }
@@ -77,7 +77,7 @@ pub fn reformat_string(text: &str) -> String {
     let (text, line_endings) = convert_to_unix_line_endings(text);
     let ast = rnix::parse(&*text);
     let root_node = ast.node();
-    let diff = reformat_node(root_node);
+    let diff = reformat_node(&root_node);
     let res = diff.to_string();
     match line_endings {
         LineEndings::Unix => res,

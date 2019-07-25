@@ -1,6 +1,6 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 
-use rnix::{nodes::NODE_ROOT, SyntaxElement, SyntaxNode, TextUnit};
+use rnix::{SyntaxKind::NODE_ROOT, SyntaxElement, SyntaxNode, TextUnit};
 
 use crate::{
     dsl::{IndentRule, Modality},
@@ -97,12 +97,12 @@ impl IndentLevel {
 }
 
 impl IndentRule {
-    pub(super) fn matches(&self, element: SyntaxElement) -> bool {
+    pub(super) fn matches(&self, element: &SyntaxElement) -> bool {
         let parent = match element.parent() {
             None => return false,
             Some(it) => it,
         };
-        if !self.parent.matches(parent.into()) {
+        if !self.parent.matches(&parent.into()) {
             return false;
         }
         if let Some(child) = &self.child {
@@ -112,17 +112,17 @@ impl IndentRule {
         }
     }
 
-    pub(super) fn apply<'a>(
+    pub(super) fn apply(
         &self,
-        element: SyntaxElement<'a>,
-        model: &mut FmtModel<'a>,
+        element: &SyntaxElement,
+        model: &mut FmtModel,
         anchor_set: &PatternSet<&Pattern>,
     ) {
         debug_assert!(self.matches(element));
         let anchor_indent = match indent_anchor(element, model, anchor_set) {
             Some((anchor, indent)) => {
                 if let Some(p) = &self.anchor_pattern {
-                    if !p.matches(anchor.into()) {
+                    if !p.matches(&anchor.into()) {
                         default_indent(element, model, anchor_set);
                         return;
                     }
@@ -136,7 +136,7 @@ impl IndentRule {
     }
 }
 
-impl SpaceBlock<'_> {
+impl SpaceBlock {
     fn set_indent(&mut self, indent: IndentLevel) {
         let newlines: String = self.text().chars().filter(|&it| it == '\n').collect();
         self.set_text(&format!("{}{}", newlines, indent.as_str()));
@@ -147,9 +147,9 @@ impl SpaceBlock<'_> {
     }
 }
 
-pub(super) fn default_indent<'a>(
-    element: SyntaxElement<'a>,
-    model: &mut FmtModel<'a>,
+pub(super) fn default_indent(
+    element: &SyntaxElement,
+    model: &mut FmtModel,
     anchor_set: &PatternSet<&Pattern>,
 ) {
     let anchor_indent = match indent_anchor(element, model, anchor_set) {
@@ -167,19 +167,19 @@ pub(super) fn default_indent<'a>(
 ///
 /// Elements from `anchor_set` are considered anchors even if they don't begin
 /// the line.
-pub(super) fn indent_anchor<'a>(
-    element: SyntaxElement<'a>,
-    model: &mut FmtModel<'a>,
+pub(super) fn indent_anchor(
+    element: &SyntaxElement,
+    model: &mut FmtModel,
     anchor_set: &PatternSet<&Pattern>,
-) -> Option<(&'a SyntaxNode, IndentLevel)> {
+) -> Option<(SyntaxNode, IndentLevel)> {
     let parent = element.parent()?;
     for node in parent.ancestors() {
-        let block = model.block_for(node.into(), BlockPosition::Before);
+        let block = model.block_for(&node.clone().into(), BlockPosition::Before);
         if block.has_newline() {
-            return Some((node, block.indent()));
+            return Some((node.clone(), block.indent()));
         }
-        if anchor_set.matching(node.into()).next().is_some() {
-            let indent = model.indent_of(node);
+        if anchor_set.matching(node.clone().into()).next().is_some() {
+            let indent = model.indent_of(&node);
             return Some((node, indent));
         }
         // For the root node, the block will typically be empty, but it still
@@ -191,9 +191,9 @@ pub(super) fn indent_anchor<'a>(
     None
 }
 
-impl<'a> FmtModel<'a> {
+impl FmtModel {
     /// Calculates current indent level for node.
-    fn indent_of(&mut self, node: &'a SyntaxNode) -> IndentLevel {
+    fn indent_of(&mut self, node: &SyntaxNode) -> IndentLevel {
         // The impl is tricky: we need to account for whitespace in `model`, which
         // might be different from original whitespace in the syntax tree
         let mut indent = IndentLevel::default();

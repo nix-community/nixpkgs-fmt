@@ -19,7 +19,7 @@ use rnix::{SyntaxElement, SyntaxKind};
 #[derive(Clone)]
 pub(crate) struct Pattern {
     kinds: Option<HashSet<SyntaxKind>>,
-    pred: Arc<dyn (Fn(SyntaxElement<'_>) -> bool)>,
+    pred: Arc<dyn (Fn(&SyntaxElement) -> bool)>,
 }
 
 impl AsRef<Pattern> for Pattern {
@@ -37,7 +37,7 @@ impl fmt::Debug for Pattern {
 impl Pattern {
     fn new(
         kinds: Option<HashSet<SyntaxKind>>,
-        pred: impl Fn(SyntaxElement<'_>) -> bool + 'static,
+        pred: impl Fn(&SyntaxElement) -> bool + 'static,
     ) -> Pattern {
         Pattern { kinds, pred: Arc::new(pred) }
     }
@@ -51,12 +51,12 @@ impl Pattern {
     pub(crate) fn with_parent(self, parent: Pattern) -> Pattern {
         let Pattern { kinds, pred } = self;
         Pattern::new(kinds, move |element| {
-            (pred)(element) && element.parent().map(|it| parent.matches(it.into())) == Some(true)
+            (pred)(element) && element.parent().map(|it| parent.matches(&it.into())) == Some(true)
         })
     }
 
     /// Checks if this pattern matches an element
-    pub(crate) fn matches(&self, element: SyntaxElement<'_>) -> bool {
+    pub(crate) fn matches(&self, element: &SyntaxElement) -> bool {
         if let Some(kinds) = self.kinds.as_ref() {
             if !kinds.contains(&element.kind()) {
                 return false;
@@ -83,7 +83,7 @@ impl ops::BitAnd for Pattern {
 /// Construct pattern from closure.
 impl<F> From<F> for Pattern
 where
-    F: for<'a> Fn(SyntaxElement<'a>) -> bool + 'static,
+    F: for<'a> Fn(&SyntaxElement) -> bool + 'static,
 {
     fn from(f: F) -> Pattern {
         Pattern::new(None, f)
@@ -145,7 +145,7 @@ impl<'a, P: AsRef<Pattern>> PatternSet<&'a P> {
     /// Returns an iterator of patterns that match
     pub(crate) fn matching<'b>(
         &'b self,
-        element: SyntaxElement<'b>,
+        element: SyntaxElement,
     ) -> impl Iterator<Item = &'a P> + 'b {
         self.by_kind
             .get(&element.kind())
@@ -153,6 +153,6 @@ impl<'a, P: AsRef<Pattern>> PatternSet<&'a P> {
             .flat_map(|vec| vec.iter())
             .chain(self.unconstrained.iter())
             .map(|&p| p)
-            .filter(move |p| p.as_ref().matches(element))
+            .filter(move |p| p.as_ref().matches(&element))
     }
 }

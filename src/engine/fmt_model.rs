@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use rnix::{
-    nodes::NODE_ROOT,
-    tokenizer::tokens::{TOKEN_COMMENT, TOKEN_WHITESPACE},
-    SmolStr, SyntaxElement, SyntaxNode, SyntaxToken, TextRange, TextUnit,
+    NodeOrToken, SmolStr, SyntaxElement,
+    SyntaxKind::{NODE_ROOT, TOKEN_COMMENT, TOKEN_WHITESPACE},
+    SyntaxNode, SyntaxToken, TextRange, TextUnit,
 };
 
 use crate::{engine::FmtDiff, tree_utils::preceding_tokens, AtomEdit};
@@ -25,11 +25,11 @@ use crate::{engine::FmtDiff, tree_utils::preceding_tokens, AtomEdit};
 /// We maintain the invariant that no two `SpaceBlock`s are directly adjoint to
 /// each other.
 #[derive(Debug)]
-pub(super) struct FmtModel<'a> {
-    original_node: &'a SyntaxNode,
+pub(super) struct FmtModel {
+    original_node: SyntaxNode,
     /// We store `SpaceBlock`s in array. With this setup, we can refer to a
     /// specific block by index, dodging many lifetime issues.
-    blocks: Vec<SpaceBlock<'a>>,
+    blocks: Vec<SpaceBlock>,
     /// Maps offset to an index of the block, for which the offset is the start
     /// offset.
     by_start_offset: HashMap<TextUnit, usize>,
@@ -41,8 +41,8 @@ pub(super) struct FmtModel<'a> {
 }
 
 #[derive(Debug)]
-pub(super) struct SpaceBlock<'a> {
-    original: OriginalSpace<'a>,
+pub(super) struct SpaceBlock {
+    original: OriginalSpace,
     /// Block's textual content, which is seen and modified by formatting rules.
     new_text: Option<SmolStr>,
     /// If this block requires a newline to preserve semantics.
@@ -60,23 +60,23 @@ pub(super) enum BlockPosition {
 
 /// Original whitespace token, if any, that backs a `SpaceBlock.
 #[derive(Debug)]
-pub(super) enum OriginalSpace<'a> {
-    Some(SyntaxToken<'a>),
+pub(super) enum OriginalSpace {
+    Some(SyntaxToken),
     None { offset: TextUnit },
 }
 
-impl<'a> OriginalSpace<'a> {
+impl OriginalSpace {
     fn text_range(&self) -> TextRange {
-        match *self {
-            OriginalSpace::Some(token) => token.range(),
-            OriginalSpace::None { offset } => TextRange::from_to(offset, offset),
+        match self {
+            OriginalSpace::Some(token) => token.text_range(),
+            OriginalSpace::None { offset } => TextRange::from_to(*offset, *offset),
         }
     }
 }
 
-impl<'a> SpaceBlock<'a> {
-    fn new(original: OriginalSpace<'a>) -> SpaceBlock<'a> {
-        let semantic_newline = match original {
+impl SpaceBlock {
+    fn new(original: OriginalSpace) -> SpaceBlock {
+        let semantic_newline = match &original {
             OriginalSpace::Some(token) => {
                 token.text().contains('\n') && is_line_comment(token.prev_sibling_or_token())
             }
@@ -94,7 +94,7 @@ impl<'a> SpaceBlock<'a> {
         if self.semantic_newline && !text.contains('\n') {
             return;
         }
-        match self.original {
+        match &self.original {
             OriginalSpace::Some(token) if token.text() == text && self.new_text.is_none() => return,
             _ => self.new_text = Some(text.into()),
         }
@@ -106,7 +106,7 @@ impl<'a> SpaceBlock<'a> {
         self.original_text()
     }
     pub(crate) fn original_text(&self) -> &str {
-        match self.original {
+        match &self.original {
             OriginalSpace::Some(token) => token.text().as_str(),
             OriginalSpace::None { .. } => "",
         }
@@ -116,13 +116,13 @@ impl<'a> SpaceBlock<'a> {
     }
 }
 
-pub(super) enum SpaceBlockOrToken<'a, 'b> {
-    SpaceBlock(&'b mut SpaceBlock<'a>),
-    Token(SyntaxToken<'a>),
+pub(super) enum SpaceBlockOrToken<'a> {
+    SpaceBlock(&'a mut SpaceBlock),
+    Token(SyntaxToken),
 }
 
-impl<'a> FmtModel<'a> {
-    pub(super) fn new(original_node: &'a SyntaxNode) -> FmtModel<'a> {
+impl FmtModel {
+    pub(super) fn new(original_node: SyntaxNode) -> FmtModel {
         FmtModel {
             original_node,
             blocks: vec![],
@@ -155,9 +155,9 @@ impl<'a> FmtModel<'a> {
     ///   leading and trailing whitespace appear as children.
     pub(super) fn block_for(
         &mut self,
-        element: SyntaxElement<'a>,
+        element: &SyntaxElement,
         position: BlockPosition,
-    ) -> &mut SpaceBlock<'a> {
+    ) -> &mut SpaceBlock {
         use BlockPosition::{After, Before};
 
         assert!(element.kind() != TOKEN_WHITESPACE);
@@ -170,21 +170,21 @@ impl<'a> FmtModel<'a> {
                 BlockPosition::Before => root_node.first_child_or_token(),
                 BlockPosition::After => root_node.last_child_or_token(),
             };
-            return match original_space {
-                Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
+            return match &original_space {
+                Some(NodeOrToken::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
                     if let Some(&existing) = match position {
-                        Before => self.by_end_offset.get(&token.range().end()),
-                        After => self.by_start_offset.get(&token.range().start()),
+                        Before => self.by_end_offset.get(&token.text_range().end()),
+                        After => self.by_start_offset.get(&token.text_range().start()),
                     } {
                         &mut self.blocks[existing]
                     } else {
-                        self.push_block(SpaceBlock::new(OriginalSpace::Some(token)))
+                        self.push_block(SpaceBlock::new(OriginalSpace::Some(token.clone())))
                     }
                 }
                 _ => {
                     let offset = match position {
-                        Before => root_node.range().start(),
-                        After => root_node.range().end(),
+                        Before => root_node.text_range().start(),
+                        After => root_node.text_range().end(),
                     };
 
                     if let Some(&existing) = match position {
@@ -200,8 +200,8 @@ impl<'a> FmtModel<'a> {
         }
 
         let offset = match position {
-            Before => element.range().start(),
-            After => element.range().end(),
+            Before => element.text_range().start(),
+            After => element.text_range().end(),
         };
 
         if let Some(&existing) = match position {
@@ -216,13 +216,13 @@ impl<'a> FmtModel<'a> {
             After => element.next_sibling_or_token(),
         };
 
-        let original_space = match original_token {
-            Some(SyntaxElement::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
-                OriginalSpace::Some(token)
+        let original_space = match &original_token {
+            Some(NodeOrToken::Token(token)) if token.kind() == TOKEN_WHITESPACE => {
+                OriginalSpace::Some(token.clone())
             }
             Some(_) => OriginalSpace::None { offset },
             _ => match element.parent() {
-                Option::Some(parent) => return self.block_for(parent.into(), position),
+                Option::Some(parent) => return self.block_for(&parent.into(), position),
                 None => OriginalSpace::None { offset },
             },
         };
@@ -235,20 +235,20 @@ impl<'a> FmtModel<'a> {
     /// This is implemented as internal iterator due to lifetime issues.
     pub(super) fn with_preceding_elements(
         &mut self,
-        node: &'a SyntaxNode,
-        f: &mut impl FnMut(SpaceBlockOrToken<'a, '_>) -> bool,
+        node: &SyntaxNode,
+        f: &mut impl FnMut(SpaceBlockOrToken<'_>) -> bool,
     ) {
-        let block = self.block_for(node.into(), BlockPosition::Before);
+        let block = self.block_for(&node.clone().into(), BlockPosition::Before);
         if f(SpaceBlockOrToken::SpaceBlock(block)) {
             return;
         }
 
         for token in preceding_tokens(node).filter(|it| it.kind() != TOKEN_WHITESPACE) {
-            if f(SpaceBlockOrToken::Token(token)) {
+            if f(SpaceBlockOrToken::Token(token.clone())) {
                 return;
             }
 
-            let block = self.block_for(token.into(), BlockPosition::Before);
+            let block = self.block_for(&token.clone().into(), BlockPosition::Before);
             if f(SpaceBlockOrToken::SpaceBlock(block)) {
                 return;
             }
@@ -259,7 +259,7 @@ impl<'a> FmtModel<'a> {
         self.fixes.push(edit)
     }
 
-    fn push_block(&mut self, block: SpaceBlock<'a>) -> &mut SpaceBlock<'a> {
+    fn push_block(&mut self, block: SpaceBlock) -> &mut SpaceBlock {
         let idx = self.blocks.len();
         let range = block.original.text_range();
 
@@ -273,9 +273,9 @@ impl<'a> FmtModel<'a> {
     }
 }
 
-fn is_line_comment(node: Option<SyntaxElement<'_>>) -> bool {
+fn is_line_comment(node: Option<SyntaxElement>) -> bool {
     match node {
-        Some(SyntaxElement::Token(token)) => {
+        Some(NodeOrToken::Token(token)) => {
             token.kind() == TOKEN_COMMENT && token.text().starts_with('#')
         }
         _ => false,
