@@ -63,16 +63,14 @@ fn fix_string_indentation(
         None => return,
     };
 
-    if target_indent == IndentLevel::from_len(common_indent) {
-        return;
+    if target_indent != IndentLevel::from_len(common_indent) {
+        for &range in content_ranges.iter() {
+            let delete = TextRange::offset_len(range.start(), min(common_indent, range.len()));
+            model.raw_edit(AtomEdit { delete, insert: target_indent.as_str().into() })
+        }
     }
 
-    for &range in content_ranges.iter() {
-        let delete = TextRange::offset_len(range.start(), min(common_indent, range.len()));
-        model.raw_edit(AtomEdit { delete, insert: target_indent.as_str().into() })
-    }
-
-    if last_line_is_blank {
+    if last_line_is_blank && last_indent.len() != TextUnit::of_str(target_indent.as_str()) {
         model.raw_edit(AtomEdit { delete: *last_indent, insert: target_indent.as_str().into() })
     }
 }
