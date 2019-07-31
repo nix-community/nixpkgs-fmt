@@ -13,18 +13,19 @@ let
     darwin
     ;
 
-  rust = pkgs.latest.rustChannels.stable.rust.override {
+  rust = pkgs.latest.rustChannels.nightly.rust.override {
     targets = [ "wasm32-unknown-unknown" ];
   };
 in
 pkgs.mkShell {
   buildInputs = [
     rust
+    pkgs.cargo-fuzz
     pkgs.mdsh
+    pkgs.openssl
+    pkgs.pkgconfig
     pkgs.rustfmt
     pkgs.wasm-pack
-    pkgs.pkgconfig
-    pkgs.openssl
   ] ++ stdenv.lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.Security
   ];
