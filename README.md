@@ -56,6 +56,21 @@ Install Rust and Cargo or run `nix-shell` to load the project dependencies.
 
 Then use `cargo run` to build and run the software.
 
+### Running Fuzzer
+
+```
+$ cargo install cargo-fuzz
+$ mkdir -p ./fuzz/corpus/fmt
+$ cp test_data/**.nix ./fuzz/corpus/fmt
+$ rustup run nightly -- cargo fuzz run fmt
+```
+
+* `fmt` is the name of the target in `./fuzz/Cargo.toml`
+
+Fuzzer will run indefinitelly or until it finds a crash.
+The crashing input is written to `fuzz/artifacts` directory.
+Commit this `crash-` file, and it will be automatically tested by a unit-test.
+
 ## Documentation
 
 * [HOWTO write new rules](docs/howto_rules.md)
