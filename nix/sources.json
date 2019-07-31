@@ -1,24 +1,26 @@
 {
     "nixpkgs": {
-        "url": "https://github.com/NixOS/nixpkgs-channels/archive/ae71c13a92f7e3b7968e8b7b1db9f6238dc00a25.tar.gz",
-        "owner": "NixOS",
         "branch": "nixos-unstable",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
-        "repo": "nixpkgs-channels",
-        "type": "tarball",
-        "sha256": "0khm8khgyfhmnnmm7wjs5mh2cfvk124drflwswn9q341bkc4bqnw",
         "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
-        "rev": "ae71c13a92f7e3b7968e8b7b1db9f6238dc00a25"
+        "homepage": "https://github.com/NixOS/nixpkgs",
+        "owner": "NixOS",
+        "repo": "nixpkgs-channels",
+        "rev": "239fffc90d792b5362a20ec1a009978de7b8f91a",
+        "sha256": "0z0c438b5q1066x6p9qfriym5cipw8f52a456f91qzg6q1r296f8",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs-channels/archive/239fffc90d792b5362a20ec1a009978de7b8f91a.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs-mozilla": {
-        "url": "https://github.com/mozilla/nixpkgs-mozilla/archive/9f35c4b09fd44a77227e79ff0c1b4b6a69dff533.tar.gz",
-        "owner": "mozilla",
         "branch": "master",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
-        "repo": "nixpkgs-mozilla",
-        "type": "tarball",
-        "sha256": "18h0nvh55b5an4gmlgfbvwbyqj91bklf1zymis6lbdh75571qaz0",
         "description": "mozilla related nixpkgs (extends nixos/nixpkgs repo)",
-        "rev": "9f35c4b09fd44a77227e79ff0c1b4b6a69dff533"
+        "homepage": null,
+        "owner": "mozilla",
+        "repo": "nixpkgs-mozilla",
+        "rev": "ac8e9d7bbda8fb5e45cae20c5b7e44c52da3ac0c",
+        "sha256": "1irlkqc0jdkxdfznq7r52ycnf0kcvvrz416qc7346xhmilrx2gy6",
+        "type": "tarball",
+        "url": "https://github.com/mozilla/nixpkgs-mozilla/archive/ac8e9d7bbda8fb5e45cae20c5b7e44c52da3ac0c.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
