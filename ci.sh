@@ -21,3 +21,5 @@ run cargo build --verbose
 run ./wasm/build.sh
 
 run cargo test --verbose
+
+run cargo fuzz run fmt -- -max_total_time=300
