@@ -1,6 +1,6 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 
-use rnix::{SyntaxKind::NODE_ROOT, SyntaxElement, SyntaxNode, TextUnit};
+use rnix::{SyntaxElement, SyntaxKind::NODE_ROOT, SyntaxNode, TextUnit};
 
 use crate::{
     dsl::{IndentRule, Modality},
@@ -87,8 +87,14 @@ impl IndentLevel {
 "                                                                                                ";
         let len = self.len_as_spaces();
         let len = len as usize;
-        assert!(len <= SPACES.len(), "don't support indent this large");
-        &SPACES[..len]
+        if len <= SPACES.len() {
+            &SPACES[..len]
+        } else {
+            // Someone (most likely a fuzzer) asks for gigantic indent:
+            // let's just leak a string
+            let s = std::iter::repeat(" ").take(len).collect::<String>();
+            &*Box::leak(Box::new(s.into_boxed_str()))
+        }
     }
 
     fn len_as_spaces(&self) -> u32 {

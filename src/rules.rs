@@ -549,10 +549,26 @@ foo = x:
     fn test_syntax_errors_tests() {
         let test_data = {
             let dir = env!("CARGO_MANIFEST_DIR");
-            PathBuf::from(dir).join("test_data").join("syntax_errors")
+            PathBuf::from(dir).join("test_data/syntax_errors")
         };
         let tests = TestCase::collect_from_dir(&test_data);
         run(&tests);
+    }
+
+    #[test]
+    fn test_fuzz_failures() {
+        let failures_dir = {
+            let dir = env!("CARGO_MANIFEST_DIR");
+            PathBuf::from(dir).join("fuzz/artifacts/fmt")
+        };
+        for entry in fs::read_dir(failures_dir).unwrap() {
+            let entry = entry.unwrap();
+            if !entry.file_type().unwrap().is_file() {
+                continue;
+            }
+            let text = fs::read_to_string(entry.path()).unwrap();
+            let _ = crate::reformat_string(&text);
+        }
     }
 
     #[derive(Debug)]

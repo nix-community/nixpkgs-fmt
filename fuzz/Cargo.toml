@@ -1,0 +1,21 @@
+[package]
+name = "nixpkgs-fmt-fuzz"
+version = "0.0.1"
+authors = []
+publish = false
+edition = "2018"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+nixpkgs-fmt = { path = "../" }
+libfuzzer-sys = { git = "https://github.com/rust-fuzz/libfuzzer-sys.git" }
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "fmt"
+path = "fuzz_targets/fmt.rs"
