@@ -65,6 +65,12 @@ $ cp test_data/**.nix ./fuzz/corpus/fmt
 $ rustup run nightly -- cargo fuzz run fmt
 ```
 
+or with nix:
+
+```
+$ nix-shell --run "cargo fuzz run fmt"
+```
+
 * `fmt` is the name of the target in `./fuzz/Cargo.toml`
 
 Fuzzer will run indefinitelly or until it finds a crash.
