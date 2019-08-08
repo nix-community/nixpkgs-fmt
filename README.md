@@ -47,6 +47,24 @@ ARGS:
 
 ```
 
+### pre-commit hook
+
+This project can also be installed as a [pre-commit](https://pre-commit.com/)
+hook.
+
+Add to your project's `.pre-commit-config.yaml`:
+
+```yaml
+-   repo: https://github.com/nix-community/nixpkgs-fmt
+    rev: master
+    hooks:
+    -   id: nixpkgs-fmt
+```
+
+Make sure to have rust nightly available in your environment.
+
+Then run `pre-commit install-hooks`
+
 ## Development
 
 Install Rust and Cargo or run `nix-shell` to load the project dependencies.

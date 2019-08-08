@@ -1,0 +1,7 @@
+-  id: nixpkgs-fmt
+   name: nixpkgs-fmt
+   description: Format nix code with nixpkgs-fmt.
+   entry: nixpkgs-fmt --in-place
+   language: rust
+   files: \.nix$
+   minimum_pre_commit_version: 1.18.1
