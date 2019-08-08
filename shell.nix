@@ -19,13 +19,14 @@ let
 in
 pkgs.mkShell {
   buildInputs = [
-    rust
     pkgs.cargo-fuzz
+    pkgs.gitAndTools.pre-commit
     pkgs.mdsh
     pkgs.openssl
     pkgs.pkgconfig
     pkgs.rustfmt
     pkgs.wasm-pack
+    rust
   ] ++ stdenv.lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.Security
   ];

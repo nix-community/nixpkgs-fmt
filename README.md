@@ -54,6 +54,10 @@ ARGS:
 
 Install Rust and Cargo or run `nix-shell` to load the project dependencies.
 
+Install [pre-commit](https://pre-commit.com/) and run `pre-commit install` to
+setup the git hooks on the repository. This will allow to keep the code nicely
+formatted over time.
+
 Then use `cargo run` to build and run the software.
 
 ### Running Fuzzer
