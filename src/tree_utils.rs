@@ -1,7 +1,7 @@
 use std::iter::successors;
 
 use rnix::{
-    SyntaxKind::TOKEN_WHITESPACE, SyntaxElement, SyntaxNode, SyntaxToken, WalkEvent, NodeOrToken,
+    NodeOrToken, SyntaxElement, SyntaxKind::TOKEN_WHITESPACE, SyntaxNode, SyntaxToken, WalkEvent,
 };
 
 pub(crate) fn walk(node: &SyntaxNode) -> impl Iterator<Item = SyntaxElement> {
@@ -10,9 +10,7 @@ pub(crate) fn walk(node: &SyntaxNode) -> impl Iterator<Item = SyntaxElement> {
         WalkEvent::Leave(_) => None,
     })
 }
-pub(crate) fn walk_non_whitespace(
-    node: &SyntaxNode,
-) -> impl Iterator<Item = SyntaxElement> {
+pub(crate) fn walk_non_whitespace(node: &SyntaxNode) -> impl Iterator<Item = SyntaxElement> {
     node.preorder_with_tokens().filter_map(|event| match event {
         WalkEvent::Enter(element) => Some(element).filter(|it| it.kind() != TOKEN_WHITESPACE),
         WalkEvent::Leave(_) => None,
