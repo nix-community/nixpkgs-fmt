@@ -16,6 +16,8 @@ run() {
 
 mkdir -p "${TMPDIR}"
 
+run pre-commit run --all-files
+
 run cargo build --verbose
 
 run ./wasm/build.sh

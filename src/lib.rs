@@ -101,20 +101,13 @@ fn convert_to_dos_line_endings(text: String) -> String {
     text.replace('\n', "\r\n")
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn preserves_dos_line_endings() {
-        assert_eq!(
-            &reformat_string("{foo = 92;\n}"),
-            "{\n  foo = 92;\n}\n"
-        );
-        assert_eq!(
-            &reformat_string("{foo = 92;\r\n}"),
-            "{\r\n  foo = 92;\r\n}\r\n"
-        )
+        assert_eq!(&reformat_string("{foo = 92;\n}"), "{\n  foo = 92;\n}\n");
+        assert_eq!(&reformat_string("{foo = 92;\r\n}"), "{\r\n  foo = 92;\r\n}\r\n")
     }
 }
