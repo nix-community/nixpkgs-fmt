@@ -16,10 +16,15 @@ run() {
 
 mkdir -p "${TMPDIR}"
 
-run pre-commit run --all-files
-
+# build nixpkgs-fmt
 run cargo build --verbose
 
+# run after build, pre-commit needs nixpkgs-fmt
+run pre-commit run --all-files
+
+# run the tests
+run cargo test --verbose
+
+# generate the webassembly page
 run ./wasm/build.sh
 
-run cargo test --verbose
