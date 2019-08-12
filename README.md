@@ -28,13 +28,13 @@ vertically to minimize the chances of merge conflicts.
 
 ## Usage
 
-`$ nixpkgs-fmt --help 2>&1`
+`$ nixpkgs-fmt --help 2>&1 || true`
 ```
 nixpkgs-fmt 0.1
 Format Nix code
 
 USAGE:
-    nixpkgs-fmt [FLAGS] [OPTIONS] [FILE]
+    nixpkgs-fmt [FLAGS] [FILE]...
 
 FLAGS:
     -h, --help        Prints help information
@@ -42,11 +42,8 @@ FLAGS:
         --parse       Show syntax tree instead of reformatting
     -V, --version     Prints version information
 
-OPTIONS:
-    -o, --output <file>    Place the output into <file>
-
 ARGS:
-    <FILE>    File to reformat
+    <FILE>...    File to reformat
 
 ```
 
