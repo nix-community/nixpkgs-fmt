@@ -19,14 +19,13 @@ fn main() {
 
 #[derive(Debug)]
 struct Args {
+    srcs: Vec<Src>,
     operation: Operation,
-    src: Src,
-    dst: Dst,
 }
 
 #[derive(Debug)]
 enum Operation {
-    Fmt,
+    Fmt { in_place: bool },
     Parse,
 }
 
@@ -36,32 +35,17 @@ enum Src {
     File(PathBuf),
 }
 
-#[derive(Debug)]
-enum Dst {
-    Stdout,
-    File(PathBuf),
-}
-
 fn parse_args() -> Result<Args> {
     let matches = App::new("nixpkgs-fmt")
         .version("0.1")
         .about("Format Nix code")
-        .arg(Arg::with_name("src").value_name("FILE").help("File to reformat"))
+        .arg(Arg::with_name("srcs").value_name("FILE").multiple(true).help("File to reformat"))
         .arg(
             Arg::with_name("in-place")
                 .long("--in-place")
                 .short("-i")
-                .requires("src")
-                .conflicts_with("dst")
+                .conflicts_with("parse")
                 .help("Overwrite FILE in place"),
-        )
-        .arg(
-            Arg::with_name("dst")
-                .long("output")
-                .short("o")
-                .takes_value(true)
-                .value_name("file")
-                .help("Place the output into <file>"),
         )
         .arg(
             Arg::with_name("parse")
@@ -71,46 +55,65 @@ fn parse_args() -> Result<Args> {
         )
         .get_matches_safe()?;
 
-    let src_path = matches.value_of("src").map(PathBuf::from);
-    let src = src_path.clone().map_or(Src::Stdin, Src::File);
-    let dst = if matches.is_present("in-place") {
-        Dst::File(src_path.unwrap())
-    } else {
-        matches.value_of("dst").map(PathBuf::from).map_or(Dst::Stdout, Dst::File)
+    let in_place = matches.is_present("in-place");
+    let srcs = match matches.values_of("srcs") {
+        None => vec![Src::Stdin], // default to reading from stdin
+        Some(srcs) => srcs.map(|src| Src::File(PathBuf::from(src))).collect(),
     };
-    let operation = if matches.is_present("parse") { Operation::Parse } else { Operation::Fmt };
+    let operation = if matches.is_present("parse") {
+        Operation::Parse
+    } else {
+        Operation::Fmt { in_place: in_place }
+    };
 
-    Ok(Args { operation, src, dst })
+    Ok(Args { operation, srcs })
 }
 
-fn try_main(args: Args) -> Result<()> {
-    let input = match &args.src {
+fn read_input(src: &Src) -> Result<String> {
+    match &src {
         Src::Stdin => {
             let mut buf = String::new();
             stdin().read_to_string(&mut buf)?;
-            buf
+            Ok(buf)
         }
-        Src::File(path) => fs::read_to_string(path)?,
-    };
-
-    let res = match args.operation {
-        Operation::Fmt => nixpkgs_fmt::reformat_string(&input),
-        Operation::Parse => {
-            let ast = rnix::parse(&input);
-            let mut buf = String::new();
-            for error in ast.root_errors() {
-                writeln!(buf, "error: {}", error).unwrap();
-            }
-            writeln!(buf, "{}", ast.root().dump()).unwrap();
-            buf
+        Src::File(path) => {
+            let buf = fs::read_to_string(path)?;
+            Ok(buf)
         }
-    };
-
-    match &args.dst {
-        Dst::Stdout => print!("{}", res),
-        //TODO: use atomic replace instead of plain write
-        Dst::File(path) => fs::write(path, &res)?,
     }
+}
+
+fn try_main(args: Args) -> Result<()> {
+    match args.operation {
+        Operation::Fmt { in_place } => {
+            for src in args.srcs {
+                let input = read_input(&src)?;
+                let output = nixpkgs_fmt::reformat_string(&input);
+
+                // only output if it has changed
+                if in_place && input != output {
+                    match src {
+                        Src::File(path) => fs::write(path, &output)?,
+                        Src::Stdin => print!("{}", output),
+                    }
+                } else {
+                    print!("{}", output)
+                }
+            }
+        }
+        Operation::Parse => {
+            for src in args.srcs {
+                let input = read_input(&src)?;
+                let ast = rnix::parse(&input);
+                let mut buf = String::new();
+                for error in ast.root_errors() {
+                    writeln!(buf, "error: {}", error).unwrap();
+                }
+                writeln!(buf, "{}", ast.root().dump()).unwrap();
+                print!("{}", buf)
+            }
+        }
+    };
 
     Ok(())
 }

@@ -2,7 +2,17 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 -   repo: https://github.com/doublify/pre-commit-rust
-    rev: master
+    rev: ebc9050d3d3434417feff68e3d847ad4123f5ba8
     hooks:
     -   id: fmt
     -   id: cargo-check
+
+-   repo: https://github.com/nix-community/nixpkgs-fmt
+    rev: pre-commit-hook
+    hooks:
+    -   id: nixpkgs-fmt
+        exclude: >
+            (?x)^(
+                nix/sources.nix|
+                test_data/.*
+            )$
