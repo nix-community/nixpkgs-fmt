@@ -7,12 +7,17 @@ repos:
     -   id: fmt
     -   id: cargo-check
 
--   repo: https://github.com/nix-community/nixpkgs-fmt
-    rev: pre-commit-hook
+-   repo: local
     hooks:
-    -   id: nixpkgs-fmt
-        exclude: >
-            (?x)^(
-                nix/sources.nix|
-                test_data/.*
-            )$
+    -  id: nixpkgs-fmt
+       name: nixpkgs-fmt
+       description: Format nix code with nixpkgs-fmt.
+       entry: nixpkgs-fmt --in-place
+       language: rust
+       files: \.nix$
+       minimum_pre_commit_version: 1.18.1
+       exclude: >
+           (?x)^(
+               nix/sources.nix|
+               test_data/.*
+           )$
