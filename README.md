@@ -61,7 +61,7 @@ Add to your project's `.pre-commit-config.yaml`:
     -   id: nixpkgs-fmt
 ```
 
-Make sure to have rust nightly available in your environment.
+Make sure to have rust available in your environment.
 
 Then run `pre-commit install-hooks`
 
