@@ -66,12 +66,12 @@ fn fix_string_indentation(
     if target_indent != IndentLevel::from_len(common_indent) {
         for &range in content_ranges.iter() {
             let delete = TextRange::offset_len(range.start(), min(common_indent, range.len()));
-            model.raw_edit(AtomEdit { delete, insert: target_indent.as_str().into() })
+            model.raw_edit(AtomEdit { delete, insert: target_indent.into() })
         }
     }
 
-    if last_line_is_blank && last_indent.len() != TextUnit::of_str(target_indent.as_str()) {
-        model.raw_edit(AtomEdit { delete: *last_indent, insert: target_indent.as_str().into() })
+    if last_line_is_blank && last_indent.len() != target_indent.len() {
+        model.raw_edit(AtomEdit { delete: *last_indent, insert: target_indent.into() })
     }
 }
 
@@ -105,7 +105,7 @@ fn fix_comment_ident(token: &SyntaxToken, model: &mut FmtModel) {
                 let indent = IndentLevel::from_len(TextUnit::from_usize(to_add));
                 model.raw_edit(AtomEdit {
                     delete: TextRange::offset_len(offset, 0.into()),
-                    insert: indent.as_str().into(),
+                    insert: indent.into(),
                 })
             } else {
                 model.raw_edit(AtomEdit {

@@ -1,6 +1,9 @@
-use std::cmp::{Ord, Ordering, PartialOrd};
+use std::{
+    cmp::{Ord, Ordering, PartialOrd},
+    fmt,
+};
 
-use rnix::{SyntaxElement, SyntaxKind::NODE_ROOT, SyntaxNode, TextUnit};
+use rnix::{SmolStr, SyntaxElement, SyntaxKind::NODE_ROOT, SyntaxNode, TextUnit};
 
 use crate::{
     dsl::{IndentRule, Modality},
@@ -40,7 +43,7 @@ impl std::ops::AddAssign for IndentLevel {
 
 impl PartialEq for IndentLevel {
     fn eq(&self, other: &IndentLevel) -> bool {
-        self.len_as_spaces() == other.len_as_spaces()
+        self.len() == other.len()
     }
 }
 
@@ -54,7 +57,25 @@ impl PartialOrd for IndentLevel {
 
 impl Ord for IndentLevel {
     fn cmp(&self, other: &IndentLevel) -> Ordering {
-        self.len_as_spaces().cmp(&other.len_as_spaces())
+        self.len().cmp(&other.len())
+    }
+}
+
+impl fmt::Display for IndentLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.as_short_str() {
+            Some(s) => f.write_str(s),
+            None => write!(f, "{:width$}", "", width = u32::from(self.len()) as usize),
+        }
+    }
+}
+
+impl From<IndentLevel> for SmolStr {
+    fn from(indent: IndentLevel) -> SmolStr {
+        match indent.as_short_str() {
+            Some(s) => s.into(),
+            None => indent.to_string().into(),
+        }
     }
 }
 
@@ -81,24 +102,20 @@ impl IndentLevel {
         IndentLevel { level: self.level + 1, alignment: self.alignment }
     }
 
-    pub(super) fn as_str(&self) -> &str {
+    pub(super) fn len(&self) -> TextUnit {
+        (self.level * INDENT_SIZE + self.alignment).into()
+    }
+
+    fn as_short_str(&self) -> Option<&'static str> {
         #[rustfmt::skip]
         const SPACES: &str =
 "                                                                                                ";
-        let len = self.len_as_spaces();
-        let len = len as usize;
+        let len = u32::from(self.len()) as usize;
         if len <= SPACES.len() {
-            &SPACES[..len]
+            Some(&SPACES[..len])
         } else {
-            // Someone (most likely a fuzzer) asks for gigantic indent:
-            // let's just leak a string
-            let s = std::iter::repeat(" ").take(len).collect::<String>();
-            &*Box::leak(Box::new(s.into_boxed_str()))
+            None
         }
-    }
-
-    fn len_as_spaces(&self) -> u32 {
-        self.level * INDENT_SIZE + self.alignment
     }
 }
 
@@ -145,7 +162,7 @@ impl IndentRule {
 impl SpaceBlock {
     fn set_indent(&mut self, indent: IndentLevel) {
         let newlines: String = self.text().chars().filter(|&it| it == '\n').collect();
-        self.set_text(&format!("{}{}", newlines, indent.as_str()));
+        self.set_text(&format!("{}{}", newlines, indent));
     }
 
     fn indent(&self) -> IndentLevel {
