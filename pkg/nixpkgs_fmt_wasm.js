@@ -158,7 +158,7 @@ function init(module) {
         takeObject(arg0);
     };
 
-    if (module instanceof URL || typeof module === 'string' || module instanceof Request) {
+    if ((typeof URL === 'function' && module instanceof URL) || typeof module === 'string' || (typeof Request === 'function' && module instanceof Request)) {
 
         const response = fetch(module);
         if (typeof WebAssembly.instantiateStreaming === 'function') {
