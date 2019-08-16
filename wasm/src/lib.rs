@@ -13,6 +13,15 @@ pub fn main() -> Result<(), JsValue> {
 }
 
 #[wasm_bindgen]
-pub fn reformat_string(text: &str) -> String {
-    nixpkgs_fmt::reformat_string(text)
+pub fn reformat_string(text: &str, format: &str) -> String {
+    let out = nixpkgs_fmt::reformat_string(text);
+
+    if format == "diff" {
+        let first_text = text.lines().collect::<Vec<&str>>();
+        let second_text = out.lines().collect::<Vec<&str>>();
+        let diff = difflib::unified_diff(&first_text, &second_text, "Input", "Output", "", "", 3);
+        return [diff[0..3].join(""), diff[3..].join("\n")].join("");
+    } else {
+        return out;
+    }
 }
