@@ -89,11 +89,12 @@ function getStringFromWasm(ptr, len) {
 }
 /**
 * @param {string} text
+* @param {string} format
 * @returns {string}
 */
-export function reformat_string(text) {
+export function reformat_string(text, format) {
     const retptr = 8;
-    const ret = wasm.reformat_string(retptr, passStringToWasm(text), WASM_VECTOR_LEN);
+    const ret = wasm.reformat_string(retptr, passStringToWasm(text), WASM_VECTOR_LEN, passStringToWasm(format), WASM_VECTOR_LEN);
     const memi32 = getInt32Memory();
     const v0 = getStringFromWasm(memi32[retptr / 4 + 0], memi32[retptr / 4 + 1]).slice();
     wasm.__wbindgen_free(memi32[retptr / 4 + 0], memi32[retptr / 4 + 1] * 1);

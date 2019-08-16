@@ -4,9 +4,10 @@
 export function main(): void;
 /**
 * @param {string} text 
+* @param {string} format 
 * @returns {string} 
 */
-export function reformat_string(text: string): string;
+export function reformat_string(text: string, format: string): string;
 
 /**
 * If `module_or_path` is {RequestInfo}, makes a request and
