@@ -15,7 +15,7 @@ repos:
        entry: nixpkgs-fmt --in-place
        language: rust
        files: \.nix$
-       minimum_pre_commit_version: 1.18.1
+       minimum_pre_commit_version: 1.14.2
        exclude: >
            (?x)^(
                nix/sources.nix|

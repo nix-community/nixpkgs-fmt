@@ -130,6 +130,8 @@ fn after_multiline_binop(node: &SyntaxElement) -> bool {
     };
 }
 
+/// A convenience function to convert something a pattern for use with `&` and
+/// `|` operators
 fn p(p: impl Into<Pattern>) -> Pattern {
     p.into()
 }
@@ -184,21 +186,41 @@ pub(crate) fn indentation() -> IndentDsl {
             "#)
 
         .rule("Indent let bindings")
-            .inside(NODE_LET_IN)
+            .inside(p(NODE_LET_IN) & p(not_on_top_level))
             .not_matching([T![let], T![in]])
+            .set(Indent)
+            .test(r#"
+                (
+                  let
+                  x = 1;
+                  inherit z;
+                  in
+                  x
+                )
+            "#, r#"
+                (
+                  let
+                    x = 1;
+                    inherit z;
+                  in
+                    x
+                )
+            "#)
+
+        .rule("Indent let top-level bindings")
+            .inside(p(NODE_LET_IN) & p(on_top_level))
+            .not_matching(p([T![let], T![in]]) | p(VALUES))
             .set(Indent)
             .test(r#"
                 let
                 x = 1;
-                inherit z;
-                  in
-                  x
+                in
+                x
             "#, r#"
                 let
                   x = 1;
-                  inherit z;
                 in
-                  x
+                x
             "#)
 
         .rule("Indent attribute value")

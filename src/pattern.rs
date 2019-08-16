@@ -80,6 +80,20 @@ impl ops::BitAnd for Pattern {
     }
 }
 
+/// `pat1 | pat2` operator
+impl ops::BitOr for Pattern {
+    type Output = Pattern;
+    fn bitor(self, other: Pattern) -> Pattern {
+        let kinds = match (self.kinds, other.kinds) {
+            (Some(lhs), Some(rhs)) => Some(lhs.union(&rhs).cloned().collect::<HashSet<_>>()),
+            (Some(it), None) | (None, Some(it)) => Some(it),
+            (None, None) => None,
+        };
+        let (p1, p2) = (self.pred, other.pred);
+        Pattern::new(kinds, move |element| p1(element) || p2(element))
+    }
+}
+
 /// Construct pattern from closure.
 impl<F> From<F> for Pattern
 where
