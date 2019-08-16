@@ -49,6 +49,10 @@
           <dt><label for=reformat-output>Output</label></dt>
           <dd>
             <pre id=reformat-output></pre>
+            <label>
+              show diff:
+              <input id=reformat-output-format value=diff type=checkbox>
+            </label>
           </dd>
         </dl>
       </div>
@@ -78,14 +82,17 @@
     const inputEl = document.getElementById("reformat-input")
     const inputFileEl = document.getElementById("reformat-input-file")
     const outputEl = document.getElementById("reformat-output")
+    const outputFormatEl = document.getElementById("reformat-output-format")
     const issueBodyEl = document.getElementById("issue-body")
 
     const reformat = () => {
-      console.log("reformatting...")
       const input = inputEl.value
+      const format = outputFormatEl.checked ? "diff" : "normal"
+      console.log("reformatting format=" + format)
+
       var output
       try {
-        output = reformat_string(input)
+        output = reformat_string(input, format)
       } catch (err) {
         output = err
       }
@@ -124,9 +131,8 @@ ${output}
       inputEl.onchange = reformat
       inputEl.onkeyup = reformat
       inputEl.onpaste = reformat
-      reformat()
+      outputFormatEl.onchange = reformat
 
-      // load file
       inputFileEl.onchange = () => {
         console.log("loading file", inputFileEl)
         const file = inputFileEl.files[0]
@@ -137,6 +143,8 @@ ${output}
         }
         fr.readAsText(file)
       }
+
+      reformat()
     }
 
     run();
