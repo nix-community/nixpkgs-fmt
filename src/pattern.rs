@@ -94,7 +94,6 @@ impl ops::BitOr for Pattern {
     }
 }
 
-
 /// Construct pattern from closure.
 impl<F> From<F> for Pattern
 where
