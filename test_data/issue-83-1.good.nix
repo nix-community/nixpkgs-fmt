@@ -3,4 +3,4 @@ let
     foo
     '';
 in
-  a
+a
