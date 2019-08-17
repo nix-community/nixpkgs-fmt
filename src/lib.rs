@@ -20,7 +20,11 @@ pub fn reformat_string(text: &str, format: &str) -> String {
         let first_text = text.lines().collect::<Vec<&str>>();
         let second_text = out.lines().collect::<Vec<&str>>();
         let diff = difflib::unified_diff(&first_text, &second_text, "Input", "Output", "", "", 3);
-        return [diff[0..3].join(""), diff[3..].join("\n")].join("");
+        if diff.len() == 0 {
+            return String::from("No changes found");
+        } else {
+            return [diff[0..3].join(""), diff[3..].join("\n")].join("");
+        }
     } else {
         return out;
     }
