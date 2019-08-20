@@ -431,7 +431,7 @@ fn on_top_level(element: &SyntaxElement) -> bool {
     };
     match parent.kind() {
         NODE_ROOT => true,
-        NODE_LAMBDA => on_top_level(&parent.into()),
+        NODE_LAMBDA | NODE_WITH => on_top_level(&parent.into()),
         _ => false,
     }
 }
