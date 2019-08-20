@@ -22,7 +22,7 @@ pub(super) fn fix(element: SyntaxElement, model: &mut FmtModel, anchor_set: &Pat
             _ => (),
         },
         NodeOrToken::Token(token) => match token.kind() {
-            TOKEN_COMMENT => fix_comment_ident(&token, model),
+            TOKEN_COMMENT => fix_comment_indentation(&token, model),
             _ => (),
         },
     }
@@ -76,7 +76,7 @@ fn fix_string_indentation(
 }
 
 /// If we indent multiline block comment, we should indent it's content as well.
-fn fix_comment_ident(token: &SyntaxToken, model: &mut FmtModel) {
+fn fix_comment_indentation(token: &SyntaxToken, model: &mut FmtModel) {
     let is_block_comment = token.text().starts_with("/*");
     if !is_block_comment {
         return;
