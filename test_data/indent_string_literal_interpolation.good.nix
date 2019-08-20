@@ -6,5 +6,5 @@
 
     lldbLibPath=$out/clion-${version}/bin/lldb/linux/lib
     interp="$(cat $NIX_CC/nix-support/dynamic-linker)"
-    '';
+  '';
 }

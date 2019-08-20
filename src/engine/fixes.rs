@@ -22,7 +22,7 @@ pub(super) fn fix(element: SyntaxElement, model: &mut FmtModel, anchor_set: &Pat
             _ => (),
         },
         NodeOrToken::Token(token) => match token.kind() {
-            TOKEN_COMMENT => fix_comment_ident(&token, model),
+            TOKEN_COMMENT => fix_comment_indentation(&token, model),
             _ => (),
         },
     }
@@ -33,11 +33,19 @@ fn fix_string_indentation(
     model: &mut FmtModel,
     anchor_set: &PatternSet<&Pattern>,
 ) {
-    let indent = match indent_anchor(&node.clone().into(), model, anchor_set) {
-        None => return,
-        Some((_element, indent)) => indent,
+    let quote_indent = {
+        let element: SyntaxElement = node.clone().into();
+        let block = model.block_for(&element, BlockPosition::Before);
+        if block.text().contains('\n') {
+            IndentLevel::from_whitespace_block(block.text())
+        } else {
+            match indent_anchor(&element, model, anchor_set) {
+                None => return,
+                Some((_element, indent)) => indent,
+            }
+        }
     };
-    let target_indent = indent.indent();
+    let content_indent = quote_indent.indent();
 
     let indent_ranges: Vec<TextRange> = node_indent_ranges(node).collect();
 
@@ -63,20 +71,20 @@ fn fix_string_indentation(
         None => return,
     };
 
-    if target_indent != IndentLevel::from_len(common_indent) {
+    if content_indent != IndentLevel::from_len(common_indent) {
         for &range in content_ranges.iter() {
             let delete = TextRange::offset_len(range.start(), min(common_indent, range.len()));
-            model.raw_edit(AtomEdit { delete, insert: target_indent.into() })
+            model.raw_edit(AtomEdit { delete, insert: content_indent.into() })
         }
     }
 
-    if last_line_is_blank && last_indent.len() != target_indent.len() {
-        model.raw_edit(AtomEdit { delete: *last_indent, insert: target_indent.into() })
+    if last_line_is_blank && last_indent.len() != quote_indent.len() {
+        model.raw_edit(AtomEdit { delete: *last_indent, insert: quote_indent.into() })
     }
 }
 
 /// If we indent multiline block comment, we should indent it's content as well.
-fn fix_comment_ident(token: &SyntaxToken, model: &mut FmtModel) {
+fn fix_comment_indentation(token: &SyntaxToken, model: &mut FmtModel) {
     let is_block_comment = token.text().starts_with("/*");
     if !is_block_comment {
         return;

@@ -35,5 +35,5 @@ pkgs.mkShell {
 
   shellHook = ''
     export PATH=$PWD/target/debug:$PATH
-    '';
+  '';
 }
