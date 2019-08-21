@@ -1,12 +1,5 @@
 let
-  sources = import ./nix/sources.nix;
-
-  pkgs = import sources.nixpkgs {
-    config = {};
-    overlays = [
-      (import sources.nixpkgs-mozilla)
-    ];
-  };
+  pkgs = import ./nix/nixpkgs.nix;
 
   inherit (pkgs)
     stdenv
