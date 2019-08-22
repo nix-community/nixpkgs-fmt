@@ -343,7 +343,7 @@ pub(crate) fn indentation() -> IndentDsl {
             "#)
 
         .rule("Indent with body in attribute")
-            .inside(NODE_WITH)
+            .inside([NODE_WITH, NODE_ASSERT])
             .when_anchor(set_entry_with_single_line_value)
             .set(Indent)
             .test(r#"

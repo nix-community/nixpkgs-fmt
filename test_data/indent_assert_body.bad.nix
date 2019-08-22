@@ -1,0 +1,4 @@
+{
+  foo = assert true;
+  false;
+}
