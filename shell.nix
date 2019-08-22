@@ -14,6 +14,7 @@ pkgs.mkShell {
   buildInputs = [
     pkgs.cargo-fuzz
     pkgs.gitAndTools.pre-commit
+    pkgs.gitAndTools.git-extras
     pkgs.mdsh
     pkgs.openssl
     pkgs.pkgconfig
