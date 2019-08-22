@@ -90,14 +90,13 @@ fn try_main(args: Args) -> Result<()> {
                 let input = read_input(&src)?;
                 let output = nixpkgs_fmt::reformat_string(&input);
 
-                // only output if it has changed
-                if in_place && input != output {
-                    match src {
-                        Src::File(path) => fs::write(path, &output)?,
-                        Src::Stdin => print!("{}", output),
+                match &src {
+                    Src::File(path) if in_place => {
+                        if input != output {
+                            fs::write(path, &output)?
+                        }
                     }
-                } else {
-                    print!("{}", output)
+                    Src::File(..) | Src::Stdin => print!("{}", output),
                 }
             }
         }
