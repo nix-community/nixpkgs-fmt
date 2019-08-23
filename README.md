@@ -100,6 +100,7 @@ Commit this `crash-` file, and it will be automatically tested by a unit-test.
 
 * [HOWTO write new rules](docs/howto_rules.md)
 * [HOWTO WASM](wasm/README.md)
+* [How we do releases](docs/releasing.md)
 
 ## Related projects
 
