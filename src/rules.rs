@@ -1,6 +1,6 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
-    types::{Operation, SetEntry, TypedNode, With},
+    types::{Lambda, Operation, SetEntry, TypedNode, With},
     SyntaxElement, SyntaxKind,
     SyntaxKind::*,
     T,
@@ -8,8 +8,8 @@ use rnix::{
 
 use crate::{
     dsl::{self, IndentDsl, IndentValue::*, SpacingDsl},
-    pattern::Pattern,
-    tree_utils::{has_newline, prev_sibling},
+    pattern::{p, Pattern},
+    tree_utils::{has_newline, next_non_whitespace_sibling, prev_sibling},
 };
 
 #[rustfmt::skip]
@@ -64,7 +64,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_SET).between(NODE_SET_ENTRY, TOKEN_COMMENT).single_space_or_optional_newline()
 
         .test("{arg}: 92", "{ arg }: 92")
-        .inside(NODE_PATTERN).after(T!["{"]).single_space_or_newline()
+        .inside(NODE_PATTERN).after(T!["{"]).single_space()
+        .inside(NODE_PATTERN).between(T!["{"], TOKEN_COMMENT).single_space_or_newline()
         .inside(NODE_PATTERN).before(T!["}"]).single_space_or_newline()
         .test("{ }: 92", "{}: 92")
         .inside(NODE_PATTERN).between(T!["{"], T!["}"]).no_space()
@@ -93,6 +94,21 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("if  cond  then  tru  else  fls", "if cond then tru else fls")
         .inside(NODE_IF_ELSE).after(T![if]).single_space_or_optional_newline()
         .inside(NODE_IF_ELSE).around([T![then], T![else]]).single_space_or_optional_newline()
+
+        // special-case to force a linebreak before `=` in
+        //
+        // ```nix
+        // {
+        //   long_key = { x
+        //              , y
+        //              , z
+        //              }: body
+        // }
+        // ```
+        .rule(dsl::SpacingRule {
+            pattern: p(TOKEN_ASSIGN) & p(next_sibling_is_multiline_lambda_pattern),
+            space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
+        })
 
         // special-cased rules for leading and trailing whitespace
         .rule(dsl::SpacingRule {
@@ -130,17 +146,20 @@ fn after_multiline_binop(node: &SyntaxElement) -> bool {
     };
 }
 
-/// A convenience function to convert something a pattern for use with `&` and
-/// `|` operators
-fn p(p: impl Into<Pattern>) -> Pattern {
-    p.into()
+fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
+    fn find(element: &SyntaxElement) -> Option<bool> {
+        let lambda = next_non_whitespace_sibling(element)?.into_node().and_then(Lambda::cast)?;
+        let pattern = lambda.arg().and_then(rnix::types::Pattern::cast)?;
+        Some(has_newline(pattern.node()))
+    }
+    find(element) == Some(true)
 }
 
 #[rustfmt::skip]
 pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
-        .anchor(NODE_PAT_ENTRY)
+        .anchor([NODE_PAT_ENTRY, NODE_PATTERN])
         .anchor(Pattern::from(rhs_of_binop))
 
         .rule("Indent list content")
@@ -436,10 +455,10 @@ fn on_top_level(element: &SyntaxElement) -> bool {
     }
 }
 
-fn set_entry_with_single_line_value(entry: &SyntaxElement) -> bool {
-    fn find(entry: SyntaxElement) -> Option<bool> {
-        let entry = entry.into_node().and_then(SetEntry::cast)?;
-        let mut value = entry.value()?;
+fn set_entry_with_single_line_value(element: &SyntaxElement) -> bool {
+    fn find(element: SyntaxElement) -> Option<bool> {
+        let element = element.into_node().and_then(SetEntry::cast)?;
+        let mut value = element.value()?;
         if Operation::cast(value.clone()).is_none() {
             return Some(true);
         }
@@ -448,7 +467,7 @@ fn set_entry_with_single_line_value(entry: &SyntaxElement) -> bool {
         }
         Some(!has_newline(&value))
     }
-    find(entry.clone()) == Some(true)
+    find(element.clone()) == Some(true)
 }
 
 fn rhs_of_binop(rhs: &SyntaxElement) -> bool {
