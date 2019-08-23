@@ -6,8 +6,17 @@ let
     if pred then true
     else builtins.trace "assert failed: ${msg}" false;
 
-  assertEqual = left: right:
-    assertMsg (left == right) "expected ${toString left} to equal ${toString right}";
+  # utility to check if a hash is matching
+  hashMatchFile = file: wanted:
+    let
+      got = builtins.hashString "sha256" (builtins.readFile file);
+    in
+      assertMsg (wanted == got)
+        ''
+          hash mismatch for file '${toString file}':
+            wanted: sha256:${wanted}
+            got:    sha256:${got}
+        '';
 
   # another attempt to make filterSource nicer to use
   allowSource = { allow, src }:
@@ -22,8 +31,10 @@ let
 
   # get some metadata from ./Cargo.toml
   meta = builtins.fromTOML (builtins.readFile ./Cargo.toml);
-  # calculate the hash of ./Cargo.lock
-  cargoLockHash = builtins.hashString "sha256" (builtins.readFile ./Cargo.lock);
+
+  # run ./update-cargo-nix.sh to update those values
+  cargoLockHash = "331819786068f3a79878705a362cb20e27e5c57390808a827e8d2d484a2a4f86";
+  cargoSha256 = "0p3qa1asdvw2npav4281lzndjczrzac6fr8z4y61m7rbn363s8sa";
 in
 pkgs.rustPlatform.buildRustPackage {
   pname = meta.package.name;
@@ -43,6 +54,6 @@ pkgs.rustPlatform.buildRustPackage {
 
   # update both values whenever Cargo.lock changes
   cargoSha256 =
-    assert (assertEqual cargoLockHash "7f3ca77b9001dca3aa8972099a51afd27a33d32629793b75caa1f5d4f3bf2f67");
-    "0p3qa1asdvw2npav4281lzndjczrzac6fr8z4y61m7rbn363s8sa";
+    assert (hashMatchFile ./Cargo.lock cargoLockHash);
+    cargoSha256;
 }
