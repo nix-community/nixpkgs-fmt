@@ -101,7 +101,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         // {
         //   long_key = { x
         //              , y
-        //              , z}: body
+        //              , z
+        //              }: body
         // }
         // ```
         .rule(dsl::SpacingRule {
