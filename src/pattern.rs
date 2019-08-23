@@ -7,6 +7,12 @@ use std::{
 
 use rnix::{SyntaxElement, SyntaxKind};
 
+/// A convenience function to convert something a pattern for use with `&` and
+/// `|` operators
+pub(crate) fn p(p: impl Into<Pattern>) -> Pattern {
+    p.into()
+}
+
 /// Pattern is boolean function on `SyntaxElement`.
 ///
 /// It is like `Box<dyn Fn(SyntaxElement)> -> bool`, but with additional

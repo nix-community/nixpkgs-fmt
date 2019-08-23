@@ -1,5 +1,4 @@
-{
-  stdenv
+{ stdenv
 , lib
 , curl
 }:
