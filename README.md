@@ -1,30 +1,78 @@
-# nixpkgs-fmt
+# nixpkgs-fmt - Nix code formatter for nixpkgs
 
 [![Build Status](https://travis-ci.com/nix-community/nixpkgs-fmt.svg?branch=master)](https://travis-ci.com/nix-community/nixpkgs-fmt) [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
-**STATUS: alpha**
+**STATUS: beta**
 
-This project's goal is to provide a nix code formatter that would be applied
-on nixpkgs. Ideally automatically with a tool like ofborg.
+This project's goal is to format the nix code in nixpkgs to increase the
+consistency of the code found there. Ideally automatically with pre-commit
+hooks and later ofborg enforcing the format.
 
 ## Demo
 
-Try nixpkgs-fmt in your browser and submit code samples:
+You can try nixpkgs-fmt in your browser. The page also provides a way for you
+to submit code samples if you find the output not satisfying:
 https://nix-community.github.io/nixpkgs-fmt/
 
 ## Design decisions
 
-Use Rust because ofborg is written in rust. Rust also has a small chance of
-being included in nix upstream.
+You migth ask yourself; why do we need yet another nix code formatter?
 
-Use an incremental and rule-based formatter (vs pretty-printing). This allows
-to format partial code and leave more expressivity to the developer. For
-example double new-lines can be used when the developer wants a section of
-code to stand out. The important part is to avoid discussions on indent and
-brackets alignment.
+The main goal of nixpkgs-fmt is to provide some overall consistency in the
+nix code submitted to [nixpkgs](https://github.com/NixOS/nixpkgs), our main
+package repository.
 
-Favour mergeability. nixpkgs is seeing a lot of traffic. Spread things out
-vertically to minimize the chances of merge conflicts.
+At this point it's important to understand that there are multiple possible
+outputs for a code formatter. Those outputs will depend on multiple
+conflicting desires and depending on how much weight is being put on each
+requirement the output will change.
+
+For nixpkgs-fmt we have a few of these:
+
+1. Minimize merge conflicts. nixpkgs is seein a lot of pull-requests and we
+   want to avoid them getting unecessarily stable.
+2. Only expand, don't collapse. It's up to the developer to choose if an
+   element should be on a single line or multiple lines.
+3. Respect the developer's expressivity. Empty lines can be useful as a way to
+   separate blocks of code.
+4. Only change the indent of one (+/-) per line. Not sure why but it seems
+   like a good thing.
+
+Corrolary rules:
+
+* because of (1). The format is quite close to what exists in nixpkgs already.
+* because of (1). Don't align values vertically, a single line change can
+  introduce a very big diff.
+* because of (1). Avoid too many rules. More rules means more formatting
+  changes that create merge conflicts.
+* because of (2). Don't enforce line lengths. Line length limits also create
+  complicated heursistics.
+
+At the time where we started this project none of the other formatters were
+weighted that way.
+
+To implement this, we needed a whitespace and comment-preserving parser which
+[rnix][rnix] provides to us. Then create an engine that follows the AST and
+patches the tree with rewrite rules. The nice thing about this design is that
+it also works on incomplete or broken nix code. We are able to format up to
+the part that is missing/broken, which makes it great for potential editor
+integration.
+
+Most of the other formatters out there take a pretty-printing approach where
+the AST is parsed, and then a pretty-printer inspects and formats the AST back
+to code without taking spaces and newlines into account. The advantage is that
+it's initially easier to implement. The output is very strict and the same AST
+will always give the same output. One disadvantage is that the pretty-printer
+needs to handle all the possible combination of Nix code to make them look
+good.
+
+With nixpkgs-fmt the output will depend on how the code was formatted
+initially. The developer still has some input on how they want to format their
+code. If there is no rule for a complicated case, the code will be left alone.
+For nixpkgs this approach will be preferable since it minimizes the diff.
+
+Well done for reading all of this, I hope this clarifies a bit why nixpkgs-fmt
+exists and what role it can play.
 
 ## Usage
 
@@ -46,6 +94,13 @@ ARGS:
     <FILE>...    File to reformat
 
 ```
+## Installation
+
+nixpkgs-fmt is available in nixpkgs master. `nix-env -i nixpkgs-fmt`.
+
+It's also possible to install it directly from this repository:
+
+`nix-env -f https://github.com/nix-community/nixpkgs-fmt/archive/master.tar.gz -i`
 
 ### pre-commit hook
 
@@ -104,24 +159,25 @@ Commit this `crash-` file, and it will be automatically tested by a unit-test.
 
 ## Related projects
 
-* [hnix](https://github.com/haskell-nix/hnix) - Haskell implementation of Nix
-  including a parser. The parser is not comment-preserving.
-* [rnix](https://gitlab.com/jD91mZM2/rnix) - Rust Nix parser based on
-  [rowan](https://github.com/rust-analyzer/rowan)
-* [nix-lsp](https://gitlab.com/jD91mZM2/nix-lsp) - Nix language server using
-  rnix
-* [tree-sitter-nix](https://github.com/cstrahan/tree-sitter-nix) - Tree Sitter
-  is a forgiving parser used by Atom for on-the-fly syntax highlighting and
-  others. This is a implementation for Nix.
-* [format-nix](https://github.com/justinwoo/format-nix/) - A nix formatter
-  using tree-sitter-nix.
-* [nixfmt](https://github.com/serokell/nixfmt) - A nix formatter written in
-  Haskell.
-* [nix-fmt](https://github.com/jmackie/nix-fmt)
-* [nix-format](https://github.com/taktoa/nix-format) - Emacs-based Nix formatter
-* [nix-beautify](https://github.com/nixcloud/nix-beautify)
+Feel free to submit your project!
+
+### Formatters
+
+* [canonix](https://github.com/hercules-ci/canonix/) - Nix formatter prototype written in Haskell using the tree-sitter-nix grammar.
+* [format-nix](https://github.com/justinwoo/format-nix/) - A nix formatter using tree-sitter-nix.
+* [nix-format](https://github.com/taktoa/nix-format) - Emacs-based Nix formatter.
+* [nix-lsp](https://gitlab.com/jD91mZM2/nix-lsp) - Nix language server using rnix.
+* [nixfmt](https://github.com/serokell/nixfmt) - A nix formatter written in Haskell.
+
+### Linters
+
 * [nix-linter](https://github.com/Synthetica9/nix-linter)
-* [canonix](https://github.com/hercules-ci/canonix/) - Nix formatter prototype written in Haskell using tree-sitter-nix grammar.
+
+### Parsers
+
+* [hnix](https://github.com/haskell-nix/hnix) - Haskell implementation of Nix including a parser. The parser is not comment-preserving.
+* [rnix](https://gitlab.com/jD91mZM2/rnix) - Rust Nix parser based on [rowan](https://github.com/rust-analyzer/rowan)
+* [tree-sitter-nix](https://github.com/cstrahan/tree-sitter-nix) - Tree Sitter is a forgiving parser used by Atom for on-the-fly syntax highlighting and others. This is a implementation for Nix.
 
 ## Discussions
 
