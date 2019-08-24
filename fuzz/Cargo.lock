@@ -80,7 +80,7 @@ dependencies = [
 
 [[package]]
 name = "nixpkgs-fmt"
-version = "0.1.0"
+version = "0.3.1"
 dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rnix 0.6.0 (git+https://gitlab.com/jD91mZM2/rnix.git)",
@@ -91,7 +91,7 @@ name = "nixpkgs-fmt-fuzz"
 version = "0.0.1"
 dependencies = [
  "libfuzzer-sys 0.1.0 (git+https://github.com/rust-fuzz/libfuzzer-sys.git)",
- "nixpkgs-fmt 0.1.0",
+ "nixpkgs-fmt 0.3.1",
 ]
 
 [[package]]
