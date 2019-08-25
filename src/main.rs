@@ -25,7 +25,7 @@ struct Args {
 
 #[derive(Debug)]
 enum Operation {
-    Fmt { in_place: bool },
+    Fmt,
     Parse,
 }
 
@@ -39,13 +39,11 @@ fn parse_args() -> Result<Args> {
     let matches = App::new("nixpkgs-fmt")
         .version("0.1")
         .about("Format Nix code")
-        .arg(Arg::with_name("srcs").value_name("FILE").multiple(true).help("File to reformat"))
         .arg(
-            Arg::with_name("in-place")
-                .long("--in-place")
-                .short("-i")
-                .conflicts_with("parse")
-                .help("Overwrite FILE in place"),
+            Arg::with_name("srcs")
+                .value_name("FILE")
+                .multiple(true)
+                .help("File to reformat in place. If no file is passed, read from stdin."),
         )
         .arg(
             Arg::with_name("parse")
@@ -55,16 +53,11 @@ fn parse_args() -> Result<Args> {
         )
         .get_matches_safe()?;
 
-    let in_place = matches.is_present("in-place");
     let srcs = match matches.values_of("srcs") {
         None => vec![Src::Stdin], // default to reading from stdin
         Some(srcs) => srcs.map(|src| Src::File(PathBuf::from(src))).collect(),
     };
-    let operation = if matches.is_present("parse") {
-        Operation::Parse
-    } else {
-        Operation::Fmt { in_place: in_place }
-    };
+    let operation = if matches.is_present("parse") { Operation::Parse } else { Operation::Fmt };
 
     Ok(Args { operation, srcs })
 }
@@ -85,18 +78,18 @@ fn read_input(src: &Src) -> Result<String> {
 
 fn try_main(args: Args) -> Result<()> {
     match args.operation {
-        Operation::Fmt { in_place } => {
+        Operation::Fmt => {
             for src in args.srcs {
                 let input = read_input(&src)?;
                 let output = nixpkgs_fmt::reformat_string(&input);
 
                 match &src {
-                    Src::File(path) if in_place => {
+                    Src::File(path) => {
                         if input != output {
                             fs::write(path, &output)?
                         }
                     }
-                    Src::File(..) | Src::Stdin => print!("{}", output),
+                    Src::Stdin => print!("{}", output),
                 }
             }
         }
