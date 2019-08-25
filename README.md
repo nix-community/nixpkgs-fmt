@@ -85,13 +85,12 @@ USAGE:
     nixpkgs-fmt [FLAGS] [FILE]...
 
 FLAGS:
-    -h, --help        Prints help information
-    -i, --in-place    Overwrite FILE in place
-        --parse       Show syntax tree instead of reformatting
-    -V, --version     Prints version information
+    -h, --help       Prints help information
+        --parse      Show syntax tree instead of reformatting
+    -V, --version    Prints version information
 
 ARGS:
-    <FILE>...    File to reformat
+    <FILE>...    File to reformat in place. If no file is passed, read from stdin.
 
 ```
 ## Installation
