@@ -22,16 +22,23 @@ pub struct FmtDiff {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct AtomEdit {
-    delete: TextRange,
-    insert: SmolStr,
+pub struct AtomEdit {
+    pub delete: TextRange,
+    pub insert: SmolStr,
 }
 
 impl FmtDiff {
+    /// Get the diff of deletes and inserts
+    pub fn text_diff(&self) -> &[AtomEdit] {
+        &self.edits
+    }
+
+    /// Whether or not formatting did caused any changes
     pub fn has_changes(&self) -> bool {
         !self.edits.is_empty()
     }
 
+    /// Apply the formatting suggestions and return the new string
     pub fn to_string(&self) -> String {
         // TODO: don't copy strings all over the place
         let old_text =
@@ -62,6 +69,7 @@ impl FmtDiff {
         buf
     }
 
+    /// Apply the formatting suggestions and return the new node
     pub fn to_node(&self) -> SyntaxNode {
         unimplemented!()
     }
