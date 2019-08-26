@@ -15,6 +15,7 @@ members = [ "./wasm" ]
 
 [dependencies]
 clap = "2.33.0"
+ignore = "0.4.10"
 rnix = { git = "https://github.com/nix-community/rnix-parser.git" }
 
 [dev-dependencies]

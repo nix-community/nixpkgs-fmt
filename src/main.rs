@@ -6,6 +6,10 @@ use std::{
     fs,
     io::{stdin, Read},
     path::PathBuf,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 
 use clap::{App, Arg};
@@ -75,10 +79,10 @@ fn try_main(args: Args) -> Result<()> {
             }
             Src::Paths(paths) => {
                 for path in paths {
-                    let input = fs::read_to_string(path)?;
-                    let output = nixpkgs_fmt::reformat_string(&input);
-                    if input != output {
-                        fs::write(path, &output)?
+                    if path.is_dir() {
+                        reformat_dir_in_place(path)?;
+                    } else {
+                        reformat_file_in_place(path)?;
                     }
                 }
             }
@@ -115,4 +119,47 @@ fn read_single_source(src: &Src) -> Result<String> {
         }
     };
     Ok(res)
+}
+
+fn reformat_file_in_place(file: &PathBuf) -> Result<()> {
+    let input = fs::read_to_string(file)?;
+    let output = nixpkgs_fmt::reformat_string(&input);
+    if input != output {
+        fs::write(file, &output)?;
+    }
+    Ok(())
+}
+
+fn reformat_dir_in_place(dir: &PathBuf) -> Result<()> {
+    let nix_file_type = {
+        let mut builder = ignore::types::TypesBuilder::new();
+        builder.add_defaults();
+        builder.add("nix", "*.nix").unwrap();
+        builder.select("nix");
+        builder.build().unwrap()
+    };
+    let has_errors = Arc::new(AtomicBool::new(false));
+    ignore::WalkBuilder::new(dir).threads(8).types(nix_file_type).build_parallel().run(|| {
+        let has_errors = Arc::clone(&has_errors);
+        Box::new(move |entry| match reformat_dir_entry(entry) {
+            Ok(()) => ignore::WalkState::Continue,
+            Err(err) => {
+                has_errors.store(true, Ordering::SeqCst);
+                eprintln!("error: {}", err);
+                ignore::WalkState::Continue
+            }
+        })
+    });
+    if has_errors.load(Ordering::SeqCst) {
+        Err("there were errors during directory traversal")?
+    }
+    Ok(())
+}
+
+fn reformat_dir_entry(entry: std::result::Result<ignore::DirEntry, ignore::Error>) -> Result<()> {
+    let path = entry?.into_path();
+    if !path.is_file() {
+        return Ok(());
+    }
+    reformat_file_in_place(&path)
 }
