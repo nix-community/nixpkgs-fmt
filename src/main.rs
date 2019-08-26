@@ -22,7 +22,7 @@ fn main() {
 
 #[derive(Debug)]
 struct Args {
-    srcs: Vec<Src>,
+    src: Src,
     operation: Operation,
 }
 
@@ -35,7 +35,7 @@ enum Operation {
 #[derive(Debug)]
 enum Src {
     Stdin,
-    File(PathBuf),
+    Paths(Vec<PathBuf>),
 }
 
 fn parse_args() -> Result<Args> {
@@ -56,59 +56,63 @@ fn parse_args() -> Result<Args> {
         )
         .get_matches_safe()?;
 
-    let srcs = match matches.values_of("srcs") {
-        None => vec![Src::Stdin], // default to reading from stdin
-        Some(srcs) => srcs.map(|src| Src::File(PathBuf::from(src))).collect(),
+    let src = match matches.values_of("srcs") {
+        None => Src::Stdin, // default to reading from stdin
+        Some(srcs) => Src::Paths(srcs.map(PathBuf::from).collect()),
     };
     let operation = if matches.is_present("parse") { Operation::Parse } else { Operation::Fmt };
 
-    Ok(Args { operation, srcs })
-}
-
-fn read_input(src: &Src) -> Result<String> {
-    match &src {
-        Src::Stdin => {
-            let mut buf = String::new();
-            stdin().read_to_string(&mut buf)?;
-            Ok(buf)
-        }
-        Src::File(path) => {
-            let buf = fs::read_to_string(path)?;
-            Ok(buf)
-        }
-    }
+    Ok(Args { operation, src })
 }
 
 fn try_main(args: Args) -> Result<()> {
     match args.operation {
-        Operation::Fmt => {
-            for src in args.srcs {
-                let input = read_input(&src)?;
+        Operation::Fmt => match &args.src {
+            Src::Stdin => {
+                let input = read_stdin_to_string()?;
                 let output = nixpkgs_fmt::reformat_string(&input);
-
-                match &src {
-                    Src::File(path) => {
-                        if input != output {
-                            fs::write(path, &output)?
-                        }
+                print!("{}", output);
+            }
+            Src::Paths(paths) => {
+                for path in paths {
+                    let input = fs::read_to_string(path)?;
+                    let output = nixpkgs_fmt::reformat_string(&input);
+                    if input != output {
+                        fs::write(path, &output)?
                     }
-                    Src::Stdin => print!("{}", output),
                 }
             }
-        }
+        },
         Operation::Parse => {
-            for src in args.srcs {
-                let input = read_input(&src)?;
-                let ast = rnix::parse(&input);
-                let mut buf = String::new();
-                for error in ast.root_errors() {
-                    writeln!(buf, "error: {}", error).unwrap();
-                }
-                writeln!(buf, "{}", ast.root().dump()).unwrap();
-                print!("{}", buf)
+            let input = read_single_source(&args.src)?;
+            let ast = rnix::parse(&input);
+            let mut buf = String::new();
+            for error in ast.root_errors() {
+                writeln!(buf, "error: {}", error).unwrap();
             }
+            writeln!(buf, "{}", ast.root().dump()).unwrap();
+            print!("{}", buf)
         }
     };
 
     Ok(())
+}
+
+fn read_stdin_to_string() -> Result<String> {
+    let mut buf = String::new();
+    stdin().read_to_string(&mut buf)?;
+    Ok(buf)
+}
+
+fn read_single_source(src: &Src) -> Result<String> {
+    let res = match src {
+        Src::Stdin => read_stdin_to_string()?,
+        Src::Paths(paths) => {
+            if paths.len() != 1 {
+                Err("exactly one path required")?;
+            }
+            fs::read_to_string(&paths[0])?
+        }
+    };
+    Ok(res)
 }
