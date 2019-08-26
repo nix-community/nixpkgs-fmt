@@ -6,6 +6,10 @@ use std::{
     fs,
     io::{stdin, Read},
     path::PathBuf,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 
 use clap::{App, Arg};
@@ -22,7 +26,7 @@ fn main() {
 
 #[derive(Debug)]
 struct Args {
-    srcs: Vec<Src>,
+    src: Src,
     operation: Operation,
 }
 
@@ -35,7 +39,7 @@ enum Operation {
 #[derive(Debug)]
 enum Src {
     Stdin,
-    File(PathBuf),
+    Paths(Vec<PathBuf>),
 }
 
 fn parse_args() -> Result<Args> {
@@ -56,59 +60,106 @@ fn parse_args() -> Result<Args> {
         )
         .get_matches_safe()?;
 
-    let srcs = match matches.values_of("srcs") {
-        None => vec![Src::Stdin], // default to reading from stdin
-        Some(srcs) => srcs.map(|src| Src::File(PathBuf::from(src))).collect(),
+    let src = match matches.values_of("srcs") {
+        None => Src::Stdin, // default to reading from stdin
+        Some(srcs) => Src::Paths(srcs.map(PathBuf::from).collect()),
     };
     let operation = if matches.is_present("parse") { Operation::Parse } else { Operation::Fmt };
 
-    Ok(Args { operation, srcs })
-}
-
-fn read_input(src: &Src) -> Result<String> {
-    match &src {
-        Src::Stdin => {
-            let mut buf = String::new();
-            stdin().read_to_string(&mut buf)?;
-            Ok(buf)
-        }
-        Src::File(path) => {
-            let buf = fs::read_to_string(path)?;
-            Ok(buf)
-        }
-    }
+    Ok(Args { operation, src })
 }
 
 fn try_main(args: Args) -> Result<()> {
     match args.operation {
-        Operation::Fmt => {
-            for src in args.srcs {
-                let input = read_input(&src)?;
+        Operation::Fmt => match &args.src {
+            Src::Stdin => {
+                let input = read_stdin_to_string()?;
                 let output = nixpkgs_fmt::reformat_string(&input);
-
-                match &src {
-                    Src::File(path) => {
-                        if input != output {
-                            fs::write(path, &output)?
-                        }
+                print!("{}", output);
+            }
+            Src::Paths(paths) => {
+                for path in paths {
+                    if path.is_dir() {
+                        reformat_dir_in_place(path)?;
+                    } else {
+                        reformat_file_in_place(path)?;
                     }
-                    Src::Stdin => print!("{}", output),
                 }
             }
-        }
+        },
         Operation::Parse => {
-            for src in args.srcs {
-                let input = read_input(&src)?;
-                let ast = rnix::parse(&input);
-                let mut buf = String::new();
-                for error in ast.root_errors() {
-                    writeln!(buf, "error: {}", error).unwrap();
-                }
-                writeln!(buf, "{}", ast.root().dump()).unwrap();
-                print!("{}", buf)
+            let input = read_single_source(&args.src)?;
+            let ast = rnix::parse(&input);
+            let mut buf = String::new();
+            for error in ast.root_errors() {
+                writeln!(buf, "error: {}", error).unwrap();
             }
+            writeln!(buf, "{}", ast.root().dump()).unwrap();
+            print!("{}", buf)
         }
     };
 
     Ok(())
+}
+
+fn read_stdin_to_string() -> Result<String> {
+    let mut buf = String::new();
+    stdin().read_to_string(&mut buf)?;
+    Ok(buf)
+}
+
+fn read_single_source(src: &Src) -> Result<String> {
+    let res = match src {
+        Src::Stdin => read_stdin_to_string()?,
+        Src::Paths(paths) => {
+            if paths.len() != 1 {
+                Err("exactly one path required")?;
+            }
+            fs::read_to_string(&paths[0])?
+        }
+    };
+    Ok(res)
+}
+
+fn reformat_file_in_place(file: &PathBuf) -> Result<()> {
+    let input = fs::read_to_string(file)?;
+    let output = nixpkgs_fmt::reformat_string(&input);
+    if input != output {
+        fs::write(file, &output)?;
+    }
+    Ok(())
+}
+
+fn reformat_dir_in_place(dir: &PathBuf) -> Result<()> {
+    let nix_file_type = {
+        let mut builder = ignore::types::TypesBuilder::new();
+        builder.add_defaults();
+        builder.add("nix", "*.nix").unwrap();
+        builder.select("nix");
+        builder.build().unwrap()
+    };
+    let has_errors = Arc::new(AtomicBool::new(false));
+    ignore::WalkBuilder::new(dir).threads(8).types(nix_file_type).build_parallel().run(|| {
+        let has_errors = Arc::clone(&has_errors);
+        Box::new(move |entry| match reformat_dir_entry(entry) {
+            Ok(()) => ignore::WalkState::Continue,
+            Err(err) => {
+                has_errors.store(true, Ordering::SeqCst);
+                eprintln!("error: {}", err);
+                ignore::WalkState::Continue
+            }
+        })
+    });
+    if has_errors.load(Ordering::SeqCst) {
+        Err("there were errors during directory traversal")?
+    }
+    Ok(())
+}
+
+fn reformat_dir_entry(entry: std::result::Result<ignore::DirEntry, ignore::Error>) -> Result<()> {
+    let path = entry?.into_path();
+    if !path.is_file() {
+        return Ok(());
+    }
+    reformat_file_in_place(&path)
 }
