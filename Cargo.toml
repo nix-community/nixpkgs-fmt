@@ -18,5 +18,14 @@ clap = "2.33.0"
 ignore = "0.4.10"
 rnix = { git = "https://github.com/nix-community/rnix-parser.git" }
 
+# Enable serialization support for rnix syntax trees.
+# Ideally, the feature should be enabled only for binary,
+# but Cargo can't express that nicely yet.
+serde_json = "1.0"
+
+[dependencies.rowan]
+version = "0.6.2"
+features = [ "serde1" ]
+
 [dev-dependencies]
 unindent = "0.1.3"
