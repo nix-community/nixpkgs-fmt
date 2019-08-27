@@ -33,13 +33,19 @@ struct Args {
 #[derive(Debug)]
 enum Operation {
     Fmt,
-    Parse,
+    Parse { output_format: OutputFormat },
 }
 
 #[derive(Debug)]
 enum Src {
     Stdin,
     Paths(Vec<PathBuf>),
+}
+
+#[derive(Debug)]
+enum OutputFormat {
+    Default,
+    Json,
 }
 
 fn parse_args() -> Result<Args> {
@@ -52,11 +58,13 @@ fn parse_args() -> Result<Args> {
                 .multiple(true)
                 .help("File to reformat in place. If no file is passed, read from stdin."),
         )
+        .arg(Arg::with_name("parse").long("parse").help("Show syntax tree instead of reformatting"))
         .arg(
-            Arg::with_name("parse")
-                .long("parse")
-                .conflicts_with("in-place")
-                .help("Show syntax tree instead of reformatting"),
+            Arg::with_name("output-format")
+                .long("output-format")
+                .requires("parse")
+                .possible_values(&["json"])
+                .help("Output syntax tree in JSON format"),
         )
         .get_matches_safe()?;
 
@@ -64,7 +72,15 @@ fn parse_args() -> Result<Args> {
         None => Src::Stdin, // default to reading from stdin
         Some(srcs) => Src::Paths(srcs.map(PathBuf::from).collect()),
     };
-    let operation = if matches.is_present("parse") { Operation::Parse } else { Operation::Fmt };
+    let operation = if matches.is_present("parse") {
+        let output_format = match matches.value_of("output-format") {
+            Some("json") => OutputFormat::Json,
+            _ => OutputFormat::Default,
+        };
+        Operation::Parse { output_format }
+    } else {
+        Operation::Fmt
+    };
 
     Ok(Args { operation, src })
 }
@@ -87,15 +103,21 @@ fn try_main(args: Args) -> Result<()> {
                 }
             }
         },
-        Operation::Parse => {
+        Operation::Parse { output_format } => {
             let input = read_single_source(&args.src)?;
             let ast = rnix::parse(&input);
-            let mut buf = String::new();
-            for error in ast.root_errors() {
-                writeln!(buf, "error: {}", error).unwrap();
-            }
-            writeln!(buf, "{}", ast.root().dump()).unwrap();
-            print!("{}", buf)
+            let res = match output_format {
+                OutputFormat::Default => {
+                    let mut buf = String::new();
+                    for error in ast.root_errors() {
+                        writeln!(buf, "error: {}", error).unwrap();
+                    }
+                    writeln!(buf, "{}", ast.root().dump()).unwrap();
+                    buf
+                }
+                OutputFormat::Json => serde_json::to_string_pretty(&ast.node())?,
+            };
+            print!("{}", res)
         }
     };
 
