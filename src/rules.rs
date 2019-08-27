@@ -1,6 +1,6 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
-    types::{Lambda, Operation, SetEntry, TypedNode, With},
+    types::{Lambda, Operation, TypedNode, With},
     SyntaxElement, SyntaxKind,
     SyntaxKind::*,
     T,
@@ -261,7 +261,6 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .rule("Indent semicolon in attribute")
             .inside(NODE_SET_ENTRY)
-            .when_anchor(set_entry_with_single_line_value)
             .matching(T![;])
             .set(Indent)
             .test(r#"
@@ -272,8 +271,8 @@ pub(crate) fn indentation() -> IndentDsl {
                   bar = [
                     1
                   ]
-                  ++ [ 2 ]
-                    ;
+                    ++ [ 2 ]
+                  ;
                 }
             "#, r#"
                 {
@@ -283,14 +282,14 @@ pub(crate) fn indentation() -> IndentDsl {
                   bar = [
                     1
                   ]
-                  ++ [ 2 ]
-                  ;
+                    ++ [ 2 ]
+                    ;
                 }
             "#)
 
         .rule("Indent concatenation to first element")
             .inside(NODE_OPERATION)
-            .when_anchor(set_entry_with_single_line_value)
+            .when_anchor(NODE_SET_ENTRY)
             .matching(BIN_OPS)
             .set(Indent)
             .test(r#"
@@ -364,7 +363,7 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .rule("Indent with body in attribute")
             .inside([NODE_WITH, NODE_ASSERT])
-            .when_anchor(set_entry_with_single_line_value)
+            .when_anchor(NODE_SET_ENTRY)
             .set(Indent)
             .test(r#"
                 with foo;
@@ -454,21 +453,6 @@ fn on_top_level(element: &SyntaxElement) -> bool {
         NODE_LAMBDA | NODE_WITH | NODE_ASSERT => on_top_level(&parent.into()),
         _ => false,
     }
-}
-
-fn set_entry_with_single_line_value(element: &SyntaxElement) -> bool {
-    fn find(element: SyntaxElement) -> Option<bool> {
-        let element = element.into_node().and_then(SetEntry::cast)?;
-        let mut value = element.value()?;
-        if Operation::cast(value.clone()).is_none() {
-            return Some(true);
-        }
-        while let Some(op) = Operation::cast(value.clone()) {
-            value = op.value1()?
-        }
-        Some(!has_newline(&value))
-    }
-    find(element.clone()) == Some(true)
 }
 
 fn rhs_of_binop(rhs: &SyntaxElement) -> bool {

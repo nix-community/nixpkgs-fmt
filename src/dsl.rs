@@ -371,7 +371,7 @@ impl<'a> IndentRuleBuilder<'a> {
 
     /// Only apply this rule when `cond` is true for the anchor node, relative
     /// to which we compute indentation level.
-    pub(crate) fn when_anchor(mut self, cond: fn(&SyntaxElement) -> bool) -> Self {
+    pub(crate) fn when_anchor(mut self, cond: impl Into<Pattern>) -> Self {
         self.anchor_pattern = Some(cond.into());
         self
     }
