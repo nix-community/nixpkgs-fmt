@@ -50,6 +50,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LIST).between(T!["["], T!["]"]).no_space()
         .inside(NODE_LIST).between(VALUES, VALUES).single_space_or_newline()
         .inside(NODE_LIST).between(VALUES, TOKEN_COMMENT).single_space_or_optional_newline()
+        .inside(NODE_LIST).between(TOKEN_COMMENT, VALUES).single_space_or_newline()
 
         .test("( 92 )", "(92)")
         .inside(NODE_PAREN).after(T!["("]).no_space_or_newline()
