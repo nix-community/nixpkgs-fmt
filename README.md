@@ -29,8 +29,8 @@ requirement the output will change.
 
 For nixpkgs-fmt we have a few of these:
 
-1. Minimize merge conflicts. nixpkgs is seein a lot of pull-requests and we
-   want to avoid them getting unecessarily stable.
+1. Minimize merge conflicts. nixpkgs is seen in a lot of pull-requests and we
+   want to avoid them getting unnecessarily stable.
 2. Only expand, don't collapse. It's up to the developer to choose if an
    element should be on a single line or multiple lines.
 3. Respect the developer's expressivity. Empty lines can be useful as a way to
@@ -38,7 +38,7 @@ For nixpkgs-fmt we have a few of these:
 4. Only change the indent of one (+/-) per line. Not sure why but it seems
    like a good thing.
 
-Corrolary rules:
+Corollary rules:
 
 * because of (1). The format is quite close to what exists in nixpkgs already.
 * because of (1). Don't align values vertically, a single line change can
@@ -46,7 +46,7 @@ Corrolary rules:
 * because of (1). Avoid too many rules. More rules means more formatting
   changes that create merge conflicts.
 * because of (2). Don't enforce line lengths. Line length limits also create
-  complicated heursistics.
+  complicated heuristics.
 
 At the time where we started this project none of the other formatters were
 weighted that way.
@@ -146,7 +146,7 @@ $ nix-shell --run "cargo fuzz run fmt"
 
 * `fmt` is the name of the target in `./fuzz/Cargo.toml`
 
-Fuzzer will run indefinitelly or until it finds a crash.
+Fuzzer will run indefinitely or until it finds a crash.
 The crashing input is written to `fuzz/artifacts` directory.
 Commit this `crash-` file, and it will be automatically tested by a unit-test.
 
