@@ -16,7 +16,7 @@ members = [ "./wasm" ]
 [dependencies]
 clap = "2.33.0"
 ignore = "0.4.10"
-rnix = { git = "https://github.com/nix-community/rnix-parser.git" }
+rnix = "0.6.0"
 
 # Enable serialization support for rnix syntax trees.
 # Ideally, the feature should be enabled only for binary,
