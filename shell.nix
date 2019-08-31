@@ -22,10 +22,10 @@ pkgs.mkShell {
     pkgs.wasm-pack
     rust
   ]
-    ++ stdenv.lib.optionals stdenv.isDarwin [
-         darwin.apple_sdk.frameworks.Security
-       ]
-    ;
+  ++ stdenv.lib.optionals stdenv.isDarwin [
+    darwin.apple_sdk.frameworks.Security
+  ]
+  ;
 
   shellHook = ''
     export PATH=$PWD/target/debug:$PATH

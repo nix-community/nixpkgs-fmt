@@ -336,11 +336,6 @@ impl<'a> IndentRuleBuilder<'a> {
         self
     }
 
-    /// Rule applies if element itself matches.
-    pub(crate) fn matching(self, child: impl Into<Pattern>) -> Self {
-        self.matching_modality(child.into(), Modality::Positive)
-    }
-
     /// Rule applies if element itself does *not* match.
     pub(crate) fn not_matching(self, child: impl Into<Pattern>) -> Self {
         self.matching_modality(child.into(), Modality::Negative)

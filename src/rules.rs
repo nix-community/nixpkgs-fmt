@@ -1,6 +1,6 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
-    types::{Lambda, Operation, TypedNode, With},
+    types::{Lambda, TypedNode, With},
     SyntaxElement, SyntaxKind,
     SyntaxKind::*,
     T,
@@ -8,7 +8,7 @@ use rnix::{
 
 use crate::{
     dsl::{self, IndentDsl, IndentValue::*, SpacingDsl},
-    pattern::{p, Pattern},
+    pattern::p,
     tree_utils::{has_newline, next_non_whitespace_sibling, prev_sibling},
 };
 
@@ -24,7 +24,6 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("{ a = 92 ; }", "{ a = 92; }")
         .inside(NODE_SET_ENTRY).before(T![;]).no_space_or_optional_newline()
         .inside(NODE_SET_ENTRY).before(T![;]).when(after_literal).no_space()
-        .inside(NODE_SET_ENTRY).before(T![;]).when(after_multiline_binop).single_space_or_newline()
 
         .test("a==  b", "a == b")
         .test("a!=  b", "a != b")
@@ -34,7 +33,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("a*  b", "a * b")
         .test("a/  b", "a / b")
         .inside(NODE_OPERATION).after(BIN_OPS).single_space()
-        .inside(NODE_OPERATION).before(BIN_OPS).single_space_or_newline()
+        .inside(NODE_OPERATION).before(BIN_OPS).single_space_or_optional_newline()
 
         .test("foo . bar . baz", "foo.bar.baz")
         .inside(NODE_INDEX_SET).around(T![.]).no_space()
@@ -138,15 +137,6 @@ fn after_literal(node: &SyntaxElement) -> bool {
     }
 }
 
-fn after_multiline_binop(node: &SyntaxElement) -> bool {
-    let prev = prev_sibling(node);
-    return if let Some(op) = prev.and_then(Operation::cast) {
-        has_newline(op.node())
-    } else {
-        false
-    };
-}
-
 fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
     fn find(element: &SyntaxElement) -> Option<bool> {
         let lambda = next_non_whitespace_sibling(element)?.into_node().and_then(Lambda::cast)?;
@@ -161,7 +151,6 @@ pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
         .anchor([NODE_PAT_ENTRY, NODE_PATTERN])
-        .anchor(Pattern::from(rhs_of_binop))
 
         .rule("Indent list content")
             .inside(NODE_LIST)
@@ -256,53 +245,6 @@ pub(crate) fn indentation() -> IndentDsl {
                 {
                   foo =
                     92;
-                }
-            "#)
-
-        .rule("Indent semicolon in attribute")
-            .inside(NODE_SET_ENTRY)
-            .matching(T![;])
-            .set(Indent)
-            .test(r#"
-                {
-                  foo = 92
-                  ;
-
-                  bar = [
-                    1
-                  ]
-                    ++ [ 2 ]
-                  ;
-                }
-            "#, r#"
-                {
-                  foo = 92
-                    ;
-
-                  bar = [
-                    1
-                  ]
-                    ++ [ 2 ]
-                    ;
-                }
-            "#)
-
-        .rule("Indent concatenation to first element")
-            .inside(NODE_OPERATION)
-            .when_anchor(NODE_SET_ENTRY)
-            .matching(BIN_OPS)
-            .set(Indent)
-            .test(r#"
-                {
-                  foo = []
-                  ++ []
-                  ;
-                }
-            "#, r#"
-                {
-                  foo = []
-                    ++ []
-                    ;
                 }
             "#)
 
@@ -453,14 +395,6 @@ fn on_top_level(element: &SyntaxElement) -> bool {
         NODE_LAMBDA | NODE_WITH | NODE_ASSERT => on_top_level(&parent.into()),
         _ => false,
     }
-}
-
-fn rhs_of_binop(rhs: &SyntaxElement) -> bool {
-    fn find(rhs: &SyntaxElement) -> Option<bool> {
-        let op = rhs.parent().and_then(Operation::cast)?;
-        Some(&op.value2()? == rhs.as_node()?)
-    }
-    find(rhs) == Some(true)
 }
 
 static VALUES: &[SyntaxKind] = &[
