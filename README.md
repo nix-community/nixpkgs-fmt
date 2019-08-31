@@ -78,16 +78,17 @@ exists and what role it can play.
 
 `$ nixpkgs-fmt --help 2>&1 || true`
 ```
-nixpkgs-fmt 0.3.1
+nixpkgs-fmt 0.4.0
 Format Nix code
 
 USAGE:
     nixpkgs-fmt [FLAGS] [FILE]...
 
 FLAGS:
-    -h, --help       Prints help information
-        --parse      Show syntax tree instead of reformatting
-    -V, --version    Prints version information
+    -h, --help             Prints help information
+        --output-format    Output syntax tree in JSON format
+        --parse            Show syntax tree instead of reformatting
+    -V, --version          Prints version information
 
 ARGS:
     <FILE>...    File to reformat in place. If no file is passed, read from stdin.
