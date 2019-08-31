@@ -33,8 +33,8 @@ let
   meta = builtins.fromTOML (builtins.readFile ./Cargo.toml);
 
   # run ./update-cargo-nix.sh to update those values
-  cargoLockHash = "d76a8697f772c6b117828a26903ce6092494fbbba415852f80989ef3c333dc48";
-  cargoSha256 = "1bygkwciwsg7bb944ghjw8xzjn495nw90df0999a5838l9b2izjn";
+  cargoLockHash = "6f1ec26022b03a963e6fcd77204b5e6bf80245c5fa02eb2f050411305cdb8f8c";
+  cargoSha256 = "041g440sbrkcvybysvd1bdw9nrp78s0l8p61yr0pwbqfaxm4p5q9";
 in
 pkgs.rustPlatform.buildRustPackage {
   pname = meta.package.name;
