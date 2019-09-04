@@ -29,8 +29,8 @@ pub struct AtomEdit {
 
 impl FmtDiff {
     /// Get the diff of deletes and inserts
-    pub fn text_diff(&self) -> &[AtomEdit] {
-        &self.edits
+    pub fn text_diff(&self) -> Vec<AtomEdit> {
+        self.edits.to_vec()
     }
 
     /// Whether or not formatting did caused any changes
