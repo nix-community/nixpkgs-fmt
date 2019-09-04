@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate clap;
-
 use std::{
     fmt::Write,
     fs,
@@ -50,7 +47,7 @@ enum OutputFormat {
 
 fn parse_args() -> Result<Args> {
     let matches = App::new("nixpkgs-fmt")
-        .version(crate_version!())
+        .version(clap::crate_version!())
         .about("Format Nix code")
         .arg(
             Arg::with_name("srcs")
