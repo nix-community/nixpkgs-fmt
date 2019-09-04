@@ -74,6 +74,6 @@ pub(crate) fn format(
 
 impl FmtDiff {
     fn replace(&mut self, range: TextRange, text: SmolStr) {
-        self.edits.push(AtomEdit { delete: range, insert: text })
+        self.edits.push((AtomEdit { delete: range, insert: text }, None))
     }
 }

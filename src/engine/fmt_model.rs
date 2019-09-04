@@ -145,7 +145,7 @@ impl FmtModel {
                 diff.replace(block.original.text_range(), change.new_text);
             }
         }
-        diff.edits.extend(self.fixes.into_iter());
+        diff.edits.extend(self.fixes.into_iter().map(|edit| (edit, None)));
         diff
     }
 

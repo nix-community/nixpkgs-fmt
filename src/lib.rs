@@ -9,7 +9,7 @@ use std::borrow::Cow;
 
 use rnix::{SmolStr, SyntaxNode, TextRange};
 
-use crate::tree_utils::walk_tokens;
+use crate::{dsl::RuleName, tree_utils::walk_tokens};
 
 /// The result of formatting.
 ///
@@ -18,7 +18,7 @@ use crate::tree_utils::walk_tokens;
 #[derive(Debug)]
 pub struct FmtDiff {
     original_node: SyntaxNode,
-    edits: Vec<AtomEdit>,
+    edits: Vec<(AtomEdit, Option<RuleName>)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,7 +30,7 @@ pub struct AtomEdit {
 impl FmtDiff {
     /// Get the diff of deletes and inserts
     pub fn text_diff(&self) -> Vec<AtomEdit> {
-        self.edits.to_vec()
+        self.edits.iter().map(|(edit, _reason)| edit.clone()).collect()
     }
 
     /// Whether or not formatting did caused any changes
@@ -45,7 +45,7 @@ impl FmtDiff {
             walk_tokens(&self.original_node).map(|it| it.to_string()).collect::<String>();
 
         let mut total_len = old_text.len();
-        let mut edits = self.edits.clone();
+        let mut edits = self.text_diff();
         edits.sort_by_key(|edit| edit.delete.start());
 
         for atom in edits.iter() {
