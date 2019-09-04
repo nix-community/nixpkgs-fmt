@@ -55,7 +55,7 @@ pub(super) struct SpaceBlock {
 #[derive(Debug)]
 struct SpaceChange {
     new_text: SmolStr,
-    originating_rule: Option<RuleName>,
+    reason: Option<RuleName>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -103,7 +103,7 @@ impl SpaceBlock {
         self.change = match &self.original {
             OriginalSpace::Some(token) if token.text() == text => None,
             OriginalSpace::None { .. } if text.is_empty() => None,
-            _ => Some(SpaceChange { new_text: text.into(), originating_rule: rule }),
+            _ => Some(SpaceChange { new_text: text.into(), reason: rule }),
         }
     }
     pub(super) fn text(&self) -> &str {
@@ -143,7 +143,7 @@ impl FmtModel {
         let mut diff = FmtDiff { original_node: self.original_node.to_owned(), edits: vec![] };
         for block in self.blocks {
             if let Some(change) = block.change {
-                diff.replace(block.original.text_range(), change.new_text, change.originating_rule);
+                diff.replace(block.original.text_range(), change.new_text, change.reason);
             }
         }
         diff.edits.extend(self.fixes.into_iter().map(|edit| (edit, None)));
