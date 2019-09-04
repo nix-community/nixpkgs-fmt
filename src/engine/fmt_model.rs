@@ -6,7 +6,7 @@ use rnix::{
     SyntaxNode, SyntaxToken, TextRange, TextUnit,
 };
 
-use crate::{engine::FmtDiff, tree_utils::preceding_tokens, AtomEdit};
+use crate::{dsl::RuleName, engine::FmtDiff, tree_utils::preceding_tokens, AtomEdit};
 
 /// `FmtModel` is a data structure to which we apply formatting rules.
 ///
@@ -44,12 +44,18 @@ pub(super) struct FmtModel {
 pub(super) struct SpaceBlock {
     original: OriginalSpace,
     /// Block's textual content, which is seen and modified by formatting rules.
-    new_text: Option<SmolStr>,
+    change: Option<SpaceChange>,
     /// If this block requires a newline to preserve semantics.
     ///
     /// True for blocks after comments. The engine takes care to never remove
     /// newline, even if some interaction of rules asks us to do so.
     semantic_newline: bool,
+}
+
+#[derive(Debug)]
+struct SpaceChange {
+    new_text: SmolStr,
+    originating_rule: Option<RuleName>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -82,7 +88,7 @@ impl SpaceBlock {
             }
             OriginalSpace::None { .. } => false,
         };
-        SpaceBlock { original, new_text: None, semantic_newline }
+        SpaceBlock { original, change: None, semantic_newline }
     }
     pub(super) fn set_line_break_preserving_existing_newlines(&mut self) {
         if self.has_newline() {
@@ -95,13 +101,13 @@ impl SpaceBlock {
             return;
         }
         match &self.original {
-            OriginalSpace::Some(token) if token.text() == text && self.new_text.is_none() => return,
-            _ => self.new_text = Some(text.into()),
+            OriginalSpace::Some(token) if token.text() == text && self.change.is_none() => return,
+            _ => self.change = Some(SpaceChange { new_text: text.into(), originating_rule: None }),
         }
     }
     pub(super) fn text(&self) -> &str {
-        if let Some(text) = self.new_text.as_ref() {
-            return text.as_str();
+        if let Some(change) = &self.change {
+            return change.new_text.as_str();
         }
         self.original_text()
     }
@@ -135,8 +141,8 @@ impl FmtModel {
     pub(super) fn into_diff(self) -> FmtDiff {
         let mut diff = FmtDiff { original_node: self.original_node.to_owned(), edits: vec![] };
         for block in self.blocks {
-            if let Some(new_next) = block.new_text {
-                diff.replace(block.original.text_range(), new_next);
+            if let Some(change) = block.change {
+                diff.replace(block.original.text_range(), change.new_text);
             }
         }
         diff.edits.extend(self.fixes.into_iter());
