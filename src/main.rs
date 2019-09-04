@@ -30,6 +30,7 @@ struct Args {
 #[derive(Debug)]
 enum Operation {
     Fmt,
+    Explain,
     Parse { output_format: OutputFormat },
 }
 
@@ -53,9 +54,16 @@ fn parse_args() -> Result<Args> {
             Arg::with_name("srcs")
                 .value_name("FILE")
                 .multiple(true)
+                .conflicts_with("explain")
                 .help("File to reformat in place. If no file is passed, read from stdin."),
         )
         .arg(Arg::with_name("parse").long("parse").help("Show syntax tree instead of reformatting"))
+        .arg(
+            Arg::with_name("explain")
+                .long("explain")
+                .conflicts_with("parse")
+                .help("Show which rules are violated"),
+        )
         .arg(
             Arg::with_name("output-format")
                 .long("output-format")
@@ -75,6 +83,8 @@ fn parse_args() -> Result<Args> {
             _ => OutputFormat::Default,
         };
         Operation::Parse { output_format }
+    } else if matches.is_present("explain") {
+        Operation::Explain
     } else {
         Operation::Fmt
     };
@@ -115,6 +125,11 @@ fn try_main(args: Args) -> Result<()> {
                 OutputFormat::Json => serde_json::to_string_pretty(&ast.node())?,
             };
             print!("{}", res)
+        }
+        Operation::Explain => {
+            let input = read_stdin_to_string()?;
+            let output = nixpkgs_fmt::explain(&input);
+            print!("{}", output);
         }
     };
 

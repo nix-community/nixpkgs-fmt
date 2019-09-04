@@ -8,7 +8,7 @@ mod fixes;
 use rnix::{SmolStr, SyntaxNode, TextRange};
 
 use crate::{
-    dsl::{IndentDsl, SpacingDsl},
+    dsl::{IndentDsl, RuleName, SpacingDsl},
     engine::fmt_model::{BlockPosition, FmtModel, SpaceBlock, SpaceBlockOrToken},
     pattern::PatternSet,
     tree_utils::walk_non_whitespace,
@@ -73,7 +73,7 @@ pub(crate) fn format(
 }
 
 impl FmtDiff {
-    fn replace(&mut self, range: TextRange, text: SmolStr) {
-        self.edits.push((AtomEdit { delete: range, insert: text }, None))
+    fn replace(&mut self, range: TextRange, text: SmolStr, reason: Option<RuleName>) {
+        self.edits.push((AtomEdit { delete: range, insert: text }, reason))
     }
 }

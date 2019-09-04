@@ -100,9 +100,10 @@ impl SpaceBlock {
         if self.semantic_newline && !text.contains('\n') {
             return;
         }
-        match &self.original {
-            OriginalSpace::Some(token) if token.text() == text && self.change.is_none() => return,
-            _ => self.change = Some(SpaceChange { new_text: text.into(), originating_rule: rule }),
+        self.change = match &self.original {
+            OriginalSpace::Some(token) if token.text() == text => None,
+            OriginalSpace::None { .. } if text.is_empty() => None,
+            _ => Some(SpaceChange { new_text: text.into(), originating_rule: rule }),
         }
     }
     pub(super) fn text(&self) -> &str {
@@ -142,7 +143,7 @@ impl FmtModel {
         let mut diff = FmtDiff { original_node: self.original_node.to_owned(), edits: vec![] };
         for block in self.blocks {
             if let Some(change) = block.change {
-                diff.replace(block.original.text_range(), change.new_text);
+                diff.replace(block.original.text_range(), change.new_text, change.originating_rule);
             }
         }
         diff.edits.extend(self.fixes.into_iter().map(|edit| (edit, None)));
