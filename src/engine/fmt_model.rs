@@ -90,19 +90,19 @@ impl SpaceBlock {
         };
         SpaceBlock { original, change: None, semantic_newline }
     }
-    pub(super) fn set_line_break_preserving_existing_newlines(&mut self) {
+    pub(super) fn set_line_break_preserving_existing_newlines(&mut self, rule: Option<RuleName>) {
         if self.has_newline() {
             return;
         }
-        self.set_text("\n");
+        self.set_text("\n", rule);
     }
-    pub(super) fn set_text(&mut self, text: &str) {
+    pub(super) fn set_text(&mut self, text: &str, rule: Option<RuleName>) {
         if self.semantic_newline && !text.contains('\n') {
             return;
         }
         match &self.original {
             OriginalSpace::Some(token) if token.text() == text && self.change.is_none() => return,
-            _ => self.change = Some(SpaceChange { new_text: text.into(), originating_rule: None }),
+            _ => self.change = Some(SpaceChange { new_text: text.into(), originating_rule: rule }),
         }
     }
     pub(super) fn text(&self) -> &str {

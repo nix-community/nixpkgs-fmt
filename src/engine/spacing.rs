@@ -39,33 +39,33 @@ impl SpaceLoc {
 
 fn ensure_space(element: &SyntaxElement, block: &mut SpaceBlock, value: SpaceValue) {
     match value {
-        SpaceValue::Single => block.set_text(" "),
+        SpaceValue::Single => block.set_text(" ", None),
         SpaceValue::SingleOptionalNewline => {
             if !block.has_newline() {
-                block.set_text(" ")
+                block.set_text(" ", None)
             }
         }
-        SpaceValue::Newline => block.set_text("\n"),
-        SpaceValue::None => block.set_text(""),
+        SpaceValue::Newline => block.set_text("\n", None),
+        SpaceValue::None => block.set_text("", None),
         SpaceValue::NoneOptionalNewline => {
             if !block.has_newline() {
-                block.set_text("")
+                block.set_text("", None)
             }
         }
         SpaceValue::SingleOrNewline => {
             let parent_is_multiline = element.parent().map_or(false, |it| has_newline(&it));
             if parent_is_multiline {
-                block.set_line_break_preserving_existing_newlines()
+                block.set_line_break_preserving_existing_newlines(None)
             } else {
-                block.set_text(" ")
+                block.set_text(" ", None)
             }
         }
         SpaceValue::NoneOrNewline => {
             let parent_is_multiline = element.parent().map_or(false, |it| has_newline(&it));
             if parent_is_multiline {
-                block.set_line_break_preserving_existing_newlines()
+                block.set_line_break_preserving_existing_newlines(None)
             } else {
-                block.set_text("")
+                block.set_text("", None)
             }
         }
     }

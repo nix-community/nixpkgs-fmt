@@ -219,7 +219,7 @@ pub(crate) enum IndentValue {
 pub(crate) struct RuleName(&'static str);
 
 impl RuleName {
-    fn new(name: &'static str) -> RuleName {
+    pub(crate) fn new(name: &'static str) -> RuleName {
         assert!(name.chars().next().unwrap().is_uppercase(), "rule names should be capitalized");
         assert!(name.chars().last().unwrap() != '.', "rule names should not end in `.`");
         RuleName(name)
