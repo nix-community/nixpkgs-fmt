@@ -82,7 +82,13 @@ pub fn reformat_node(node: &SyntaxNode) -> FmtDiff {
 }
 
 pub fn reformat_string(text: &str) -> String {
-    let (text, line_endings) = convert_to_unix_line_endings(text);
+    let (mut text, line_endings) = convert_to_unix_line_endings(text);
+
+    // Forcibly convert tabs to spaces as a pre-pass
+    if text.contains('\t') {
+        text = Cow::Owned(text.replace('\t', "  "))
+    }
+
     let ast = rnix::parse(&*text);
     let root_node = ast.node();
     let diff = reformat_node(&root_node);
@@ -117,5 +123,10 @@ mod tests {
     fn preserves_dos_line_endings() {
         assert_eq!(&reformat_string("{foo = 92;\n}"), "{\n  foo = 92;\n}\n");
         assert_eq!(&reformat_string("{foo = 92;\r\n}"), "{\r\n  foo = 92;\r\n}\r\n")
+    }
+
+    #[test]
+    fn converts_tabs_to_spaces() {
+        assert_eq!(&reformat_string("{\n\tfoo = 92;\t}\n"), "{\n  foo = 92;\n}\n");
     }
 }
