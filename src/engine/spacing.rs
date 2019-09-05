@@ -1,7 +1,7 @@
 use rnix::SyntaxElement;
 
 use crate::{
-    dsl::{SpaceLoc, SpaceValue, SpacingRule},
+    dsl::{RuleName, SpaceLoc, SpaceValue, SpacingRule},
     engine::{BlockPosition, FmtModel, SpaceBlock},
     tree_utils::has_newline,
 };
@@ -13,11 +13,11 @@ impl SpacingRule {
         }
         if self.space.loc.is_before() {
             let block = model.block_for(element, BlockPosition::Before);
-            ensure_space(element, block, self.space.value);
+            ensure_space(element, block, self.space.value, self.name);
         }
         if self.space.loc.is_after() {
             let block = model.block_for(element, BlockPosition::After);
-            ensure_space(element, block, self.space.value);
+            ensure_space(element, block, self.space.value, self.name);
         }
     }
 }
@@ -37,19 +37,24 @@ impl SpaceLoc {
     }
 }
 
-fn ensure_space(element: &SyntaxElement, block: &mut SpaceBlock, value: SpaceValue) {
+fn ensure_space(
+    element: &SyntaxElement,
+    block: &mut SpaceBlock,
+    value: SpaceValue,
+    rule_name: Option<RuleName>,
+) {
     match value {
-        SpaceValue::Single => block.set_text(" ", None),
+        SpaceValue::Single => block.set_text(" ", rule_name),
         SpaceValue::SingleOptionalNewline => {
             if !block.has_newline() {
-                block.set_text(" ", None)
+                block.set_text(" ", rule_name)
             }
         }
-        SpaceValue::Newline => block.set_text("\n", None),
-        SpaceValue::None => block.set_text("", None),
+        SpaceValue::Newline => block.set_text("\n", rule_name),
+        SpaceValue::None => block.set_text("", rule_name),
         SpaceValue::NoneOptionalNewline => {
             if !block.has_newline() {
-                block.set_text("", None)
+                block.set_text("", rule_name)
             }
         }
         SpaceValue::SingleOrNewline => {
@@ -57,7 +62,7 @@ fn ensure_space(element: &SyntaxElement, block: &mut SpaceBlock, value: SpaceVal
             if parent_is_multiline {
                 block.set_line_break_preserving_existing_newlines(None)
             } else {
-                block.set_text(" ", None)
+                block.set_text(" ", rule_name)
             }
         }
         SpaceValue::NoneOrNewline => {
@@ -65,7 +70,7 @@ fn ensure_space(element: &SyntaxElement, block: &mut SpaceBlock, value: SpaceVal
             if parent_is_multiline {
                 block.set_line_break_preserving_existing_newlines(None)
             } else {
-                block.set_text("", None)
+                block.set_text("", rule_name)
             }
         }
     }

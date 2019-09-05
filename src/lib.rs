@@ -176,7 +176,7 @@ mod tests {
         assert_eq!(
             explanation,
             "{
-foo =1;  # [1; 2): Indent attribute set content, [7; 7): unnamed rule
+foo =1;  # [1; 2): Indent attribute set content, [7; 7): Space after =
 }
 "
         )
