@@ -18,8 +18,11 @@ pub(crate) fn spacing() -> SpacingDsl {
 
     dsl
         .test("{ a=92; }", "{ a = 92; }")
-        .inside(NODE_SET_ENTRY).before(T![=]).single_space()
-        .inside(NODE_SET_ENTRY).after(T![=]).single_space_or_optional_newline()
+        .rule("Space before =")
+            .inside(NODE_SET_ENTRY).before(T![=]).single_space()
+
+        .rule("Space after =")
+            .inside(NODE_SET_ENTRY).after(T![=]).single_space_or_optional_newline()
 
         .test("{ a = 92 ; }", "{ a = 92; }")
         .inside(NODE_SET_ENTRY).before(T![;]).no_space_or_optional_newline()
@@ -105,17 +108,20 @@ pub(crate) fn spacing() -> SpacingDsl {
         //              }: body
         // }
         // ```
-        .rule(dsl::SpacingRule {
+        .add_rule(dsl::SpacingRule {
+            name: None,
             pattern: p(TOKEN_ASSIGN) & p(next_sibling_is_multiline_lambda_pattern),
             space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
         })
 
         // special-cased rules for leading and trailing whitespace
-        .rule(dsl::SpacingRule {
+        .add_rule(dsl::SpacingRule {
+            name: None,
             pattern: NODE_ROOT.into(),
             space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::None }
         })
-        .rule(dsl::SpacingRule {
+        .add_rule(dsl::SpacingRule {
+            name: None,
             pattern: NODE_ROOT.into(),
             space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
         })

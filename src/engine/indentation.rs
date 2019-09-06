@@ -6,7 +6,7 @@ use std::{
 use rnix::{SmolStr, SyntaxElement, SyntaxKind::NODE_ROOT, SyntaxNode, TextUnit};
 
 use crate::{
-    dsl::{IndentRule, Modality},
+    dsl::{IndentRule, Modality, RuleName},
     engine::{BlockPosition, FmtModel, SpaceBlock, SpaceBlockOrToken},
     pattern::{Pattern, PatternSet},
 };
@@ -155,14 +155,14 @@ impl IndentRule {
             _ => IndentLevel::default(),
         };
         let block = model.block_for(element, BlockPosition::Before);
-        block.set_indent(anchor_indent.indent());
+        block.set_indent(anchor_indent.indent(), self.name);
     }
 }
 
 impl SpaceBlock {
-    fn set_indent(&mut self, indent: IndentLevel) {
+    fn set_indent(&mut self, indent: IndentLevel, rule: RuleName) {
         let newlines: String = self.text().chars().filter(|&it| it == '\n').collect();
-        self.set_text(&format!("{}{}", newlines, indent));
+        self.set_text(&format!("{}{}", newlines, indent), Some(rule));
     }
 
     fn indent(&self) -> IndentLevel {
@@ -180,7 +180,7 @@ pub(super) fn default_indent(
         _ => IndentLevel::default(),
     };
     let block = model.block_for(element, BlockPosition::Before);
-    block.set_indent(anchor_indent);
+    block.set_indent(anchor_indent, RuleName::new("Preserve indentation"));
 }
 
 /// Computes an anchoring element, together with its indent.

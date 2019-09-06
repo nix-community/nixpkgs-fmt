@@ -1,4 +1,6 @@
 //! This module contains a definition of pattern-based formatting DSL.
+use std::fmt;
+
 use rnix::SyntaxElement;
 
 use crate::{
@@ -11,6 +13,7 @@ use crate::{
 /// `IndentRule` for that!
 #[derive(Debug)]
 pub(crate) struct SpacingRule {
+    pub(crate) name: Option<RuleName>,
     /// An element to which this spacing rule applies
     pub(crate) pattern: Pattern,
     /// How much space to add/remove at the start or end of the element.
@@ -77,19 +80,32 @@ impl SpacingDsl {
     ///
     /// This is a low-level method for special cases, common cases are handled
     /// by a more convenient `SpacingRuleBuilder`.
-    pub(crate) fn rule(&mut self, rule: SpacingRule) -> &mut SpacingDsl {
+    pub(crate) fn add_rule(&mut self, rule: SpacingRule) -> &mut SpacingDsl {
         self.rules.push(rule);
         self
     }
-    /// Specify a spacing rule for an element which is a child of `parent`.
-    pub(crate) fn inside(&mut self, parent: impl Into<Pattern>) -> SpacingRuleBuilder {
+    /// Add a new rule with the given `name`.
+    pub(crate) fn rule(&mut self, name: &'static str) -> SpacingRuleBuilder<'_> {
         SpacingRuleBuilder {
             dsl: self,
-            parent: parent.into(),
+            rule_name: Some(name),
+            parent: None,
             child: None,
             between: None,
             loc: None,
         }
+    }
+    /// Specify an anonymous spacing rule for an element which is a child of `parent`.
+    pub(crate) fn inside(&mut self, parent: impl Into<Pattern>) -> SpacingRuleBuilder<'_> {
+        SpacingRuleBuilder {
+            dsl: self,
+            rule_name: None,
+            parent: None,
+            child: None,
+            between: None,
+            loc: None,
+        }
+        .inside(parent)
     }
     pub(crate) fn test(&mut self, before: &'static str, after: &'static str) -> &mut SpacingDsl {
         #[cfg(test)]
@@ -104,13 +120,19 @@ impl SpacingDsl {
 /// A builder to conveniently specify a single rule.
 pub(crate) struct SpacingRuleBuilder<'a> {
     dsl: &'a mut SpacingDsl,
-    parent: Pattern,
+    rule_name: Option<&'static str>,
+    parent: Option<Pattern>,
     child: Option<Pattern>,
     between: Option<(Pattern, Pattern)>,
     loc: Option<SpaceLoc>,
 }
 
 impl<'a> SpacingRuleBuilder<'a> {
+    /// The rule applies to direct children of the `parent` element.
+    pub(crate) fn inside(mut self, parent: impl Into<Pattern>) -> SpacingRuleBuilder<'a> {
+        self.parent = Some(parent.into());
+        self
+    }
     /// The rule applies to both sides of the element `child`.
     pub(crate) fn around(mut self, child: impl Into<Pattern>) -> SpacingRuleBuilder<'a> {
         self.child = Some(child.into());
@@ -170,6 +192,7 @@ impl<'a> SpacingRuleBuilder<'a> {
     }
     fn finish(self, value: SpaceValue) -> &'a mut SpacingDsl {
         assert!(self.between.is_some() ^ self.child.is_some());
+        let parent = self.parent.expect("parent must be set for each rule");
         if let Some((left, right)) = self.between {
             let child = {
                 let left = left.clone();
@@ -179,26 +202,29 @@ impl<'a> SpacingRuleBuilder<'a> {
                 })
             };
             let rule = SpacingRule {
-                pattern: child.with_parent(self.parent.clone()),
+                name: self.rule_name.map(RuleName),
+                pattern: child.with_parent(parent.clone()),
                 space: Space { value, loc: SpaceLoc::After },
             };
-            self.dsl.rule(rule);
+            self.dsl.add_rule(rule);
 
             let child = right
                 & Pattern::from(move |it: &SyntaxElement| {
                     prev_non_whitespace_sibling(it).map(|it| left.matches(&it)) == Some(true)
                 });
             let rule = SpacingRule {
-                pattern: child.with_parent(self.parent),
+                name: self.rule_name.map(RuleName),
+                pattern: child.with_parent(parent),
                 space: Space { value, loc: SpaceLoc::Before },
             };
-            self.dsl.rule(rule);
+            self.dsl.add_rule(rule);
         } else {
             let rule = SpacingRule {
-                pattern: self.child.unwrap().with_parent(self.parent),
+                name: self.rule_name.map(RuleName),
+                pattern: self.child.unwrap().with_parent(parent),
                 space: Space { value, loc: self.loc.unwrap() },
             };
-            self.dsl.rule(rule);
+            self.dsl.add_rule(rule);
         }
         self.dsl
     }
@@ -218,8 +244,14 @@ pub(crate) enum IndentValue {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuleName(&'static str);
 
+impl fmt::Display for RuleName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
 impl RuleName {
-    fn new(name: &'static str) -> RuleName {
+    pub(crate) fn new(name: &'static str) -> RuleName {
         assert!(name.chars().next().unwrap().is_uppercase(), "rule names should be capitalized");
         assert!(name.chars().last().unwrap() != '.', "rule names should not end in `.`");
         RuleName(name)

@@ -7,9 +7,9 @@ mod pattern;
 
 use std::borrow::Cow;
 
-use rnix::{SmolStr, SyntaxNode, TextRange};
+use rnix::{SmolStr, SyntaxNode, TextRange, TextUnit};
 
-use crate::tree_utils::walk_tokens;
+use crate::dsl::RuleName;
 
 /// The result of formatting.
 ///
@@ -18,7 +18,7 @@ use crate::tree_utils::walk_tokens;
 #[derive(Debug)]
 pub struct FmtDiff {
     original_node: SyntaxNode,
-    edits: Vec<AtomEdit>,
+    edits: Vec<(AtomEdit, Option<RuleName>)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,8 +29,8 @@ pub struct AtomEdit {
 
 impl FmtDiff {
     /// Get the diff of deletes and inserts
-    pub fn text_diff(&self) -> &[AtomEdit] {
-        &self.edits
+    pub fn text_diff(&self) -> Vec<AtomEdit> {
+        self.edits.iter().map(|(edit, _reason)| edit.clone()).collect()
     }
 
     /// Whether or not formatting did caused any changes
@@ -41,11 +41,10 @@ impl FmtDiff {
     /// Apply the formatting suggestions and return the new string
     pub fn to_string(&self) -> String {
         // TODO: don't copy strings all over the place
-        let old_text =
-            walk_tokens(&self.original_node).map(|it| it.to_string()).collect::<String>();
+        let old_text = self.original_node.to_string();
 
         let mut total_len = old_text.len();
-        let mut edits = self.edits.clone();
+        let mut edits = self.text_diff();
         edits.sort_by_key(|edit| edit.delete.start());
 
         for atom in edits.iter() {
@@ -66,6 +65,38 @@ impl FmtDiff {
         }
         buf.push_str(&old_text[prev..]);
         assert_eq!(buf.len(), total_len);
+        buf
+    }
+
+    pub fn explain(&self) -> String {
+        let mut buf = String::new();
+        let mut line_start: TextUnit = 0.into();
+        for line in self.original_node.to_string().lines() {
+            let line_len = TextUnit::of_str(line) + TextUnit::of_str("\n");
+            let line_range = TextRange::offset_len(line_start, line_len);
+
+            buf.push_str(line);
+            let mut first = true;
+            for (edit, reason) in self.edits.iter() {
+                if line_range.contains(edit.delete.end()) {
+                    if first {
+                        first = false;
+                        buf.push_str("  # ")
+                    } else {
+                        buf.push_str(", ")
+                    }
+                    buf.push_str(&format!("{}: ", edit.delete));
+                    if let Some(reason) = reason {
+                        buf.push_str(&reason.to_string());
+                    } else {
+                        buf.push_str("unnamed rule")
+                    }
+                }
+            }
+            buf.push('\n');
+
+            line_start += line_len;
+        }
         buf
     }
 
@@ -99,6 +130,14 @@ pub fn reformat_string(text: &str) -> String {
     }
 }
 
+pub fn explain(text: &str) -> String {
+    let (text, _line_endings) = convert_to_unix_line_endings(text);
+    let ast = rnix::parse(&*text);
+    let root_node = ast.node();
+    let diff = reformat_node(&root_node);
+    diff.explain()
+}
+
 enum LineEndings {
     Unix,
     Dos,
@@ -128,5 +167,18 @@ mod tests {
     #[test]
     fn converts_tabs_to_spaces() {
         assert_eq!(&reformat_string("{\n\tfoo = 92;\t}\n"), "{\n  foo = 92;\n}\n");
+    }
+
+    #[test]
+    fn explain_smoke_test() {
+        let input = "{\nfoo =1;\n}\n";
+        let explanation = explain(input);
+        assert_eq!(
+            explanation,
+            "{
+foo =1;  # [1; 2): Indent attribute set content, [7; 7): Space after =
+}
+"
+        )
     }
 }
