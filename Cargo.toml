@@ -16,7 +16,7 @@ members = [ "./wasm" ]
 [dependencies]
 clap = "2.33.0"
 ignore = "0.4.10"
-rnix = "0.6.0"
+rnix = "0.7.0"
 
 # Enable serialization support for rnix syntax trees.
 # Ideally, the feature should be enabled only for binary,
@@ -29,3 +29,4 @@ features = [ "serde1" ]
 
 [dev-dependencies]
 unindent = "0.1.3"
+
