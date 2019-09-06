@@ -19,14 +19,14 @@ pub(crate) fn spacing() -> SpacingDsl {
     dsl
         .test("{ a=92; }", "{ a = 92; }")
         .rule("Space before =")
-            .inside(NODE_SET_ENTRY).before(T![=]).single_space()
+            .inside(NODE_KEY_VALUE).before(T![=]).single_space()
 
         .rule("Space after =")
-            .inside(NODE_SET_ENTRY).after(T![=]).single_space_or_optional_newline()
+            .inside(NODE_KEY_VALUE).after(T![=]).single_space_or_optional_newline()
 
         .test("{ a = 92 ; }", "{ a = 92; }")
-        .inside(NODE_SET_ENTRY).before(T![;]).no_space_or_optional_newline()
-        .inside(NODE_SET_ENTRY).before(T![;]).when(after_literal).no_space()
+        .inside(NODE_KEY_VALUE).before(T![;]).no_space_or_optional_newline()
+        .inside(NODE_KEY_VALUE).before(T![;]).when(after_literal).no_space()
 
         .test("a==  b", "a == b")
         .test("a!=  b", "a != b")
@@ -35,11 +35,11 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("a  -   b", "a - b")
         .test("a*  b", "a * b")
         .test("a/  b", "a / b")
-        .inside(NODE_OPERATION).after(BIN_OPS).single_space()
-        .inside(NODE_OPERATION).before(BIN_OPS).single_space_or_optional_newline()
+        .inside(NODE_BIN_OP).after(BIN_OPS).single_space()
+        .inside(NODE_BIN_OP).before(BIN_OPS).single_space_or_optional_newline()
 
         .test("foo . bar . baz", "foo.bar.baz")
-        .inside(NODE_INDEX_SET).around(T![.]).no_space()
+        .inside(NODE_SELECT).around(T![.]).no_space()
 
         .test("{} :92", "{}: 92")
         .inside(NODE_LAMBDA).before(T![:]).no_space()
@@ -59,12 +59,12 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PAREN).before(T![")"]).no_space_or_newline()
 
         .test("{foo = 92;}", "{ foo = 92; }")
-        .inside(NODE_SET).after(T!["{"]).single_space_or_newline()
-        .inside(NODE_SET).before(T!["}"]).single_space_or_newline()
+        .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
+        .inside(NODE_ATTR_SET).before(T!["}"]).single_space_or_newline()
         .test("{ }", "{}")
-        .inside(NODE_SET).between(T!["{"], T!["}"]).no_space()
-        .inside(NODE_SET).between(NODE_SET_ENTRY, NODE_SET_ENTRY).single_space_or_newline()
-        .inside(NODE_SET).between(NODE_SET_ENTRY, TOKEN_COMMENT).single_space_or_optional_newline()
+        .inside(NODE_ATTR_SET).between(T!["{"], T!["}"]).no_space()
+        .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, NODE_KEY_VALUE).single_space_or_newline()
+        .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, TOKEN_COMMENT).single_space_or_optional_newline()
 
         .test("{arg}: 92", "{ arg }: 92")
         .inside(NODE_PATTERN).after(T!["{"]).single_space()
@@ -139,7 +139,7 @@ fn after_literal(node: &SyntaxElement) -> bool {
     };
 
     fn is_literal(kind: SyntaxKind) -> bool {
-        kind == NODE_SET || kind == NODE_LIST
+        kind == NODE_ATTR_SET || kind == NODE_LIST
     }
 }
 
@@ -187,7 +187,7 @@ pub(crate) fn indentation() -> IndentDsl {
             "#)
 
         .rule("Indent attribute set content")
-            .inside(NODE_SET)
+            .inside(NODE_ATTR_SET)
             .not_matching([T!["{"], T!["}"]])
             .set(Indent)
             .test(r#"
@@ -239,7 +239,7 @@ pub(crate) fn indentation() -> IndentDsl {
             "#)
 
         .rule("Indent attribute value")
-            .inside(NODE_SET_ENTRY)
+            .inside(NODE_KEY_VALUE)
             .not_matching(T![;])
             .set(Indent)
             .test(r#"
@@ -311,7 +311,7 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .rule("Indent with body in attribute")
             .inside([NODE_WITH, NODE_ASSERT])
-            .when_anchor(NODE_SET_ENTRY)
+            .when_anchor(NODE_KEY_VALUE)
             .set(Indent)
             .test(r#"
                 with foo;
@@ -406,14 +406,14 @@ fn on_top_level(element: &SyntaxElement) -> bool {
 static VALUES: &[SyntaxKind] = &[
     NODE_LAMBDA,
     NODE_IDENT,
-    NODE_INDEX_SET,
+    NODE_SELECT,
     NODE_LET_IN,
     NODE_LIST,
-    NODE_OPERATION,
+    NODE_BIN_OP,
     NODE_PAREN,
-    NODE_SET,
+    NODE_ATTR_SET,
     NODE_STRING,
-    NODE_VALUE,
+    NODE_LITERAL,
     NODE_APPLY,
     NODE_IF_ELSE,
 ];
