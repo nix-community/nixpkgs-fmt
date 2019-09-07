@@ -1,10 +1,27 @@
 
+0.5.0 / 2019-09-07
+==================
+
+### Formatting changes
+
+  * convert tabs to spaces (#143)
+
+## Features
+
+  * add --explain mode to expose the engine rewrite decisions (#142)
+
+### Other
+
+  * replace #[macro_use] extern crate with modern syntax (#141)
+  * incorporate recent rnix renamings (#144)
+  * nix: use naersk so hashes are always up to date (#145)
+
 0.4.0 / 2019-08-31
 ==================
 
 ### Formatting changes
 
-* Don't force newline before ++ anymore
+* Don't force newline before ++ anymore (#139)
 * Always indent concatenated lists
 * Add line break after comment in list
 
