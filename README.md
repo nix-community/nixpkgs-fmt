@@ -85,6 +85,7 @@ USAGE:
     nixpkgs-fmt [FLAGS] [FILE]...
 
 FLAGS:
+        --explain          Show which rules are violated
     -h, --help             Prints help information
         --output-format    Output syntax tree in JSON format
         --parse            Show syntax tree instead of reformatting

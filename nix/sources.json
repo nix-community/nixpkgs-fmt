@@ -1,4 +1,16 @@
 {
+    "naersk": {
+        "branch": "master",
+        "description": "Fast, flexible and eco-friendly Nix shipping of cargo crates since 2019",
+        "homepage": null,
+        "owner": "nmattia",
+        "repo": "naersk",
+        "rev": "5b148cf5ef11aa80a035a27f08b611eff5305647",
+        "sha256": "1mfyyk3glhz4kjmvsi2srsmxzn4d2l64k1bavc7lzp3lq01gv599",
+        "type": "tarball",
+        "url": "https://github.com/nmattia/naersk/archive/5b148cf5ef11aa80a035a27f08b611eff5305647.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "nixpkgs": {
         "branch": "master",
         "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
