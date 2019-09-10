@@ -16,7 +16,7 @@ https://nix-community.github.io/nixpkgs-fmt/
 
 ## Design decisions
 
-You migth ask yourself; why do we need yet another nix code formatter?
+You might ask yourself; why do we need yet another nix code formatter?
 
 The main goal of nixpkgs-fmt is to provide some overall consistency in the
 nix code submitted to [nixpkgs](https://github.com/NixOS/nixpkgs), our main
