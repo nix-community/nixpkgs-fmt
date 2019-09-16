@@ -1,4 +1,21 @@
 
+0.6.0 / 2019-09-16
+==================
+
+### Formatting changes
+
+NONE
+
+### Features
+
+  * print touched files to stdout (#148)
+  * implement `nixpkgs-fmt --check` for CI (#148)
+
+### Other
+
+  * shell.nix: pin rust version and use extensions from the distribution (#148)
+  * fix typo in README (#146)
+
 0.5.0 / 2019-09-07
 ==================
 

@@ -78,13 +78,14 @@ exists and what role it can play.
 
 `$ nixpkgs-fmt --help 2>&1 || true`
 ```
-nixpkgs-fmt 0.5.0
+nixpkgs-fmt 0.6.0
 Format Nix code
 
 USAGE:
     nixpkgs-fmt [FLAGS] [FILE]...
 
 FLAGS:
+        --check            Only test if the formatter would produce differences
         --explain          Show which rules are violated
     -h, --help             Prints help information
         --output-format    Output syntax tree in JSON format
