@@ -14,13 +14,16 @@ repository = "https://github.com/nix-community/nixpkgs-fmt"
 members = [ "./wasm" ]
 
 [dependencies]
-clap = "2.33.0"
-ignore = "0.4.10"
 rnix = "0.7.0"
 
-# Enable serialization support for rnix syntax trees.
+# Dependencies that are used in the binary only
 # Ideally, the feature should be enabled only for binary,
 # but Cargo can't express that nicely yet.
+crossbeam-channel = "0.3"
+ignore = "0.4.10"
+clap = "2.33.0"
+
+# Enable serialization support for rnix syntax trees.
 serde_json = "1.0"
 
 [dependencies.rowan]
