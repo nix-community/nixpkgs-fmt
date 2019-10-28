@@ -17,14 +17,16 @@ use crate::{
 
 pub(super) fn fix(element: SyntaxElement, model: &mut FmtModel, anchor_set: &PatternSet<&Pattern>) {
     match element {
-        NodeOrToken::Node(node) => match node.kind() {
-            NODE_STRING => fix_string_indentation(&node, model, anchor_set),
-            _ => (),
-        },
-        NodeOrToken::Token(token) => match token.kind() {
-            TOKEN_COMMENT => fix_comment_indentation(&token, model),
-            _ => (),
-        },
+        NodeOrToken::Node(node) => {
+            if let NODE_STRING = node.kind() {
+                fix_string_indentation(&node, model, anchor_set)
+            }
+        }
+        NodeOrToken::Token(token) => {
+            if let TOKEN_COMMENT = token.kind() {
+                fix_comment_indentation(&token, model)
+            }
+        }
     }
 }
 
@@ -163,7 +165,7 @@ fn string_indent_ranges(mut s: &str) -> Vec<TextRange> {
         s = &s[indent_start..];
         offset += indent_start;
 
-        let indent_len = s.find(|c| c != ' ').unwrap_or(s.len());
+        let indent_len = s.find(|c| c != ' ').unwrap_or_else(|| s.len());
         s = &s[indent_len..];
         offset += indent_len;
         if s.starts_with('\n') {

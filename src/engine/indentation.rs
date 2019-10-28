@@ -102,11 +102,11 @@ impl IndentLevel {
         IndentLevel { level: self.level + 1, alignment: self.alignment }
     }
 
-    pub(super) fn len(&self) -> TextUnit {
+    pub(super) fn len(self) -> TextUnit {
         (self.level * INDENT_SIZE + self.alignment).into()
     }
 
-    fn as_short_str(&self) -> Option<&'static str> {
+    fn as_short_str(self) -> Option<&'static str> {
         #[rustfmt::skip]
         const SPACES: &str =
 "                                                                                                ";

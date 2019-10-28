@@ -5,7 +5,7 @@ mod rules;
 mod tree_utils;
 mod pattern;
 
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt, fmt::Formatter};
 
 use rnix::{SmolStr, SyntaxNode, TextRange, TextUnit};
 
@@ -27,19 +27,8 @@ pub struct AtomEdit {
     pub insert: SmolStr,
 }
 
-impl FmtDiff {
-    /// Get the diff of deletes and inserts
-    pub fn text_diff(&self) -> Vec<AtomEdit> {
-        self.edits.iter().map(|(edit, _reason)| edit.clone()).collect()
-    }
-
-    /// Whether or not formatting did caused any changes
-    pub fn has_changes(&self) -> bool {
-        !self.edits.is_empty()
-    }
-
-    /// Apply the formatting suggestions and return the new string
-    pub fn to_string(&self) -> String {
+impl fmt::Display for FmtDiff {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         // TODO: don't copy strings all over the place
         let old_text = self.original_node.to_string();
 
@@ -65,7 +54,19 @@ impl FmtDiff {
         }
         buf.push_str(&old_text[prev..]);
         assert_eq!(buf.len(), total_len);
-        buf
+        write!(f, "{}", buf)
+    }
+}
+
+impl FmtDiff {
+    /// Get the diff of deletes and inserts
+    pub fn text_diff(&self) -> Vec<AtomEdit> {
+        self.edits.iter().map(|(edit, _reason)| edit.clone()).collect()
+    }
+
+    /// Whether or not formatting did caused any changes
+    pub fn has_changes(&self) -> bool {
+        !self.edits.is_empty()
     }
 
     pub fn explain(&self) -> String {
