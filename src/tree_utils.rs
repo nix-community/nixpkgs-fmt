@@ -46,6 +46,6 @@ pub(crate) fn next_non_whitespace_sibling(element: &SyntaxElement) -> Option<Syn
         .find(|it| it.kind() != TOKEN_WHITESPACE)
 }
 
-pub(crate) fn preceding_tokens<'a>(node: &'a SyntaxNode) -> impl Iterator<Item = SyntaxToken> {
+pub(crate) fn preceding_tokens(node: &SyntaxNode) -> impl Iterator<Item = SyntaxToken> {
     successors(node.first_token().and_then(|it| it.prev_token()), |it| it.prev_token())
 }

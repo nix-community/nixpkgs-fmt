@@ -253,7 +253,7 @@ impl fmt::Display for RuleName {
 impl RuleName {
     pub(crate) fn new(name: &'static str) -> RuleName {
         assert!(name.chars().next().unwrap().is_uppercase(), "rule names should be capitalized");
-        assert!(name.chars().last().unwrap() != '.', "rule names should not end in `.`");
+        assert!(!name.ends_with('.'), "rule names should not end in `.`");
         RuleName(name)
     }
 }
