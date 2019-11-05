@@ -1,4 +1,15 @@
 
+0.6.1 / 2019-11-05
+==================
+
+### Formatting changes
+
+  * Support float scientific notation (#150)
+
+### Other
+
+  * Fix clippy lint warnings/errors (#149)
+
 0.6.0 / 2019-09-16
 ==================
 
@@ -23,7 +34,7 @@ NONE
 
   * convert tabs to spaces (#143)
 
-## Features
+### Features
 
   * add --explain mode to expose the engine rewrite decisions (#142)
 
