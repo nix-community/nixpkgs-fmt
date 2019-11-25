@@ -25,6 +25,7 @@ let
     src = ./.;
   };
 in
-pkgs.naersk.buildPackage src {
+pkgs.naersk.buildPackage {
+  inherit src;
   cratePaths = [ "." ];
 }
