@@ -19,9 +19,6 @@ mkdir -p "${TMPDIR}"
 # build nixpkgs-fmt with nix
 run nix-build .
 
-# build nixpkgs-fmt with cargo
-run cargo build --verbose
-
 # run after build, pre-commit needs nixpkgs-fmt
 run pre-commit run --all-files
 
