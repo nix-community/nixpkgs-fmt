@@ -52,11 +52,11 @@ At the time where we started this project none of the other formatters were
 weighted that way.
 
 To implement this, we needed a whitespace and comment-preserving parser which
-[rnix][rnix] provides to us. Then create an engine that follows the AST and
-patches the tree with rewrite rules. The nice thing about this design is that
-it also works on incomplete or broken nix code. We are able to format up to
-the part that is missing/broken, which makes it great for potential editor
-integration.
+[rnix](https://github.com/nix-community/rnix-parser) provides to us. Then create
+an engine that follows the AST and patches the tree with rewrite rules. The nice
+thing about this design is that it also works on incomplete or broken nix code.
+We are able to format up to the part that is missing/broken, which makes it
+great for potential editor integration.
 
 Most of the other formatters out there take a pretty-printing approach where
 the AST is parsed, and then a pretty-printer inspects and formats the AST back
@@ -178,7 +178,7 @@ Feel free to submit your project!
 ### Parsers
 
 * [hnix](https://github.com/haskell-nix/hnix) - Haskell implementation of Nix including a parser. The parser is not comment-preserving.
-* [rnix](https://gitlab.com/jD91mZM2/rnix) - Rust Nix parser based on [rowan](https://github.com/rust-analyzer/rowan)
+* [rnix](https://github.com/nix-community/rnix-parser) - Rust Nix parser based on [rowan](https://github.com/rust-analyzer/rowan)
 * [tree-sitter-nix](https://github.com/cstrahan/tree-sitter-nix) - Tree Sitter is a forgiving parser used by Atom for on-the-fly syntax highlighting and others. This is a implementation for Nix.
 
 ## Discussions
