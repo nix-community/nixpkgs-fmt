@@ -27,5 +27,6 @@ let
 in
 pkgs.naersk.buildPackage {
   inherit src;
+  root = ./.;
   cratePaths = [ "." ];
 }
