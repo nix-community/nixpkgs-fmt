@@ -7,7 +7,7 @@ set -euo pipefail
 
 run() {
   echo
-  echo "$ $*" >&2
+  echo "$ ${*@Q}" >&2
   "$@"
 }
 
@@ -21,6 +21,7 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ -n "${DEPLOY_SSH_KEY:-}" ]]; then
+  echo "DEPLOY_SSH_KEY found"
   ssh_key_path=$workdir/ssh_key
   echo "$DEPLOY_SSH_KEY" | base64 -d > "$ssh_key_path"
   run chmod 0600 "$ssh_key_path"
@@ -37,9 +38,14 @@ run cd "$workdir/repo"
 
 run git add -A .
 
-if ! run git commit --author "CI <ci@ci.com>" --message "." ; then
+if run git diff-index --quiet --cached HEAD -- ; then
+  echo "Found no changes to publish, exiting"
+  # no staged changes found
   exit
 fi
 
+run git config user.name "CI"
+run git config user.email "ci@ci.com"
+run git commit --message "."
 run git show --stat-count=10 HEAD
 run git push -f origin gh-pages
