@@ -186,3 +186,9 @@ Feel free to submit your project!
 * [nixpkgs style guide](https://nixos.org/nixpkgs/manual/#sec-syntax)
 * [On Nix expression formatting](https://discourse.nixos.org/t/on-nix-expression-formatting/1521/14)
 * [[Job] Implement a `nix-fmt` formatter](https://discourse.nixos.org/t/job-implement-a-nix-fmt-formatter/2819/12)
+
+## Sponsors
+
+This work has been sponsored by [NumTide](https://numtide.com).
+
+<img src="logo.png" alt="NumTide Logo" width="80">
