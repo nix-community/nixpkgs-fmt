@@ -191,4 +191,4 @@ Feel free to submit your project!
 
 This work has been sponsored by [NumTide](https://numtide.com).
 
-<img src="logo.png" alt="NumTide Logo" width="80">
+<img src="https://numtide.com/logo.png" alt="NumTide Logo" width="80">
