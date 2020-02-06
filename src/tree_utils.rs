@@ -27,6 +27,10 @@ pub(crate) fn has_newline(node: &SyntaxNode) -> bool {
     walk_tokens(node).any(|it| it.text().contains('\n'))
 }
 
+pub(crate) fn get_parent(element: &SyntaxElement) -> Option<SyntaxNode> {
+    element.parent()
+}
+
 pub(crate) fn prev_sibling(element: &SyntaxElement) -> Option<SyntaxNode> {
     successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token()).find_map(
         |element| match element {
