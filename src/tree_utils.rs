@@ -27,6 +27,10 @@ pub(crate) fn has_newline(node: &SyntaxNode) -> bool {
     walk_tokens(node).any(|it| it.text().contains('\n'))
 }
 
+pub(crate) fn get_parent(element: &SyntaxElement) -> Option<SyntaxNode> {
+    element.parent()
+}
+
 pub(crate) fn prev_sibling(element: &SyntaxElement) -> Option<SyntaxNode> {
     successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token()).find_map(
         |element| match element {
@@ -35,7 +39,14 @@ pub(crate) fn prev_sibling(element: &SyntaxElement) -> Option<SyntaxNode> {
         },
     )
 }
-
+pub(crate) fn next_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken> {
+    successors(element.next_sibling_or_token(), |it| it.next_sibling_or_token()).find_map(
+        |element| match element {
+            NodeOrToken::Node(_) => None,
+            NodeOrToken::Token(it) => Some(it),
+        },
+    )
+}
 pub(crate) fn prev_non_whitespace_sibling(element: &SyntaxElement) -> Option<SyntaxElement> {
     successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token())
         .find(|it| it.kind() != TOKEN_WHITESPACE)

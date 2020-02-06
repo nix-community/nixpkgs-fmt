@@ -1,15 +1,17 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
     types::{Lambda, TypedNode, With},
-    SyntaxElement, SyntaxKind,
+    NodeOrToken, SyntaxElement, SyntaxKind,
     SyntaxKind::*,
-    T,
+    SyntaxToken, T,
 };
 
 use crate::{
     dsl::{self, IndentDsl, IndentValue::*, SpacingDsl},
     pattern::p,
-    tree_utils::{has_newline, next_non_whitespace_sibling, prev_sibling},
+    tree_utils::{
+        get_parent, has_newline, next_non_whitespace_sibling, next_token_sibling, prev_sibling,
+    },
 };
 
 #[rustfmt::skip]
@@ -85,8 +87,9 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_INHERIT_FROM).before(T![")"]).no_space()
 
         .test("let   foo = bar;in  92", "let foo = bar; in 92")
-        .inside(NODE_LET_IN).after(T![let]).single_space_or_newline()
-        .inside(NODE_LET_IN).around(T![in]).single_space_or_newline()
+        .inside(NODE_LET_IN).after(T![let]).single_space_or_optional_newline()
+        .inside(NODE_LET_IN).before(T![in]).single_space_or_optional_newline()
+        .inside(NODE_LET_IN).after(T![in]).single_space_or_newline()
 
         .test("{a?3}: a", "{ a ? 3 }: a")
         .inside(NODE_PAT_ENTRY).around(T![?]).single_space()
@@ -125,6 +128,16 @@ pub(crate) fn spacing() -> SpacingDsl {
             pattern: NODE_ROOT.into(),
             space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
         })
+        .add_rule(dsl::SpacingRule {
+            name: None,
+            pattern: p(TOKEN_LET) & p(let_contain_linebreak_pattern),
+            space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
+        })
+        .add_rule(dsl::SpacingRule {
+            name: None,
+            pattern: p(TOKEN_IN) & p(in_contain_linebreak_pattern),
+            space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
+        })
         ;
 
     dsl
@@ -149,6 +162,30 @@ fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
         let pattern = lambda.arg().and_then(rnix::types::Pattern::cast)?;
         Some(has_newline(pattern.node()))
     }
+    find(element) == Some(true)
+}
+
+// special-cased to force a linebreak after `let` when `in` is not inline
+fn let_contain_linebreak_pattern(element: &SyntaxElement) -> bool {
+    fn find(element: &SyntaxElement) -> Option<bool> {
+        let token_let = next_non_whitespace_sibling(element)?;
+        let let_pattern = next_token_sibling(&token_let)?.text().contains('\n');
+
+        Some(let_pattern)
+    }
+
+    find(element) == Some(true)
+}
+
+fn in_contain_linebreak_pattern(element: &SyntaxElement) -> bool {
+    fn find(element: &SyntaxElement) -> Option<bool> {
+        let token_in = get_parent(element)?.next_sibling_or_token()?;
+        match token_in {
+            NodeOrToken::Node(_) => None,
+            NodeOrToken::Token(it) => Some(it.text().contains(';')),
+        }
+    }
+
     find(element) == Some(true)
 }
 
