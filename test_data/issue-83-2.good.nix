@@ -3,6 +3,5 @@
     a = ''
       foo
     '';
-  in
-    a
+  in a
 )

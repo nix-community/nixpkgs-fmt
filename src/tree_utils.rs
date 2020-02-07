@@ -47,6 +47,21 @@ pub(crate) fn next_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken>
         },
     )
 }
+
+pub(crate) fn prev_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken> {
+    successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token()).find_map(
+        |element| match element {
+            NodeOrToken::Node(_) => None,
+            NodeOrToken::Token(it) => Some(it),
+        },
+    )
+}
+
+pub(crate) fn prev_non_whitespace_parent(element: &SyntaxElement) -> Option<SyntaxElement> {
+    successors(get_parent(element)?.prev_sibling_or_token(), |it| it.prev_sibling_or_token())
+        .find(|it| it.kind() != TOKEN_WHITESPACE)
+}
+
 pub(crate) fn prev_non_whitespace_sibling(element: &SyntaxElement) -> Option<SyntaxElement> {
     successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token())
         .find(|it| it.kind() != TOKEN_WHITESPACE)
