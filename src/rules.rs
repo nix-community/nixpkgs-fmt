@@ -169,11 +169,10 @@ fn after_literal(node: &SyntaxElement) -> bool {
 }
 
 fn next_sibling_has_newline(element: &SyntaxElement) -> bool {
-    element.next_sibling_or_token().and_then(|e| {
-        e.into_token().map(|t| {
-            t.text().contains("\n")
-        })
-    }).unwrap_or(false)
+    element
+        .next_sibling_or_token()
+        .and_then(|e| e.into_token().map(|t| t.text().contains("\n")))
+        .unwrap_or(false)
 }
 
 fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
