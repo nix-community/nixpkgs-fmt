@@ -3,14 +3,15 @@ use rnix::{
     types::{Lambda, TypedNode, With},
     NodeOrToken, SyntaxElement, SyntaxKind,
     SyntaxKind::*,
-    SyntaxToken, T,
+    T,
 };
 
 use crate::{
     dsl::{self, IndentDsl, IndentValue::*, SpacingDsl},
     pattern::p,
     tree_utils::{
-        get_parent, has_newline, next_non_whitespace_sibling, next_token_sibling, prev_sibling,
+        get_parent, has_newline, next_non_whitespace_sibling, next_token_sibling,
+        prev_non_whitespace_parent, prev_sibling, prev_token_sibling,
     },
 };
 
@@ -88,9 +89,8 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         .test("let   foo = bar;in  92", "let foo = bar; in 92")
         .inside(NODE_LET_IN).after(T![let]).single_space_or_optional_newline()
-        .inside(NODE_LET_IN).before(T![in]).single_space_or_optional_newline()
-        .inside(NODE_LET_IN).after(T![in]).single_space_or_newline()
-
+        .inside(NODE_LET_IN).around(T![in]).single_space_or_optional_newline()
+        
         .test("{a?3}: a", "{ a ? 3 }: a")
         .inside(NODE_PAT_ENTRY).around(T![?]).single_space()
 
@@ -135,9 +135,19 @@ pub(crate) fn spacing() -> SpacingDsl {
         })
         .add_rule(dsl::SpacingRule {
             name: None,
-            pattern: p(TOKEN_IN) & p(in_contain_linebreak_pattern),
-            space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
+            pattern: p(TOKEN_LET) & p(let_contain_linebreak_pattern) & p(let_inside_lambda_pattern),
+            space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::Newline }
         })
+        .add_rule(dsl::SpacingRule {
+            name: None,
+            pattern: p(TOKEN_IN) & p(in_direct_below_root_pattern),
+            space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline}
+        })      
+        .add_rule(dsl::SpacingRule {
+            name: None,
+            pattern: p(TOKEN_IN) & p(prev_in_contain_linebreak_pattern),
+            space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::Newline}
+        })  
         ;
 
     dsl
@@ -177,13 +187,38 @@ fn let_contain_linebreak_pattern(element: &SyntaxElement) -> bool {
     find(element) == Some(true)
 }
 
-fn in_contain_linebreak_pattern(element: &SyntaxElement) -> bool {
+fn let_inside_lambda_pattern(element: &SyntaxElement) -> bool {
     fn find(element: &SyntaxElement) -> Option<bool> {
-        let token_in = get_parent(element)?.next_sibling_or_token()?;
-        match token_in {
-            NodeOrToken::Node(_) => None,
-            NodeOrToken::Token(it) => Some(it.text().contains(';')),
-        }
+        let parent_let = get_parent(element)?;
+        let inside_lambda_pattern =
+            prev_non_whitespace_parent(element)?.into_token()?.text().contains(':');
+        let prev_let_linebreak_pattern = match parent_let.prev_sibling_or_token()? {
+            NodeOrToken::Node(_) => false,
+            NodeOrToken::Token(it) => it.text().contains('\n'),
+        };
+        Some(prev_let_linebreak_pattern || inside_lambda_pattern)
+    }
+
+    find(element) == Some(true)
+}
+
+fn in_direct_below_root_pattern(element: &SyntaxElement) -> bool {
+    fn find(element: &SyntaxElement) -> Option<bool> {
+        let parent_in = on_top_level(element);
+        let get_let = get_parent(element)?.first_child_or_token()?;
+        let prev_in_linebreak_pattern = let_contain_linebreak_pattern(&get_let);
+        Some(parent_in & prev_in_linebreak_pattern)
+    }
+
+    find(element) == Some(true)
+}
+
+fn prev_in_contain_linebreak_pattern(element: &SyntaxElement) -> bool {
+    fn find(element: &SyntaxElement) -> Option<bool> {
+        let prev_in_token_pattern = prev_token_sibling(element)?.text().contains('\n');
+        let get_let = get_parent(element)?.first_child_or_token()?;
+        let prev_in_linebreak_pattern = let_contain_linebreak_pattern(&get_let);
+        Some(prev_in_token_pattern || prev_in_linebreak_pattern)
     }
 
     find(element) == Some(true)
@@ -435,7 +470,7 @@ fn on_top_level(element: &SyntaxElement) -> bool {
     };
     match parent.kind() {
         NODE_ROOT => true,
-        NODE_LAMBDA | NODE_WITH | NODE_ASSERT => on_top_level(&parent.into()),
+        NODE_LAMBDA | NODE_WITH | NODE_ASSERT | NODE_LET_IN => on_top_level(&parent.into()),
         _ => false,
     }
 }

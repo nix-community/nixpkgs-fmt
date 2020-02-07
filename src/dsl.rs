@@ -172,10 +172,6 @@ impl<'a> SpacingRuleBuilder<'a> {
     pub(crate) fn single_space(self) -> &'a mut SpacingDsl {
         self.finish(SpaceValue::Single)
     }
-    /// Enforce newline
-    pub(crate) fn newline(self) -> &'a mut SpacingDsl {
-        self.finish(SpaceValue::Newline)
-    }
     pub(crate) fn single_space_or_optional_newline(self) -> &'a mut SpacingDsl {
         self.finish(SpaceValue::SingleOptionalNewline)
     }

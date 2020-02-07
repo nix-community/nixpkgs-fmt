@@ -3,6 +3,5 @@
     let
       err = t: v: abort
         "oups";
-    in
-      92;
+    in 92;
 }
