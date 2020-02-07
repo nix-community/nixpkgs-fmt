@@ -190,6 +190,10 @@ impl<'a> SpacingRuleBuilder<'a> {
     pub(crate) fn no_space_or_newline(self) -> &'a mut SpacingDsl {
         self.finish(SpaceValue::NoneOrNewline)
     }
+    /// Enforce a newline
+    pub(crate) fn newline(self) -> &'a mut SpacingDsl {
+        self.finish(SpaceValue::Newline)
+    }
     fn finish(self, value: SpaceValue) -> &'a mut SpacingDsl {
         assert!(self.between.is_some() ^ self.child.is_some());
         let parent = self.parent.expect("parent must be set for each rule");

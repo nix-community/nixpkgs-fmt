@@ -31,6 +31,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_KEY_VALUE).before(T![;]).no_space_or_optional_newline()
         .inside(NODE_KEY_VALUE).before(T![;]).when(after_literal).no_space()
 
+        .test("a ++\nb", "a\n++ b")
+        .inside(NODE_BIN_OP).before(BIN_OPS).when(next_sibling_has_newline).newline()
         .test("a==  b", "a == b")
         .test("a!=  b", "a != b")
         .test("a++  b", "a ++ b")
@@ -164,6 +166,14 @@ fn after_literal(node: &SyntaxElement) -> bool {
     fn is_literal(kind: SyntaxKind) -> bool {
         kind == NODE_ATTR_SET || kind == NODE_LIST
     }
+}
+
+fn next_sibling_has_newline(element: &SyntaxElement) -> bool {
+    element.next_sibling_or_token().and_then(|e| {
+        e.into_token().map(|t| {
+            t.text().contains("\n")
+        })
+    }).unwrap_or(false)
 }
 
 fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
