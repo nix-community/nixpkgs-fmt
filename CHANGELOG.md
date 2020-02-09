@@ -1,4 +1,17 @@
 
+0.7.0 / 2020-02-09
+==================
+
+### Formatting changes
+
+  * Change the `let ... in ...` formatting rules (#169, #168, #167, #125)
+
+### Other
+
+  * Add flake support
+  * Update naersk
+  * CI: switch to GitHub actions
+
 0.6.1 / 2019-11-05
 ==================
 

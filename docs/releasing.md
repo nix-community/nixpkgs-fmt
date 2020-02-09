@@ -10,3 +10,4 @@ project.
 4. Create a release commit: `git commit -a -m "Release v<VERSION>"`
 5. Tag the release: `git tag v<VERSION>`
 6. Push all of this: `git push --follow-tags`
+7. Run `cargo publish`
