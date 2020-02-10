@@ -84,8 +84,9 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         .test("{ inherit( x )  y  z  ; }", "{ inherit (x) y z; }")
         .inside(NODE_INHERIT).around(NODE_INHERIT_FROM).single_space_or_optional_newline()
-        .inside(NODE_INHERIT).before(T![;]).no_space_or_newline()
+        .inside(NODE_INHERIT).before(T![;]).no_space_or_optional_newline()
         .inside(NODE_INHERIT).before(NODE_IDENT).single_space_or_optional_newline()
+        .inside(NODE_INHERIT).after(NODE_IDENT).no_space_or_optional_newline()
         .inside(NODE_INHERIT_FROM).after(T!["("]).no_space()
         .inside(NODE_INHERIT_FROM).before(T![")"]).no_space()
 
