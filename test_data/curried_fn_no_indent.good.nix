@@ -2,5 +2,5 @@
   foo =
     bar:
     baz:
-      fnbody;
+    fnbody;
 }

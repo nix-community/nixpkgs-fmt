@@ -20,38 +20,38 @@
 
         packages = forAllSystems (
           system:
-            {
-              nixpkgs-fmt = (
-                import nixpkgs {
-                  inherit system;
-                  overlays = [
-                    naerskOverlay
-                    self.overlay
-                  ];
-                }
-              ).nixpkgs-fmt;
-            }
+          {
+            nixpkgs-fmt = (
+              import nixpkgs {
+                inherit system;
+                overlays = [
+                  naerskOverlay
+                  self.overlay
+                ];
+              }
+            ).nixpkgs-fmt;
+          }
         );
 
 
         defaultPackage = forAllSystems (
           system:
-            self.packages.${system}.nixpkgs-fmt
+          self.packages.${system}.nixpkgs-fmt
         );
 
         apps = forAllSystems (
           system:
-            {
-              nixpkgs-fmt = {
-                type = "app";
-                program = "${self.defaultPackage.${system}}/bin/nixpkgs-fmt";
-              };
-            }
+          {
+            nixpkgs-fmt = {
+              type = "app";
+              program = "${self.defaultPackage.${system}}/bin/nixpkgs-fmt";
+            };
+          }
         );
 
         defaultApp = forAllSystems (
           system:
-            self.apps.${system}.nixpkgs-fmt
+          self.apps.${system}.nixpkgs-fmt
         );
 
       };

@@ -7,9 +7,8 @@
     )
   );
   xxx = listToAttrs (
-    concatMap (
-      name:
-        let a = 4; in 5
+    concatMap (name:
+      let a = 4; in 5
     )
   );
 }

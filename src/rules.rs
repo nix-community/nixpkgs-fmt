@@ -60,7 +60,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LIST).between(TOKEN_COMMENT, VALUES).single_space_or_newline()
 
         .test("( 92 )", "(92)")
-        .inside(NODE_PAREN).after(T!["("]).no_space_or_newline()
+        .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
         .inside(NODE_PAREN).before(T![")"]).no_space_or_newline()
 
         .test("{foo = 92;}", "{ foo = 92; }")
@@ -138,7 +138,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         })
         .add_rule(dsl::SpacingRule {
             name: None,
-            pattern: p(TOKEN_LET) & p(let_contain_linebreak_pattern) & p(let_inside_lambda_pattern),
+            pattern: p(TOKEN_LET) & p(let_contain_linebreak_pattern) & p(let_inside_lambda_or_paren),
             space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::Newline }
         })
         .add_rule(dsl::SpacingRule {
@@ -197,16 +197,25 @@ fn let_contain_linebreak_pattern(element: &SyntaxElement) -> bool {
     find(element) == Some(true)
 }
 
-fn let_inside_lambda_pattern(element: &SyntaxElement) -> bool {
+fn let_inside_lambda_or_paren(element: &SyntaxElement) -> bool {
     fn find(element: &SyntaxElement) -> Option<bool> {
         let parent_let = get_parent(element)?;
         let inside_lambda_pattern =
             prev_non_whitespace_parent(element)?.into_token()?.text().contains(':');
+        let inside_paren_pattern =
+            prev_non_whitespace_parent(element)?.into_token()?.text().contains('(');
+        let inside_assign_pattern =
+            prev_non_whitespace_parent(element)?.into_token()?.text().contains('=');
         let prev_let_linebreak_pattern = match parent_let.prev_sibling_or_token()? {
             NodeOrToken::Node(_) => false,
             NodeOrToken::Token(it) => it.text().contains('\n'),
         };
-        Some(prev_let_linebreak_pattern || inside_lambda_pattern)
+        Some(
+            prev_let_linebreak_pattern
+                || inside_lambda_pattern
+                || inside_paren_pattern
+                || inside_assign_pattern,
+        )
     }
 
     find(element) == Some(true)
@@ -256,7 +265,7 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .rule("Indent parenthesized expressions")
             .inside(NODE_PAREN)
-            .not_matching([T!["("], T![")"]])
+            .not_matching([T!["("],T![")"]])
             .set(Indent)
             .test(r#"
                 (
@@ -355,8 +364,8 @@ pub(crate) fn indentation() -> IndentDsl {
             "#)
 
         .rule("Indent lambda body")
-            .inside(p(NODE_LAMBDA) & p(not_on_top_level))
-            .not_matching([NODE_LAMBDA, TOKEN_COMMENT])
+            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(inline_lambda)) //& p(align_comment)
+            //.not_matching()
             .set(Indent)
             .test(r#"
                 {}:
@@ -376,7 +385,7 @@ pub(crate) fn indentation() -> IndentDsl {
                     bar:
                     # describe baz
                     baz:
-                      fnbody;
+                    fnbody;
                 }
             "#)
 
@@ -469,6 +478,13 @@ pub(crate) fn indentation() -> IndentDsl {
     dsl
 }
 
+fn inline_lambda(element: &SyntaxElement) -> bool {
+    prev_token_sibling(element).map(|t| t.text().contains("\n")) != Some(true)
+}
+
+fn align_comment(element: &SyntaxElement) -> bool {
+    prev_token_sibling(element).map(|t| t.text().contains("\n")) != Some(true)
+}
 fn not_on_top_level(element: &SyntaxElement) -> bool {
     !on_top_level(element)
 }
