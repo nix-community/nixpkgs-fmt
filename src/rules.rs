@@ -364,8 +364,8 @@ pub(crate) fn indentation() -> IndentDsl {
             "#)
 
         .rule("Indent lambda body")
-            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(inline_lambda))
-            .not_matching([NODE_LAMBDA, TOKEN_COMMENT])
+            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(inline_lambda)) //& p(align_comment)
+            //.not_matching()
             .set(Indent)
             .test(r#"
                 {}:
@@ -482,6 +482,9 @@ fn inline_lambda(element: &SyntaxElement) -> bool {
     prev_token_sibling(element).map(|t| t.text().contains("\n")) != Some(true)
 }
 
+fn align_comment(element: &SyntaxElement) -> bool {
+    prev_token_sibling(element).map(|t| t.text().contains("\n")) != Some(true)
+}
 fn not_on_top_level(element: &SyntaxElement) -> bool {
     !on_top_level(element)
 }
