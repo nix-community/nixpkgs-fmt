@@ -14,4 +14,4 @@
       state = true;
     }
     tokens
-).state;
+).state
