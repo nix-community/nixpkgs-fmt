@@ -99,6 +99,7 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         .test("f  x", "f x")
         .inside(NODE_APPLY).between(VALUES, VALUES).single_space_or_optional_newline()
+        .inside(NODE_APPLY).after(NODE_SELECT).when(next_sibling_is_paren).single_space_or_newline()
 
         .test("if  cond  then  tru  else  fls", "if cond then tru else fls")
         .inside(NODE_IF_ELSE).after(T![if]).single_space_or_optional_newline()
@@ -173,6 +174,12 @@ fn next_sibling_has_newline(element: &SyntaxElement) -> bool {
     element
         .next_sibling_or_token()
         .and_then(|e| e.into_token().map(|t| t.text().contains("\n")))
+        .unwrap_or(false)
+}
+
+fn next_sibling_is_paren(element: &SyntaxElement) -> bool {
+    next_non_whitespace_sibling(element)
+        .and_then(|e| e.into_node().map(|t| t.kind() == NODE_PAREN))
         .unwrap_or(false)
 }
 
