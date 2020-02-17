@@ -49,6 +49,7 @@ pub(crate) fn format(
         // ```
         //
         // we only indent top-level node (lambda), and not it's first child (parameter)
+        // TODO : Remove it when refactoring indentation engine.
         if element.parent().map(|it| it.text_range().start()) == Some(element.text_range().start())
         {
             continue;

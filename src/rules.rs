@@ -102,9 +102,11 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_APPLY).after(NODE_SELECT).when(next_sibling_is_paren).single_space_or_newline()
 
         .test("if  cond  then  tru  else  fls", "if cond then tru else fls")
-        .inside(NODE_IF_ELSE).after(T![if]).single_space_or_optional_newline()
-        .inside(NODE_IF_ELSE).around([T![then], T![else]]).single_space_or_optional_newline()
-
+        .inside(NODE_IF_ELSE).before(T![if]).when(node_has_newline).single_space_or_newline()
+        .inside(NODE_IF_ELSE).after([T![if],T![then]]).single_space_or_optional_newline()
+        .inside(NODE_IF_ELSE).before(T![then]).single_space_or_optional_newline()
+        .inside(NODE_IF_ELSE).around(T![else]).single_space_or_optional_newline()
+        
         // special-case to force a linebreak before `=` in
         //
         // ```nix
@@ -151,7 +153,12 @@ pub(crate) fn spacing() -> SpacingDsl {
             name: None,
             pattern: p(TOKEN_IN) & p(prev_in_contain_linebreak_pattern),
             space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::Newline}
-        })  
+        })
+        .add_rule(dsl::SpacingRule {
+            name: None,
+            pattern: p(TOKEN_THEN) & p(node_has_newline) & p(not_inside_in_pattern),
+            space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::Newline}
+        })
         ;
 
     dsl
@@ -174,6 +181,21 @@ fn next_sibling_has_newline(element: &SyntaxElement) -> bool {
     element
         .next_sibling_or_token()
         .and_then(|e| e.into_token().map(|t| t.text().contains("\n")))
+        .unwrap_or(false)
+}
+
+fn node_has_newline(element: &SyntaxElement) -> bool {
+    let before_node_if = prev_non_whitespace_parent(element)
+        .and_then(|e| e.into_token().map(|t| t.kind() != TOKEN_ELSE))
+        .unwrap_or(false);
+    let newline_pattern = get_parent(element).map(|e| has_newline(&e)).unwrap_or(false);
+
+    (not_on_top_level(element) || before_node_if) & newline_pattern
+}
+
+fn not_inside_in_pattern(element: &SyntaxElement) -> bool {
+    prev_non_whitespace_parent(element)
+        .and_then(|e| e.into_token().map(|t| t.kind() != TOKEN_IN))
         .unwrap_or(false)
 }
 
@@ -371,8 +393,7 @@ pub(crate) fn indentation() -> IndentDsl {
             "#)
 
         .rule("Indent lambda body")
-            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(inline_lambda)) //& p(align_comment)
-            //.not_matching()
+            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(inline_lambda))
             .set(Indent)
             .test(r#"
                 {}:
@@ -489,9 +510,6 @@ fn inline_lambda(element: &SyntaxElement) -> bool {
     prev_token_sibling(element).map(|t| t.text().contains("\n")) != Some(true)
 }
 
-fn align_comment(element: &SyntaxElement) -> bool {
-    prev_token_sibling(element).map(|t| t.text().contains("\n")) != Some(true)
-}
 fn not_on_top_level(element: &SyntaxElement) -> bool {
     !on_top_level(element)
 }
@@ -503,7 +521,9 @@ fn on_top_level(element: &SyntaxElement) -> bool {
     };
     match parent.kind() {
         NODE_ROOT => true,
-        NODE_LAMBDA | NODE_WITH | NODE_ASSERT | NODE_LET_IN => on_top_level(&parent.into()),
+        NODE_LAMBDA | NODE_WITH | NODE_ASSERT | NODE_LET_IN | NODE_IF_ELSE => {
+            on_top_level(&parent.into())
+        }
         _ => false,
     }
 }
