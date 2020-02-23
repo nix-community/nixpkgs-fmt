@@ -5,11 +5,9 @@ let
     config = {};
     overlays = [
       (import sources.nixpkgs-mozilla)
-      (
-        self: pkgs: {
-          naersk = pkgs.callPackage sources.naersk {};
-        }
-      )
+      (self: pkgs: {
+        naersk = pkgs.callPackage sources.naersk {};
+      })
     ];
   };
 in
