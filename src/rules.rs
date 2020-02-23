@@ -10,8 +10,9 @@ use crate::{
     dsl::{self, IndentDsl, IndentValue::*, SpacingDsl},
     pattern::p,
     tree_utils::{
-        get_parent, has_newline, next_non_whitespace_sibling, next_token_sibling,
-        prev_non_whitespace_parent, prev_sibling, prev_token_sibling,
+        get_parent, has_newline, next_non_whitespace_parent, next_non_whitespace_sibling,
+        next_token_sibling, prev_non_whitespace_parent, prev_non_whitespace_sibling, prev_sibling,
+        prev_token_sibling, walk_tokens,
     },
 };
 
@@ -42,6 +43,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("a/  b", "a / b")
         .inside(NODE_BIN_OP).after(BIN_OPS).single_space()
         .inside(NODE_BIN_OP).before(BIN_OPS).single_space_or_optional_newline()
+        .inside(NODE_BIN_OP).before(BIN_OPS).when(prev_is_attrset).newline()
 
         .test("foo . bar . baz", "foo.bar.baz")
         .inside(NODE_SELECT).around(T![.]).no_space()
@@ -60,12 +62,19 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LIST).between(TOKEN_COMMENT, VALUES).single_space_or_newline()
 
         .test("( 92 )", "(92)")
+        .inside(NODE_PAREN).before(T!["("]).when(paren_inside_list).when(parent_has_newline).newline()
         .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
+        .inside(NODE_PAREN).after(T!["("]).when(paren_has_token_update).newline()        
         .inside(NODE_PAREN).before(T![")"]).no_space_or_newline()
-
+        .inside(NODE_PAREN).before(T![")"]).when(paren_inside_list).no_space()
+        .inside(NODE_PAREN).before(T![")"]).when(prev_paren_has_update).when(parent_has_newline).newline()
+        .inside(NODE_PAREN).before(T![")"]).when(prev_is_attrset).no_space()
+        
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
+        .inside(NODE_ATTR_SET).before(T!["{"]).when(next_parent_has_update).newline()
         .inside(NODE_ATTR_SET).before(T!["}"]).single_space_or_newline()
+        .inside(NODE_ATTR_SET).before(T!["}"]).when(next_parent_has_update).newline()      
         .test("{ }", "{}")
         .inside(NODE_ATTR_SET).between(T!["{"], T!["}"]).no_space()
         .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, NODE_KEY_VALUE).single_space_or_newline()
@@ -203,6 +212,46 @@ fn next_sibling_is_paren(element: &SyntaxElement) -> bool {
     next_non_whitespace_sibling(element)
         .and_then(|e| e.into_node().map(|t| t.kind() == NODE_PAREN))
         .unwrap_or(false)
+}
+
+fn paren_inside_list(element: &SyntaxElement) -> bool {
+    element.as_token().map(|e| e.ancestors().any(|n| n.kind() == NODE_LIST)).unwrap_or(false)
+}
+
+fn parent_has_newline(element: &SyntaxElement) -> bool {
+    element.parent().map(|e| has_newline(&e)).unwrap_or(false)
+}
+
+fn prev_is_attrset(element: &SyntaxElement) -> bool {
+    prev_non_whitespace_sibling(element)
+        .and_then(|e| e.into_node().map(|n| n.kind() == NODE_ATTR_SET))
+        .unwrap_or(false)
+}
+
+fn next_is_attrset(element: &SyntaxElement) -> bool {
+    next_non_whitespace_sibling(element)
+        .and_then(|e| e.into_node().map(|n| n.kind() == NODE_ATTR_SET))
+        .unwrap_or(false)
+}
+
+fn prev_paren_has_update(element: &SyntaxElement) -> bool {
+    prev_sibling(element)
+        .map(|n| walk_tokens(&n).any(|it| it.kind() == TOKEN_UPDATE))
+        .unwrap_or(false)
+}
+
+fn next_parent_has_update(element: &SyntaxElement) -> bool {
+    next_non_whitespace_parent(element)
+        .and_then(|e| e.into_token().map(|it| it.kind() == TOKEN_UPDATE))
+        .unwrap_or(false)
+}
+
+fn paren_has_token_update(element: &SyntaxElement) -> bool {
+    let token_update = element
+        .parent()
+        .map(|n| walk_tokens(&n).any(|it| it.kind() == TOKEN_UPDATE))
+        .unwrap_or(false);
+    token_update & next_is_attrset(element)
 }
 
 fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
