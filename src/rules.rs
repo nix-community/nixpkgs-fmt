@@ -65,13 +65,11 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PAREN).before(T!["("]).when(paren_inside_list).when(parent_has_newline).newline()
         .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
         .inside(NODE_PAREN).after(T!["("]).when(paren_has_token_update).newline()
-        .inside(NODE_PAREN).before(T![")"]).no_space_or_newline()
+        .inside(NODE_PAREN).before(T![")"]).no_space_or_optional_newline()
         .inside(NODE_PAREN).before(T![")"]).when(paren_inside_list).no_space()
         .inside(NODE_PAREN).before(T![")"]).when(prev_paren_has_update).when(parent_has_newline).newline()
-        .inside(NODE_PAREN).before(T![")"]).when(prev_is_attrset).no_space()
-        .inside(NODE_PAREN).before(T![")"]).when(next_node_is_select).no_space()
-        .inside(NODE_PAREN).before(T![")"]).when(prev_paren_is_select).no_space()
-        .inside(NODE_PAREN).before(T![")"]).when(next_paren_is_select).no_space() 
+        .inside(NODE_PAREN).before(T![")"]).when(around_paren_has_newline).newline()
+        .inside(NODE_PAREN).before(T![")"]).when(prev_is_attrset).no_space() 
         .inside(NODE_PAREN).before(T![")"]).when(paren_on_top_level).no_space_or_newline()
 
         .test("{foo = 92;}", "{ foo = 92; }")
@@ -238,13 +236,6 @@ fn prev_is_attrset(element: &SyntaxElement) -> bool {
         .unwrap_or(false)
 }
 
-fn next_node_is_select(element: &SyntaxElement) -> bool {
-    next_non_whitespace_parent(element)
-        .and_then(|e| e.into_token().map(|n| n.kind() == TOKEN_DOT))
-        .unwrap_or(false)
-        & around_paren_no_newline(element)
-}
-
 fn paren_on_top_level(element: &SyntaxElement) -> bool {
     let parent = match element.parent() {
         None => return true,
@@ -257,7 +248,7 @@ fn paren_on_top_level(element: &SyntaxElement) -> bool {
     }
 }
 
-fn around_paren_no_newline(element: &SyntaxElement) -> bool {
+fn around_paren_has_newline(element: &SyntaxElement) -> bool {
     fn after_open_paren_is_newline(element: &SyntaxElement) -> Option<bool> {
         let get_open_paren = get_parent(element)?.first_child_or_token()?;
 
@@ -265,27 +256,13 @@ fn around_paren_no_newline(element: &SyntaxElement) -> bool {
     }
     let prev_close_paren_is_newline =
         prev_token_sibling(element).map(|e| e.text().contains("\n")).unwrap_or(false);
-    (prev_close_paren_is_newline & after_open_paren_is_newline(element).unwrap_or(false)) == false
+    (prev_close_paren_is_newline & after_open_paren_is_newline(element).unwrap_or(false)) == true
 }
 
 fn prev_paren_has_update(element: &SyntaxElement) -> bool {
     prev_sibling(element)
         .map(|n| walk_tokens(&n).any(|it| it.kind() == TOKEN_UPDATE))
         .unwrap_or(false)
-}
-
-fn prev_paren_is_select(element: &SyntaxElement) -> bool {
-    prev_sibling(element)
-        .and_then(|n| n.last_child().map(|it| it.kind() == NODE_SELECT))
-        .unwrap_or(false)
-        & around_paren_no_newline(element)
-}
-
-fn next_paren_is_select(element: &SyntaxElement) -> bool {
-    prev_sibling(element)
-        .and_then(|n| n.last_child().map(|it| it.kind() == NODE_ATTR_SET))
-        .unwrap_or(false)
-        & around_paren_no_newline(element)
 }
 
 fn next_parent_has_update(element: &SyntaxElement) -> bool {
