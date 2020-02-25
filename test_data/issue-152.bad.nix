@@ -16,4 +16,5 @@ baz = x:
   #comment
   foo+bar;
 in
+  #comment
 id 1

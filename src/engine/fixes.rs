@@ -2,16 +2,18 @@ use std::cmp::min;
 
 use rnix::{
     NodeOrToken, SyntaxElement,
-    SyntaxKind::{NODE_STRING, TOKEN_COMMENT, TOKEN_STRING_CONTENT},
+    SyntaxKind::{NODE_STRING, TOKEN_COMMENT, TOKEN_IN, TOKEN_STRING_CONTENT},
     SyntaxNode, SyntaxToken, TextRange, TextUnit,
 };
 
 use crate::{
+    dsl::RuleName,
     engine::{
         indentation::{indent_anchor, IndentLevel},
         BlockPosition, FmtModel,
     },
     pattern::{Pattern, PatternSet},
+    tree_utils::{on_top_level, prev_non_whitespace_token_sibling},
     AtomEdit,
 };
 
@@ -88,10 +90,20 @@ fn fix_string_indentation(
 /// If we indent multiline block comment, we should indent it's content as well.
 fn fix_comment_indentation(token: &SyntaxToken, model: &mut FmtModel) {
     let is_block_comment = token.text().starts_with("/*");
+    let block = model.block_for(&token.clone().into(), BlockPosition::Before);
     if !is_block_comment {
+        let syntax_element = &token.clone().into();
+        let prev_is_token_in = prev_non_whitespace_token_sibling(syntax_element)
+            .map(|e| e.kind() == TOKEN_IN)
+            .unwrap_or(false);
+        let comment_on_top = on_top_level(syntax_element);
+        if prev_is_token_in & comment_on_top {
+            block.set_text("\n", Some(RuleName::new("Top level let comment")));
+            return;
+        }
         return;
     }
-    let block = model.block_for(&token.clone().into(), BlockPosition::Before);
+
     let (old_indent, new_indent) =
         match (indent_level(block.original_text()), indent_level(block.text())) {
             (Some(old), Some(new)) => (old, new),

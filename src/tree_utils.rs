@@ -1,7 +1,11 @@
 use std::iter::successors;
 
 use rnix::{
-    NodeOrToken, SyntaxElement, SyntaxKind::TOKEN_WHITESPACE, SyntaxNode, SyntaxToken, WalkEvent,
+    NodeOrToken, SyntaxElement,
+    SyntaxKind::{
+        NODE_ASSERT, NODE_IF_ELSE, NODE_LAMBDA, NODE_LET_IN, NODE_ROOT, NODE_WITH, TOKEN_WHITESPACE,
+    },
+    SyntaxNode, SyntaxToken, WalkEvent,
 };
 
 pub(crate) fn walk(node: &SyntaxNode) -> impl Iterator<Item = SyntaxElement> {
@@ -40,6 +44,25 @@ pub(crate) fn prev_sibling(element: &SyntaxElement) -> Option<SyntaxNode> {
         },
     )
 }
+
+pub(crate) fn not_on_top_level(element: &SyntaxElement) -> bool {
+    !on_top_level(element)
+}
+
+pub(crate) fn on_top_level(element: &SyntaxElement) -> bool {
+    let parent = match element.parent() {
+        None => return true,
+        Some(it) => it,
+    };
+    match parent.kind() {
+        NODE_ROOT => true,
+        NODE_LAMBDA | NODE_WITH | NODE_ASSERT | NODE_LET_IN | NODE_IF_ELSE => {
+            on_top_level(&parent.into())
+        }
+        _ => false,
+    }
+}
+
 pub(crate) fn next_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken> {
     successors(element.next_sibling_or_token(), |it| it.next_sibling_or_token()).find_map(
         |element| match element {
@@ -53,6 +76,16 @@ pub(crate) fn prev_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken>
     successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token()).find_map(
         |element| match element {
             NodeOrToken::Node(_) => None,
+            NodeOrToken::Token(it) => Some(it),
+        },
+    )
+}
+
+pub(crate) fn prev_non_whitespace_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken> {
+    successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token()).find_map(
+        |element| match element {
+            NodeOrToken::Node(_) => None,
+            NodeOrToken::Token(it) if it.kind() == TOKEN_WHITESPACE => None,
             NodeOrToken::Token(it) => Some(it),
         },
     )
