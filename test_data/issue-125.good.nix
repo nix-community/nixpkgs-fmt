@@ -1,8 +1,9 @@
 { foo, bar }:
 let
+  # comment
   foo = let x = y; in
     z;
-  # all in one line
+  # comment
   bar = let x = 3; in x;
   faz =
     let
@@ -24,4 +25,6 @@ let
       y = 3;
     in y;
 in
+# comment
 body
+# who put comment in this line?

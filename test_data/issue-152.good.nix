@@ -18,4 +18,5 @@ let
     #comment
     foo + bar;
 in
+#comment
 id 1
