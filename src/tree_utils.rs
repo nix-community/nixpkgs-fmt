@@ -85,8 +85,13 @@ pub(crate) fn prev_non_whitespace_token_sibling(element: &SyntaxElement) -> Opti
     successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token()).find_map(
         |element| match element {
             NodeOrToken::Node(_) => None,
-            NodeOrToken::Token(it) if it.kind() == TOKEN_WHITESPACE => None,
-            NodeOrToken::Token(it) => Some(it),
+            NodeOrToken::Token(it) => {
+                if it.kind() == TOKEN_WHITESPACE {
+                    None
+                } else {
+                    Some(it)
+                }
+            }
         },
     )
 }
