@@ -70,8 +70,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PAREN).before(T![")"]).when(prev_paren_has_update).when(parent_has_newline).newline()
         .inside(NODE_PAREN).before(T![")"]).when(around_paren_has_newline).newline()
         .inside(NODE_PAREN).before(T![")"]).when(prev_is_attrset).no_space() 
-        .inside(NODE_PAREN).before(T![")"]).when(paren_on_top_level).no_space_or_newline()
-
+        .inside(NODE_PAREN).before(T![")"]).when(prev_is_let).when(paren_on_top_level).newline()
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
         .inside(NODE_ATTR_SET).before(T!["{"]).when(next_parent_has_update).newline()
@@ -236,6 +235,12 @@ fn prev_is_attrset(element: &SyntaxElement) -> bool {
         .unwrap_or(false)
 }
 
+fn prev_is_let(element: &SyntaxElement) -> bool {
+    prev_non_whitespace_sibling(element)
+        .and_then(|e| e.into_node().map(|n| n.kind() == NODE_LET_IN))
+        .unwrap_or(false)
+}
+
 fn paren_on_top_level(element: &SyntaxElement) -> bool {
     let parent = match element.parent() {
         None => return true,
@@ -251,7 +256,6 @@ fn paren_on_top_level(element: &SyntaxElement) -> bool {
 fn around_paren_has_newline(element: &SyntaxElement) -> bool {
     fn after_open_paren_is_newline(element: &SyntaxElement) -> Option<bool> {
         let get_open_paren = get_parent(element)?.first_child_or_token()?;
-
         next_token_sibling(&get_open_paren).map(|e| e.text().contains("\n"))
     }
     let prev_close_paren_is_newline =
