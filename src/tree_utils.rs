@@ -64,21 +64,17 @@ pub(crate) fn on_top_level(element: &SyntaxElement) -> bool {
 }
 
 pub(crate) fn next_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken> {
-    successors(element.next_sibling_or_token(), |it| it.next_sibling_or_token()).find_map(
-        |element| match element {
-            NodeOrToken::Node(_) => None,
-            NodeOrToken::Token(it) => Some(it),
-        },
-    )
+    match element.next_sibling_or_token()? {
+        NodeOrToken::Node(_) => None,
+        NodeOrToken::Token(it) => Some(it),
+    }
 }
 
 pub(crate) fn prev_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken> {
-    successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token()).find_map(
-        |element| match element {
-            NodeOrToken::Node(_) => None,
-            NodeOrToken::Token(it) => Some(it),
-        },
-    )
+    match element.prev_sibling_or_token()? {
+        NodeOrToken::Node(_) => None,
+        NodeOrToken::Token(it) => Some(it),
+    }
 }
 
 pub(crate) fn prev_non_whitespace_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken> {
