@@ -2,18 +2,20 @@ use std::cmp::min;
 
 use rnix::{
     NodeOrToken, SyntaxElement,
-    SyntaxKind::{NODE_STRING, TOKEN_COMMENT, TOKEN_IN, TOKEN_STRING_CONTENT},
+    SyntaxKind::{
+        NODE_STRING, NODE_STRING_INTERPOL, TOKEN_COMMENT, TOKEN_IN, TOKEN_STRING_CONTENT,
+    },
     SyntaxNode, SyntaxToken, TextRange, TextUnit,
 };
 
 use crate::{
     dsl::RuleName,
     engine::{
-        indentation::{indent_anchor, IndentLevel},
+        indentation::{indent_anchor, string_interpol_indent, IndentLevel},
         BlockPosition, FmtModel,
     },
     pattern::{Pattern, PatternSet},
-    tree_utils::{on_top_level, prev_non_whitespace_token_sibling},
+    tree_utils::{on_top_level, prev_non_whitespace_token_sibling, walk_non_whitespace},
     AtomEdit,
 };
 
@@ -22,6 +24,9 @@ pub(super) fn fix(element: SyntaxElement, model: &mut FmtModel, anchor_set: &Pat
         NodeOrToken::Node(node) => {
             if let NODE_STRING = node.kind() {
                 fix_string_indentation(&node, model, anchor_set)
+            }
+            if let NODE_STRING_INTERPOL = node.kind() {
+                fix_string_interpolation(&node, model, anchor_set)
             }
         }
         NodeOrToken::Token(token) => {
@@ -143,6 +148,16 @@ fn fix_comment_indentation(token: &SyntaxToken, model: &mut FmtModel) {
 
     fn indent_level(text: &str) -> Option<usize> {
         text.rfind('\n').map(|idx| text.len() - idx - 1)
+    }
+}
+
+fn fix_string_interpolation(
+    node: &SyntaxNode,
+    model: &mut FmtModel,
+    anchor_set: &PatternSet<&Pattern>,
+) {
+    for element in walk_non_whitespace(node) {
+        string_interpol_indent(&element, model, anchor_set);
     }
 }
 
