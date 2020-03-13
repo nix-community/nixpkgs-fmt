@@ -12,7 +12,8 @@ use crate::{
     tree_utils::{
         get_parent, has_newline, next_non_whitespace_parent, next_non_whitespace_sibling,
         next_token_sibling, not_on_top_level, on_top_level, prev_non_whitespace_parent,
-        prev_non_whitespace_sibling, prev_sibling, prev_token_sibling, walk_tokens,
+        prev_non_whitespace_sibling, prev_sibling, prev_token_sibling, walk_non_whitespace,
+        walk_tokens,
     },
 };
 
@@ -65,13 +66,15 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PAREN).before(T!["("]).when(paren_inside_list).when(parent_has_newline).newline()
         .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
         .inside(NODE_PAREN).after(T!["("]).when(paren_has_token_update).newline()
-        .inside(NODE_PAREN).before(T![")"]).no_space_or_optional_newline()
+        .inside(NODE_PAREN).after(T!["("]).when(around_paren_has_newline).newline()
+        .inside(NODE_PAREN).after(T!["("]).when(next_is_attrset).no_space()
+        .inside(NODE_PAREN).after(T!["("]).when(next_is_lambda_and_has_let).no_space()
+        .inside(NODE_PAREN).before(T![")"]).no_space()
         .inside(NODE_PAREN).before(T![")"]).when(paren_inside_list).no_space()
         .inside(NODE_PAREN).before(T![")"]).when(prev_paren_has_update).when(parent_has_newline).newline()
         .inside(NODE_PAREN).before(T![")"]).when(around_paren_has_newline).newline()
-        .inside(NODE_PAREN).before(T![")"]).when(prev_is_attrset).no_space() 
-        .inside(NODE_PAREN).before(T![")"]).when(paren_on_top_level).no_space_or_newline()
-
+        .inside(NODE_PAREN).before(T![")"]).when(prev_is_attrset).no_space()
+        .inside(NODE_PAREN).before(T![")"]).when(prev_is_let).when(paren_on_top_level).newline()
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
         .inside(NODE_ATTR_SET).before(T!["{"]).when(next_parent_has_update).newline()
@@ -236,6 +239,25 @@ fn prev_is_attrset(element: &SyntaxElement) -> bool {
         .unwrap_or(false)
 }
 
+fn next_is_lambda_and_has_let(element: &SyntaxElement) -> bool {
+    let is_lambda = next_non_whitespace_sibling(element)
+        .and_then(|e| e.into_node().map(|n| n.kind() == NODE_LAMBDA))
+        .unwrap_or(false);
+
+    let token_let = element
+        .parent()
+        .map(|n| walk_non_whitespace(&n).any(|it| it.kind() == NODE_LET_IN))
+        .unwrap_or(false);
+
+    token_let & is_lambda
+}
+
+fn prev_is_let(element: &SyntaxElement) -> bool {
+    prev_non_whitespace_sibling(element)
+        .and_then(|e| e.into_node().map(|n| n.kind() == NODE_LET_IN))
+        .unwrap_or(false)
+}
+
 fn paren_on_top_level(element: &SyntaxElement) -> bool {
     let parent = match element.parent() {
         None => return true,
@@ -248,15 +270,25 @@ fn paren_on_top_level(element: &SyntaxElement) -> bool {
     }
 }
 
-fn around_paren_has_newline(element: &SyntaxElement) -> bool {
-    fn after_open_paren_is_newline(element: &SyntaxElement) -> Option<bool> {
-        let get_open_paren = get_parent(element)?.first_child_or_token()?;
+fn after_token_has_newline(element: &SyntaxElement) -> bool {
+    next_token_sibling(element).map(|e| e.text().contains("\n")).unwrap_or(false)
+}
 
-        next_token_sibling(&get_open_paren).map(|e| e.text().contains("\n"))
+fn before_token_has_newline(element: &SyntaxElement) -> bool {
+    prev_token_sibling(element).map(|e| e.text().contains("\n")).unwrap_or(false)
+}
+
+fn around_paren_has_newline(element: &SyntaxElement) -> bool {
+    fn around_paren_is_newline(element: &SyntaxElement) -> Option<bool> {
+        if element.as_token()?.kind() == TOKEN_PAREN_CLOSE {
+            let open_paren = get_parent(element)?.first_child_or_token()?;
+            Some(after_token_has_newline(&open_paren) | before_token_has_newline(element))
+        } else {
+            let close_paren = get_parent(element)?.last_child_or_token()?;
+            Some(after_token_has_newline(element) | before_token_has_newline(&close_paren))
+        }
     }
-    let prev_close_paren_is_newline =
-        prev_token_sibling(element).map(|e| e.text().contains("\n")).unwrap_or(false);
-    (prev_close_paren_is_newline & after_open_paren_is_newline(element).unwrap_or(false)) == true
+    around_paren_is_newline(element) == Some(true)
 }
 
 fn prev_paren_has_update(element: &SyntaxElement) -> bool {
