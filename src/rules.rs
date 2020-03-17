@@ -56,8 +56,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("[1 2 3]", "[ 1 2 3 ]")
         .inside(NODE_LIST).after(T!["["]).single_space_or_newline()
         .inside(NODE_LIST).before(T!["]"]).single_space_or_newline()
-        .test("[ ]", "[]")
-        .inside(NODE_LIST).between(T!["["], T!["]"]).no_space()
+        .test("[]", "[ ]")
+        .inside(NODE_LIST).between(T!["["], T!["]"]).single_space()
         .inside(NODE_LIST).between(VALUES, VALUES).single_space_or_newline()
         .inside(NODE_LIST).between(VALUES, TOKEN_COMMENT).single_space_or_optional_newline()
         .inside(NODE_LIST).between(TOKEN_COMMENT, VALUES).single_space_or_newline()
@@ -79,9 +79,9 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
         .inside(NODE_ATTR_SET).before(T!["{"]).when(next_parent_has_update).newline()
         .inside(NODE_ATTR_SET).before(T!["}"]).single_space_or_newline()
-        .inside(NODE_ATTR_SET).before(T!["}"]).when(next_parent_has_update).newline()      
-        .test("{ }", "{}")
-        .inside(NODE_ATTR_SET).between(T!["{"], T!["}"]).no_space()
+        .inside(NODE_ATTR_SET).before(T!["}"]).when(next_parent_has_update).newline()
+        .test("{}", "{ }")
+        .inside(NODE_ATTR_SET).between(T!["{"], T!["}"]).single_space()
         .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, NODE_KEY_VALUE).single_space_or_newline()
         .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, TOKEN_COMMENT).single_space_or_optional_newline()
 
@@ -397,7 +397,6 @@ pub(crate) fn indentation() -> IndentDsl {
                   92
                 ]
             "#)
-
         .rule("Indent parenthesized expressions")
             .inside(NODE_PAREN)
             .not_matching([T!["("],T![")"]])

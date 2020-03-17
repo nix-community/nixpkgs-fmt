@@ -3,7 +3,7 @@
     {
       # parameter comment
       mkSectionName ? (name: libStr.escape [ "[" "]" ] name)
-    , mkKeyValue ? mkKeyValueDefault {} "="
+    , mkKeyValue ? mkKeyValueDefault { } "="
     }: attrsOfAttrs:
       mapAttrsToStringsSep "\n" mkSection attrsOfAttrs;
 }

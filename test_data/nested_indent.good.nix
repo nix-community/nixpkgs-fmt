@@ -1,7 +1,7 @@
-{ pkgs ? import ./nix/nixpkgs.nix {}
+{ pkgs ? import ./nix/nixpkgs.nix { }
 , src ? builtins.fetchGit {
     url = ./.;
     ref = "HEAD";
   }
 }:
-pkgs.example rec {}
+pkgs.example rec { }

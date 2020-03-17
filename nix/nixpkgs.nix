@@ -2,11 +2,11 @@ let
   sources = import ./sources.nix;
 
   pkgs = import sources.nixpkgs {
-    config = {};
+    config = { };
     overlays = [
       (import sources.nixpkgs-mozilla)
       (self: pkgs: {
-        naersk = pkgs.callPackage sources.naersk {};
+        naersk = pkgs.callPackage sources.naersk { };
       })
     ];
   };

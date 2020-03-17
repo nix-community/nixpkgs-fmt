@@ -10,12 +10,12 @@
       supportedSystems = [ "x86_64-linux" "x86_64-darwin" "i686-linux" "aarch64-linux" ];
       forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
       naerskOverlay = final: prev: {
-        naersk = final.callPackage naersk {};
+        naersk = final.callPackage naersk { };
       };
     in
       {
         overlay = final: prev: {
-          nixpkgs-fmt = final.callPackage ./. {};
+          nixpkgs-fmt = final.callPackage ./. { };
         };
 
         packages = forAllSystems (
