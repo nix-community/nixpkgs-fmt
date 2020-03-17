@@ -5,7 +5,7 @@ mod indentation;
 mod spacing;
 mod fixes;
 
-use rnix::{SmolStr, SyntaxNode, TextRange};
+use rnix::{SmolStr, SyntaxKind::NODE_STRING_INTERPOL, SyntaxNode, TextRange};
 
 use crate::{
     dsl::{IndentDsl, RuleName, SpacingDsl},
@@ -52,6 +52,10 @@ pub(crate) fn format(
         // TODO: Remove it when refactoring indentation engine.
         if element.parent().map(|it| it.text_range().start()) == Some(element.text_range().start())
         {
+            continue;
+        }
+
+        if element.ancestors().any(|e| e.kind() == NODE_STRING_INTERPOL) {
             continue;
         }
 

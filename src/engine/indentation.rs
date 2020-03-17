@@ -3,7 +3,11 @@ use std::{
     fmt,
 };
 
-use rnix::{SmolStr, SyntaxElement, SyntaxKind::NODE_ROOT, SyntaxNode, TextUnit};
+use rnix::{
+    NodeOrToken, SmolStr, SyntaxElement,
+    SyntaxKind::{NODE_ROOT, TOKEN_ELSE, TOKEN_THEN},
+    SyntaxNode, TextUnit,
+};
 
 use crate::{
     dsl::{IndentRule, Modality, RuleName},
@@ -181,6 +185,36 @@ pub(super) fn default_indent(
     };
     let block = model.block_for(element, BlockPosition::Before);
     block.set_indent(anchor_indent, RuleName::new("Preserve indentation"));
+}
+
+pub(super) fn string_interpol_indent(
+    element: &SyntaxElement,
+    model: &mut FmtModel,
+    anchor_set: &PatternSet<&Pattern>,
+) {
+    let anchor_indent = match indent_anchor(&element, model, anchor_set) {
+        Some((_anchor, indent)) => indent,
+        _ => IndentLevel::default(),
+    };
+    let block = model.block_for(&element, BlockPosition::Before);
+    if !block.has_newline() {
+        // No need to indent an element if it doesn't start a line
+        return;
+    }
+    if element.parent().map(|it| it.text_range().start()) == Some(element.text_range().start()) {
+        match element {
+            NodeOrToken::Token(_token) => {
+                block.set_indent(anchor_indent, RuleName::new("String Interpolation Value"))
+            }
+            _ => return,
+        }
+    }
+
+    if element.kind() == TOKEN_THEN || element.kind() == TOKEN_ELSE {
+        block.set_indent(anchor_indent, RuleName::new("String Interpolation Value"))
+    } else {
+        block.set_indent(anchor_indent.indent(), RuleName::new("String Interpolation"))
+    }
 }
 
 /// Computes an anchoring element, together with its indent.

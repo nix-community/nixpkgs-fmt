@@ -7,4 +7,53 @@ postFixup =  ''
         lldbLibPath=$out/clion-${version}/bin/lldb/linux/lib
         interp="$(cat $NIX_CC/nix-support/dynamic-linker)"
       '';
+
+foo = ''
+    bar = ${builtins.concatStringsSep " " [
+1
+2
+3
+]}
+    bla = hoi
+  '';
+
+bar = ''
+foo
+${
+foo
+}
+foo
+  '';
+
+baz =
+    ''
+foo
+${
+foo
+}
+foo
+    '';
+
+qux =
+    ''
+    bar = ${builtins.concatStringsSep " " [
+1
+2
+3
+]}
+    bla = hoi
+    '';
+
+singleAsciiDoc = value: ''
+  ${
+if lib.hasAttr "example" value
+then ''
+Example::
+${
+builtins.toJSON value.example
+}
+''
+else "No Example:: {blank}"
+    }
+  '';
 }
