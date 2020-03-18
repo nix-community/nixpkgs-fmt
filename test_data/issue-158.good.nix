@@ -9,7 +9,6 @@
     else baz;
   qux = if bux == null then nux else baz;
   nux =
-    if foo == baz
-    then bar
+    if foo == baz then bar
     else bar;
 }
