@@ -3,7 +3,8 @@ use std::iter::successors;
 use rnix::{
     NodeOrToken, SyntaxElement,
     SyntaxKind::{
-        NODE_ASSERT, NODE_IF_ELSE, NODE_LAMBDA, NODE_LET_IN, NODE_ROOT, NODE_WITH, TOKEN_WHITESPACE,
+        NODE_APPLY, NODE_ASSERT, NODE_IF_ELSE, NODE_LAMBDA, NODE_LET_IN, NODE_ROOT, NODE_WITH,
+        TOKEN_WHITESPACE,
     },
     SyntaxNode, SyntaxToken, WalkEvent,
 };
@@ -65,7 +66,7 @@ pub(crate) fn on_top_level(element: &SyntaxElement) -> bool {
     };
     match parent.kind() {
         NODE_ROOT => true,
-        NODE_LAMBDA | NODE_WITH | NODE_ASSERT | NODE_LET_IN | NODE_IF_ELSE => {
+        NODE_LAMBDA | NODE_APPLY | NODE_WITH | NODE_ASSERT | NODE_LET_IN | NODE_IF_ELSE => {
             on_top_level(&parent.into())
         }
         _ => false,
