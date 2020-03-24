@@ -14,7 +14,7 @@ repository = "https://github.com/nix-community/nixpkgs-fmt"
 members = [ "./wasm" ]
 
 [dependencies]
-rnix = "0.7.0"
+rnix = "0.8.0"
 
 # Dependencies that are used in the binary only
 # Ideally, the feature should be enabled only for binary,
@@ -27,7 +27,7 @@ clap = "2.33.0"
 serde_json = "1.0"
 
 [dependencies.rowan]
-version = "0.6.2"
+version = "0.9.1"
 features = [ "serde1" ]
 
 [dev-dependencies]
