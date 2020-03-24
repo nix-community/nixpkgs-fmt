@@ -1,4 +1,5 @@
 /* tslint:disable */
+/* eslint-disable */
 export const memory: WebAssembly.Memory;
 export function main(): void;
 export function reformat_string(a: number, b: number, c: number, d: number, e: number): void;
