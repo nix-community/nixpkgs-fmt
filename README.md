@@ -161,6 +161,8 @@ Commit this `crash-` file, and it will be automatically tested by a unit-test.
 
 ## Related projects
 
+* [Emacs integration, including minor mode for format-on-save](https://github.com/purcell/emacs-nixpkgs-fmt)
+
 Feel free to submit your project!
 
 ### Formatters
