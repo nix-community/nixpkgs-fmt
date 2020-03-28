@@ -161,9 +161,13 @@ Commit this `crash-` file, and it will be automatically tested by a unit-test.
 
 ## Related projects
 
-* [Emacs integration, including minor mode for format-on-save](https://github.com/purcell/emacs-nixpkgs-fmt)
-
 Feel free to submit your project!
+
+### Using nixpkgs-fmt
+
+* [Emacs integration, including minor mode for format-on-save](https://github.com/purcell/emacs-nixpkgs-fmt)
+* [rnix-lsp](https://github.com/nix-community/rnix-lsp) - A Lambda Server for Nix
+
 
 ### Formatters
 
