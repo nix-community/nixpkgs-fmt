@@ -3,11 +3,9 @@ let
   # comment
   foo = let x = y; in
     z;
-
   foo2 =
     let x = y; in
     z;
-
   # comment
   bar = let x = 3; in x;
   faz =
@@ -29,13 +27,6 @@ let
       x = 3;
       y = 3;
     in y;
-
-  fn = v:
-    v;
-
-  fn =
-    v:
-    v;
 in
 # comment
 body

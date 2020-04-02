@@ -148,7 +148,6 @@ impl IndentRule {
         debug_assert!(self.matches(element));
         let anchor_indent = match indent_anchor(element, model, anchor_set) {
             Some((anchor, indent)) => {
-                //println!("element {:?}'s anchor is {:?} with indentation is {:?}\n", element, &anchor, indent);
                 if let Some(p) = &self.anchor_pattern {
                     if !p.matches(&anchor.into()) {
                         default_indent(element, model, anchor_set);

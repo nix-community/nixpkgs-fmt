@@ -119,11 +119,6 @@ pub(crate) fn prev_non_whitespace_sibling(element: &SyntaxElement) -> Option<Syn
         .find(|it| it.kind() != TOKEN_WHITESPACE)
 }
 
-pub(crate) fn next_non_whitespace_parent(element: &SyntaxElement) -> Option<SyntaxElement> {
-    successors(get_parent(element)?.next_sibling_or_token(), |it| it.next_sibling_or_token())
-        .find(|it| it.kind() != TOKEN_WHITESPACE)
-}
-
 pub(crate) fn next_non_whitespace_sibling(element: &SyntaxElement) -> Option<SyntaxElement> {
     successors(element.next_sibling_or_token(), |it| it.next_sibling_or_token())
         .find(|it| it.kind() != TOKEN_WHITESPACE)

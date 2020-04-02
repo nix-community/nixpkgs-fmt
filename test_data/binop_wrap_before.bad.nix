@@ -5,4 +5,18 @@ a = "foo" ++
 ++
 "bla"
 ;
+
+b = "foo"
+++ "bar"
+++ "lol"
+++
+"bla"
+;
+
+c = "foo"
+++ "bar"
+++
+"lol" ++
+"bla"
+;
 }
