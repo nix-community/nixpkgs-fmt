@@ -4,7 +4,7 @@ use std::{
 };
 
 use rnix::{
-    NodeOrToken, SmolStr, SyntaxElement,
+    NodeOrToken, SmolStr, SyntaxElement, SyntaxKind,
     SyntaxKind::{NODE_ROOT, TOKEN_ELSE, TOKEN_THEN},
     SyntaxNode, TextUnit,
 };
@@ -201,6 +201,7 @@ pub(super) fn string_interpol_indent(
         // No need to indent an element if it doesn't start a line
         return;
     }
+
     if element.parent().map(|it| it.text_range().start()) == Some(element.text_range().start()) {
         match element {
             NodeOrToken::Token(_token) => {
@@ -246,6 +247,16 @@ pub(super) fn indent_anchor(
         }
     }
     None
+}
+
+pub(super) fn indent_custom_anchor(
+    element: &SyntaxElement,
+    model: &mut FmtModel,
+    kind: SyntaxKind,
+) -> Option<IndentLevel> {
+    let custom_anchor_node = element.ancestors().find(|e| e.kind() == kind)?;
+    let x = model.indent_of(&custom_anchor_node);
+    Some(x)
 }
 
 impl FmtModel {

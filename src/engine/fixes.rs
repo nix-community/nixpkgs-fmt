@@ -11,7 +11,7 @@ use rnix::{
 use crate::{
     dsl::RuleName,
     engine::{
-        indentation::{indent_anchor, string_interpol_indent, IndentLevel},
+        indentation::{indent_anchor, indent_custom_anchor, string_interpol_indent, IndentLevel},
         BlockPosition, FmtModel,
     },
     pattern::{Pattern, PatternSet},
@@ -22,10 +22,14 @@ use crate::{
 pub(super) fn fix(element: SyntaxElement, model: &mut FmtModel, anchor_set: &PatternSet<&Pattern>) {
     match element {
         NodeOrToken::Node(node) => {
-            if let NODE_STRING = node.kind() {
+            let multiline_string = node
+                .children_with_tokens()
+                .any(|e| e.as_token().map(|n| n.text().starts_with('\n')).unwrap_or(false));
+
+            if node.kind() == NODE_STRING && multiline_string {
                 fix_string_indentation(&node, model, anchor_set)
             }
-            if let NODE_STRING_INTERPOL = node.kind() {
+            if node.kind() == NODE_STRING_INTERPOL {
                 fix_string_interpolation(&node, model, anchor_set)
             }
         }
@@ -42,15 +46,39 @@ fn fix_string_indentation(
     model: &mut FmtModel,
     anchor_set: &PatternSet<&Pattern>,
 ) {
+    let element: SyntaxElement = node.clone().into();
     let quote_indent = {
-        let element: SyntaxElement = node.clone().into();
+        let inside_interpolation = node.ancestors().any(|e| e.kind() == NODE_STRING_INTERPOL);
+        let default_indent = IndentLevel::default();
         let block = model.block_for(&element, BlockPosition::Before);
         if block.text().contains('\n') {
             IndentLevel::from_whitespace_block(block.text())
         } else {
-            match indent_anchor(&element, model, anchor_set) {
-                None => return,
-                Some((_element, indent)) => indent,
+            let multiline_interpol_string = node
+                .ancestors()
+                .find(|e| e.kind() == NODE_STRING_INTERPOL)
+                .map(|n| {
+                    n.descendants_with_tokens()
+                        .take_while(|d| d.kind() != NODE_STRING)
+                        .any(|t| t.as_token().map(|e| e.text().contains("\n")).unwrap_or(false))
+                })
+                .unwrap_or(false);
+
+            if inside_interpolation {
+                if multiline_interpol_string {
+                    match indent_anchor(&element, model, anchor_set) {
+                        None => return,
+                        Some((_element, indent)) => indent,
+                    }
+                } else {
+                    indent_custom_anchor(&element, model, NODE_STRING_INTERPOL)
+                        .unwrap_or(default_indent)
+                }
+            } else {
+                match indent_anchor(&element, model, anchor_set) {
+                    None => return,
+                    Some((_element, indent)) => indent,
+                }
             }
         }
     };

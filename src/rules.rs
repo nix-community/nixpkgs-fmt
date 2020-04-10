@@ -54,6 +54,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("[1 2 3]", "[ 1 2 3 ]")
         .inside(NODE_LIST).after(T!["["]).single_space_or_newline()
         .inside(NODE_LIST).before(T!["]"]).single_space_or_newline()
+        .inside(NODE_LIST).after(T!["["]).when(inline_with_attr_set).no_space()
+        .inside(NODE_LIST).before(T!["]"]).when(inline_with_attr_set).no_space()
         .test("[]", "[ ]")
         .inside(NODE_LIST).between(T!["["], T!["]"]).single_space_or_optional_newline()
         .inside(NODE_LIST).between(VALUES, VALUES).single_space_or_newline()
@@ -183,6 +185,20 @@ fn common_binops(element: &SyntaxElement) -> bool {
         kind == TOKEN_CONCAT || kind == TOKEN_UPDATE
     }
     !is_concat_or_update(element.kind())
+}
+
+fn inline_with_attr_set(element: &SyntaxElement) -> bool {
+    fn inline_attr_set(element: &SyntaxElement) -> Option<bool> {
+        let inline_attr = element
+            .parent()?
+            .descendants_with_tokens()
+            .find(|e| e.kind() == NODE_ATTR_SET)
+            .map(|t| before_token_has_newline(&t));
+        inline_attr
+    }
+    inline_attr_set(element) == Some(false)
+        && element.parent().and_then(|e| e.first_child().map(|n| n.kind() == NODE_ATTR_SET))
+            == Some(true)
 }
 
 fn paren_open_newline(element: &SyntaxElement) -> bool {
@@ -524,16 +540,11 @@ pub(crate) fn indentation() -> IndentDsl {
             "#)
         
         .rule("Indent lambda body")
-            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(inline_lambda) & p(pattern_not_newline))
-            .set(Indent)
-        
-        .rule("Indent lambda body")
-            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(inline_lambda) & p(pattern_newline))
-            .not_matching(p(VALUES))
+            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_not_newline))
             .set(Indent)
         
          .rule("Indent newline lambda body")
-            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(not_inline_lambda))
+            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_newline))
             .not_matching(p([TOKEN_COMMENT]) | p(VALUES)) 
             .set(Indent)
             .test(r#"
@@ -584,7 +595,7 @@ pub(crate) fn indentation() -> IndentDsl {
 
         .rule("Indent apply arg")
             .inside(p(NODE_APPLY) & p(not_on_top_level) & p(inline_apply))
-            .not_matching([T!["{"], T!["}"], NODE_ATTR_SET])
+            .not_matching([T!["{"], T!["}"]])
             .set(Indent)
 
         .rule("Indent with body in attribute")
@@ -670,14 +681,6 @@ pub(crate) fn indentation() -> IndentDsl {
     dsl
 }
 
-fn inline_lambda(element: &SyntaxElement) -> bool {
-    !not_inline_lambda(element)
-}
-
-fn not_inline_lambda(element: &SyntaxElement) -> bool {
-    prev_token_sibling(element).map(|t| t.text().contains("\n")).unwrap_or(false)
-}
-
 fn inline_apply(element: &SyntaxElement) -> bool {
     !not_inline_apply(element)
 }
@@ -721,12 +724,15 @@ fn pattern_newline(element: &SyntaxElement) -> bool {
             .ancestors()
             .find(|e| e.kind() == NODE_KEY_VALUE)?
             .children()
-            .find(|e| e.kind() == NODE_LAMBDA);
+            .find(|e| e.kind() == NODE_LAMBDA)?;
 
-        first_el.and_then(|n| n.first_child().map(|e| has_newline(&e)))
+        Some(
+            first_el.first_child().map(|e| has_newline(&e)).unwrap_or(false)
+                || before_token_has_newline(&first_el.into()),
+        )
     }
 
-    lambda_has_newline(element) == Some(true)
+    lambda_has_newline(element) == Some(true) || before_token_has_newline(element)
 }
 
 fn pattern_not_newline(element: &SyntaxElement) -> bool {
