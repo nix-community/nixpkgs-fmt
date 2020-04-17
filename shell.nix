@@ -5,7 +5,6 @@ let
     stdenv
     darwin
     ;
-
   rust = (
     pkgs.rustChannelOf {
       date = "2019-09-13";

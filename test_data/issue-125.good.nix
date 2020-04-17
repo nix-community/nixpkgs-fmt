@@ -12,21 +12,24 @@ let
     let
       x = 3;
       y = 4;
-    in x;
+    in
+    x;
   baz =
-    let
-      x = 3;
+    let x = 3;
     in x;
   qaz = let x = 3; in
     x;
-  paz = v: let x = 3; in
+  paz = v:
+    let x = 3; in
     x;
-  qux = v: let y = 3; in y;
+  qux = v:
+    let y = 3; in y;
   nux = v:
     let
       x = 3;
       y = 3;
-    in y;
+    in
+    y;
 in
 # comment
 body

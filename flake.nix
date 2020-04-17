@@ -13,12 +13,13 @@
         naersk = final.callPackage naersk { };
       };
     in
-      {
-        overlay = final: prev: {
-          nixpkgs-fmt = final.callPackage ./. { };
-        };
+    {
+      overlay = final: prev: {
+        nixpkgs-fmt = final.callPackage ./. { };
+      };
 
-        packages = forAllSystems (
+      packages = forAllSystems
+        (
           system:
           {
             nixpkgs-fmt = (
@@ -34,12 +35,14 @@
         );
 
 
-        defaultPackage = forAllSystems (
+      defaultPackage = forAllSystems
+        (
           system:
           self.packages.${system}.nixpkgs-fmt
         );
 
-        apps = forAllSystems (
+      apps = forAllSystems
+        (
           system:
           {
             nixpkgs-fmt = {
@@ -49,10 +52,11 @@
           }
         );
 
-        defaultApp = forAllSystems (
+      defaultApp = forAllSystems
+        (
           system:
           self.apps.${system}.nixpkgs-fmt
         );
 
-      };
+    };
 }

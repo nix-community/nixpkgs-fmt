@@ -6,7 +6,8 @@
     let
       x = 1;
       y = 2;
-    in x + y + z;
+    in
+    x + y + z;
 
   bar =
     { a
@@ -15,12 +16,16 @@
     let
       c = 1;
       b = 2;
-    in a + b + c;
+    in
+    a + b + c;
 
   baz =
     { pkg
     , num ? 0
     }:
-    let val = 1; num = 2; in
+    let
+      val = 1;
+      num = 2;
+    in
     pkg + num + val;
 }

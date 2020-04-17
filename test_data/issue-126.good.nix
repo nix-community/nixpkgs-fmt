@@ -43,7 +43,8 @@
     let
       foo = "0.95";
     in
-      buildLinux ({
+    buildLinux
+      ({
         version = "${foo}-mptcp_v1.0.0";
         inherit bar;
       } // args);
@@ -52,7 +53,8 @@
     let
       foo = "0.95";
     in
-      buildLinux ({
+    buildLinux
+      ({
         version = "${foo}-mptcp_v1.0.0";
         inherit bar;
       });

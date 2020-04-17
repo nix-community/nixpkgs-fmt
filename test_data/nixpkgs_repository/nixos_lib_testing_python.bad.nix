@@ -1,5 +1,5 @@
 {
-    driver = let warn = if skipLint then lib.warn "Linting is disabled!" else lib.id; in warn (runCommand testDriverName
+driver = let warn = if skipLint then lib.warn "Linting is disabled!" else lib.id; in warn (runCommand testDriverName
   {
     buildInputs = [ makeWrapper ];
     testScript = testScript';

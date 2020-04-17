@@ -8,13 +8,13 @@
       # map function to string for each key val
       mapAttrsToStringsSep = sep: mapFn: attrs:
         libStr.concatStringsSep sep
-        (libAttr.mapAttrsToList mapFn attrs);
+          (libAttr.mapAttrsToList mapFn attrs);
       mkSection = sectName: sectValues: ''
         [${mkSectionName sectName}]
       '' + toKeyValue { inherit mkKeyValue listsAsDuplicateKeys; } sectValues;
     in
-      # map input to ini sections
-      mapAttrsToStringsSep "\n" mkSection attrsOfAttrs;
+    # map input to ini sections
+    mapAttrsToStringsSep "\n" mkSection attrsOfAttrs;
 
   expr = ind: x: with builtins;
     if x == null then "" else

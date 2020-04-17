@@ -7,7 +7,8 @@
         else
           builtins.getAttr maintainer' pkgs.lib.maintainers;
     in
-      packagesWith (name: pkg: builtins.hasAttr "updateScript" pkg &&
+    packagesWith
+      (name: pkg: builtins.hasAttr "updateScript" pkg &&
         (
           if builtins.hasAttr "maintainers" pkg.meta
           then (
@@ -25,10 +26,10 @@
     let
       attrSet = pkgs.lib.attrByPath (pkgs.lib.splitString "." path) null pkgs;
     in
-      if attrSet == null then
-        builtins.throw "Attribute path `${path}` does not exists."
-      else
-        packagesWith (name: pkg: builtins.hasAttr "updateScript" pkg)
+    if attrSet == null then
+      builtins.throw "Attribute path `${path}` does not exists."
+    else
+      packagesWith (name: pkg: builtins.hasAttr "updateScript" pkg)
         (name: pkg: pkg)
         attrSet;
 }

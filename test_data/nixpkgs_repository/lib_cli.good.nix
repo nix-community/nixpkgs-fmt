@@ -7,5 +7,5 @@
       x = baz;
       y = 1;
     in
-      x - y;
+    x - y;
 }
