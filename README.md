@@ -96,6 +96,17 @@ ARGS:
     <FILE>...    File to reformat in place. If no file is passed, read from stdin.
 
 ```
+
+### Tree traversal
+
+When `nixpkgs-fmt` is given a folder as a file argument, it will traverse that
+using the same [ignore crate](https://crates.io/crates/ignore) as ripgrep,
+using 8 parallel threads.
+
+By default it will automatically ignore files reading `.ignore`, `.gitignore`,
+and `.git/info/exclude` files in that order. If additional files need to be
+ignored, it is also possible to add `--exclude <glob>` to the call.
+
 ## Installation
 
 nixpkgs-fmt is available in nixpkgs master. `nix-env -i nixpkgs-fmt`.
