@@ -11,8 +11,7 @@ let
       checkElem = path: elem:
         lib.hasPrefix (toString elem) (toString path);
     in
-      out;
-
+    out;
   src = allowSource {
     allow = [
       ./Cargo.lock

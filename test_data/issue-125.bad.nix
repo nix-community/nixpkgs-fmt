@@ -3,6 +3,9 @@ let
 # comment
 foo = let x = y; in
 z;
+foo2 =
+let x = y; in
+z;
 # comment
 bar = let x = 3; in x;
 faz = let x = 3;
@@ -16,6 +19,7 @@ x;
 qux = v: let y = 3; in y;
 nux = v: let x = 3;
 y = 3; in y;
+
 in
 # comment
 body

@@ -7,11 +7,10 @@ let
     #comment
     x + x;
   bar = x:
-    let
-      y = x;
+    let y = x;
     in
-      #comment
-      x;
+    #comment
+    x;
   baz = x:
     #comment
     y:

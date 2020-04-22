@@ -2,36 +2,41 @@ use std::cmp::min;
 
 use rnix::{
     NodeOrToken, SyntaxElement,
-    SyntaxKind::{
-        NODE_STRING, NODE_STRING_INTERPOL, TOKEN_COMMENT, TOKEN_IN, TOKEN_STRING_CONTENT,
-    },
+    SyntaxKind::{NODE_STRING, NODE_STRING_INTERPOL, TOKEN_COMMENT, TOKEN_STRING_CONTENT},
     SyntaxNode, SyntaxToken, TextRange, TextUnit,
 };
 
 use crate::{
-    dsl::RuleName,
     engine::{
-        indentation::{indent_anchor, string_interpol_indent, IndentLevel},
+        indentation::{
+            indent_anchor, indent_custom_anchor, single_line_comment_indent,
+            string_interpol_indent, IndentLevel,
+        },
         BlockPosition, FmtModel,
     },
     pattern::{Pattern, PatternSet},
-    tree_utils::{on_top_level, prev_non_whitespace_token_sibling, walk_non_whitespace},
+    tree_utils::walk_non_whitespace,
     AtomEdit,
 };
 
 pub(super) fn fix(element: SyntaxElement, model: &mut FmtModel, anchor_set: &PatternSet<&Pattern>) {
     match element {
         NodeOrToken::Node(node) => {
-            if let NODE_STRING = node.kind() {
+            let multiline_string = node.children_with_tokens().any(|e| {
+                e.as_token()
+                    .map(|n| n.text().trim_start_matches(' ').starts_with('\n'))
+                    .unwrap_or(false)
+            });
+            if node.kind() == NODE_STRING && multiline_string {
                 fix_string_indentation(&node, model, anchor_set)
             }
-            if let NODE_STRING_INTERPOL = node.kind() {
+            if node.kind() == NODE_STRING_INTERPOL {
                 fix_string_interpolation(&node, model, anchor_set)
             }
         }
         NodeOrToken::Token(token) => {
             if let TOKEN_COMMENT = token.kind() {
-                fix_comment_indentation(&token, model)
+                fix_comment_indentation(&token, model, anchor_set)
             }
         }
     }
@@ -42,18 +47,43 @@ fn fix_string_indentation(
     model: &mut FmtModel,
     anchor_set: &PatternSet<&Pattern>,
 ) {
+    let element: SyntaxElement = node.clone().into();
     let quote_indent = {
-        let element: SyntaxElement = node.clone().into();
+        let inside_interpolation = node.ancestors().any(|e| e.kind() == NODE_STRING_INTERPOL);
+        let default_indent = IndentLevel::default();
         let block = model.block_for(&element, BlockPosition::Before);
         if block.text().contains('\n') {
             IndentLevel::from_whitespace_block(block.text())
         } else {
-            match indent_anchor(&element, model, anchor_set) {
-                None => return,
-                Some((_element, indent)) => indent,
+            let multiline_interpol_string = node
+                .ancestors()
+                .find(|e| e.kind() == NODE_STRING_INTERPOL)
+                .map(|n| {
+                    n.descendants_with_tokens()
+                        .take_while(|d| d.kind() != NODE_STRING)
+                        .any(|t| t.as_token().map(|e| e.text().contains("\n")).unwrap_or(false))
+                })
+                .unwrap_or(false);
+
+            if inside_interpolation {
+                if multiline_interpol_string {
+                    match indent_anchor(&element, model, anchor_set) {
+                        None => return,
+                        Some((_element, indent)) => indent,
+                    }
+                } else {
+                    indent_custom_anchor(&element, model, NODE_STRING_INTERPOL, anchor_set)
+                        .unwrap_or(default_indent)
+                }
+            } else {
+                match indent_anchor(&element, model, anchor_set) {
+                    None => return,
+                    Some((_element, indent)) => indent,
+                }
             }
         }
     };
+    println!("node: {:?}, indent: {:?}", node, quote_indent);
     let content_indent = quote_indent.indent();
 
     let indent_ranges: Vec<TextRange> = node_indent_ranges(node).collect();
@@ -93,19 +123,15 @@ fn fix_string_indentation(
 }
 
 /// If we indent multiline block comment, we should indent it's content as well.
-fn fix_comment_indentation(token: &SyntaxToken, model: &mut FmtModel) {
+fn fix_comment_indentation(
+    token: &SyntaxToken,
+    model: &mut FmtModel,
+    anchor_set: &PatternSet<&Pattern>,
+) {
     let is_block_comment = token.text().starts_with("/*");
     let block = model.block_for(&token.clone().into(), BlockPosition::Before);
     if !is_block_comment {
-        let syntax_element = &token.clone().into();
-        let prev_is_token_in = prev_non_whitespace_token_sibling(syntax_element)
-            .map(|e| e.kind() == TOKEN_IN)
-            .unwrap_or(false);
-        let comment_on_top = on_top_level(syntax_element);
-        if prev_is_token_in & comment_on_top {
-            block.set_text("\n", Some(RuleName::new("Top level let comment")));
-            return;
-        }
+        single_line_comment_indent(token, model, anchor_set);
         return;
     }
 

@@ -4,15 +4,16 @@ use std::{
 };
 
 use rnix::{
-    NodeOrToken, SmolStr, SyntaxElement,
-    SyntaxKind::{NODE_ROOT, TOKEN_ELSE, TOKEN_THEN},
-    SyntaxNode, TextUnit,
+    NodeOrToken, SmolStr, SyntaxElement, SyntaxKind,
+    SyntaxKind::{NODE_ROOT, TOKEN_ELSE, TOKEN_IN, TOKEN_THEN},
+    SyntaxNode, SyntaxToken, TextUnit,
 };
 
 use crate::{
     dsl::{IndentRule, Modality, RuleName},
     engine::{BlockPosition, FmtModel, SpaceBlock, SpaceBlockOrToken},
     pattern::{Pattern, PatternSet},
+    tree_utils::prev_non_whitespace_token_sibling,
 };
 
 const INDENT_SIZE: u32 = 2;
@@ -201,6 +202,7 @@ pub(super) fn string_interpol_indent(
         // No need to indent an element if it doesn't start a line
         return;
     }
+
     if element.parent().map(|it| it.text_range().start()) == Some(element.text_range().start()) {
         match element {
             NodeOrToken::Token(_token) => {
@@ -217,6 +219,26 @@ pub(super) fn string_interpol_indent(
     }
 }
 
+pub(super) fn single_line_comment_indent(
+    token: &SyntaxToken,
+    model: &mut FmtModel,
+    anchor_set: &PatternSet<&Pattern>,
+) {
+    let syntax_element = &token.clone().into();
+    let anchor_indent = match indent_anchor(&syntax_element, model, anchor_set) {
+        Some((_anchor, indent)) => indent,
+        _ => IndentLevel::default(),
+    };
+    let block = model.block_for(&syntax_element, BlockPosition::Before);
+    let prev_is_token_in = prev_non_whitespace_token_sibling(syntax_element)
+        .map(|e| e.kind() == TOKEN_IN)
+        .unwrap_or(false);
+    if prev_is_token_in {
+        block.set_indent(anchor_indent, RuleName::new("Comment Single Line Value"));
+        return;
+    }
+    return;
+}
 /// Computes an anchoring element, together with its indent.
 ///
 /// By default, the anchor is an ancestor of `element` which itself is the first
@@ -246,6 +268,29 @@ pub(super) fn indent_anchor(
         }
     }
     None
+}
+
+pub(super) fn indent_custom_anchor(
+    element: &SyntaxElement,
+    model: &mut FmtModel,
+    kind: SyntaxKind,
+    anchor_set: &PatternSet<&Pattern>,
+) -> Option<IndentLevel> {
+    let indent = IndentLevel::default();
+    // Calculates current indent on NODE_STRING_INTERPOLATION inside NODE_STRING
+    let parent = element.parent()?;
+    let init_indent = match indent_anchor(&parent.clone().into(), model, anchor_set) {
+        None => indent,
+        Some((_, top_indent)) => top_indent,
+    };
+
+    let original_anchor = parent.ancestors().filter(|e| e.kind() == kind);
+    fn count_indent(mut acc: IndentLevel, _node: SyntaxNode) -> IndentLevel {
+        acc += IndentLevel::default().indent();
+        acc
+    }
+    let node_indent = original_anchor.fold(init_indent, count_indent);
+    Some(node_indent)
 }
 
 impl FmtModel {

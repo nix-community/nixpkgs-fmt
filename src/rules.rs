@@ -10,10 +10,9 @@ use crate::{
     dsl::{self, IndentDsl, IndentValue::*, SpacingDsl},
     pattern::p,
     tree_utils::{
-        get_parent, has_newline, next_non_whitespace_parent, next_non_whitespace_sibling,
-        next_token_sibling, not_on_top_level, on_top_level, prev_non_whitespace_parent,
-        prev_non_whitespace_sibling, prev_sibling, prev_token_sibling, walk_non_whitespace,
-        walk_tokens,
+        has_newline, next_non_whitespace_sibling, next_sibling, next_token_sibling,
+        not_on_top_level, on_top_level, prev_non_whitespace_parent, prev_non_whitespace_sibling,
+        prev_sibling, prev_token_parent, prev_token_sibling,
     },
 };
 
@@ -33,8 +32,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_KEY_VALUE).before(T![;]).no_space_or_optional_newline()
         .inside(NODE_KEY_VALUE).before(T![;]).when(after_literal).no_space()
 
-        .test("a ++\nb", "a\n++ b")
-        .inside(NODE_BIN_OP).before(BIN_OPS).when(next_sibling_has_newline).newline()
+        .test("a++\nb", "a ++\nb")
         .test("a==  b", "a == b")
         .test("a!=  b", "a != b")
         .test("a++  b", "a ++ b")
@@ -42,9 +40,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("a  -   b", "a - b")
         .test("a*  b", "a * b")
         .test("a/  b", "a / b")
-        .inside(NODE_BIN_OP).after(BIN_OPS).single_space()
-        .inside(NODE_BIN_OP).before(BIN_OPS).single_space_or_optional_newline()
-        .inside(NODE_BIN_OP).before(BIN_OPS).when(prev_is_attrset).newline()
+        .inside(NODE_BIN_OP).around(BIN_OPS).when(common_binops).single_space_or_optional_newline()
+        .inside(NODE_BIN_OP).around(TOKEN_CONCAT).single_space_or_optional_newline()
 
         .test("foo . bar . baz", "foo.bar.baz")
         .inside(NODE_SELECT).around(T![.]).no_space()
@@ -52,34 +49,30 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("{} :92", "{}: 92")
         .inside(NODE_LAMBDA).before(T![:]).no_space()
         .inside(NODE_LAMBDA).after(T![:]).single_space_or_optional_newline()
+        .inside(NODE_LAMBDA).before(NODE_IDENT).when(prev_parent_is_newline).when(next_is_select_attrset).newline()
 
         .test("[1 2 3]", "[ 1 2 3 ]")
         .inside(NODE_LIST).after(T!["["]).single_space_or_newline()
         .inside(NODE_LIST).before(T!["]"]).single_space_or_newline()
+        .inside(NODE_LIST).after(T!["["]).when(inline_with_attr_set).no_space()
+        .inside(NODE_LIST).before(T!["]"]).when(inline_with_attr_set).no_space()
         .test("[]", "[ ]")
-        .inside(NODE_LIST).between(T!["["], T!["]"]).single_space()
+        .inside(NODE_LIST).between(T!["["], T!["]"]).single_space_or_optional_newline()
         .inside(NODE_LIST).between(VALUES, VALUES).single_space_or_newline()
         .inside(NODE_LIST).between(VALUES, TOKEN_COMMENT).single_space_or_optional_newline()
         .inside(NODE_LIST).between(TOKEN_COMMENT, VALUES).single_space_or_newline()
 
         .test("( 92 )", "(92)")
-        .inside(NODE_PAREN).before(T!["("]).when(paren_inside_list).when(parent_has_newline).newline()
+
         .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
-        .inside(NODE_PAREN).after(T!["("]).when(paren_has_token_update).newline()
-        .inside(NODE_PAREN).after(T!["("]).when(around_paren_has_newline).newline()
-        .inside(NODE_PAREN).after(T!["("]).when(next_is_attrset).no_space()
-        .inside(NODE_PAREN).after(T!["("]).when(next_is_lambda_and_has_let).no_space()
-        .inside(NODE_PAREN).before(T![")"]).no_space()
-        .inside(NODE_PAREN).before(T![")"]).when(paren_inside_list).no_space()
-        .inside(NODE_PAREN).before(T![")"]).when(prev_paren_has_update).when(parent_has_newline).newline()
-        .inside(NODE_PAREN).before(T![")"]).when(around_paren_has_newline).newline()
-        .inside(NODE_PAREN).before(T![")"]).when(prev_is_attrset).no_space()
+        .inside(NODE_PAREN).before(T![")"]).no_space_or_optional_newline()
+        .inside(NODE_PAREN).before(T![")"]).when(paren_open_newline).newline()
+        .inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_newline).newline()
+        .inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_not_newline).no_space()
         .inside(NODE_PAREN).before(T![")"]).when(prev_is_let).when(paren_on_top_level).newline()
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
-        .inside(NODE_ATTR_SET).before(T!["{"]).when(next_parent_has_update).newline()
         .inside(NODE_ATTR_SET).before(T!["}"]).single_space_or_newline()
-        .inside(NODE_ATTR_SET).before(T!["}"]).when(next_parent_has_update).newline()
         .test("{}", "{ }")
         .inside(NODE_ATTR_SET).between(T!["{"], T!["}"]).single_space()
         .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, NODE_KEY_VALUE).single_space_or_newline()
@@ -107,18 +100,23 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("let   foo = bar;in  92", "let foo = bar; in 92")
         .inside(NODE_LET_IN).after(T![let]).single_space_or_optional_newline()
         .inside(NODE_LET_IN).around(T![in]).single_space_or_optional_newline()
+        .inside(NODE_LET_IN).before(T![in]).when(header_has_multi_value).newline()
+        .inside(NODE_LET_IN).after(T![in]).when(in_body_newline).newline()
+        .inside(NODE_LET_IN).before(NODE_KEY_VALUE).when(header_has_multi_value).newline()
         
         .test("{a?3}: a", "{ a ? 3 }: a")
         .inside(NODE_PAT_ENTRY).around(T![?]).single_space()
-
+        
         .test("f  x", "f x")
         .inside(NODE_APPLY).between(VALUES, VALUES).single_space_or_optional_newline()
-        .inside(NODE_APPLY).after(NODE_SELECT).when(next_sibling_is_paren).single_space_or_newline()
+        .inside(NODE_APPLY).before(NODE_PAREN).when(inside_node_has_newline).newline()
 
         .test("if  cond  then  tru  else  fls", "if cond then tru else fls")
-        .inside(NODE_IF_ELSE).before(T![if]).when(node_has_newline).single_space_or_newline()
-        .inside(NODE_IF_ELSE).after([T![if],T![then]]).single_space_or_optional_newline()
+        .inside(NODE_IF_ELSE).before(T![if]).when(not_on_top_level).single_space_or_newline()
+        .inside(NODE_IF_ELSE).before(T![if]).when(after_else_not_newline).single_space()
+        .inside(NODE_IF_ELSE).before(T![then]).when(before_token_has_newline).newline()
         .inside(NODE_IF_ELSE).before(T![then]).single_space_or_optional_newline()
+        .inside(NODE_IF_ELSE).after([T![if],T![then]]).single_space_or_optional_newline()
         .inside(NODE_IF_ELSE).around(T![else]).single_space_or_optional_newline()
         
         // special-case to force a linebreak before `=` in
@@ -143,119 +141,146 @@ pub(crate) fn spacing() -> SpacingDsl {
             pattern: NODE_ROOT.into(),
             space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::None }
         })
+        
         .add_rule(dsl::SpacingRule {
             name: None,
             pattern: NODE_ROOT.into(),
             space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
         })
+        
         .add_rule(dsl::SpacingRule {
             name: None,
-            pattern: p(TOKEN_LET) & p(let_contain_linebreak_pattern),
+            pattern: p(TOKEN_LET) & p(after_let_newline),
             space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
         })
+
         .add_rule(dsl::SpacingRule {
             name: None,
-            pattern: p(TOKEN_LET) & p(let_contain_linebreak_pattern) & p(let_inside_lambda_or_paren),
+            pattern: p(TOKEN_LET) & p(let_inside_lambda_or_paren),
             space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::Newline }
-        })
-        .add_rule(dsl::SpacingRule {
-            name: None,
-            pattern: p(TOKEN_IN) & p(in_direct_below_root_pattern),
-            space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline}
-        })      
-        .add_rule(dsl::SpacingRule {
-            name: None,
-            pattern: p(TOKEN_IN) & p(prev_in_contain_linebreak_pattern),
-            space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::Newline}
-        })
-        .add_rule(dsl::SpacingRule {
-            name: None,
-            pattern: p(TOKEN_THEN) & p(node_has_newline) & p(not_inside_in_pattern),
-            space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::Newline}
         })
         ;
 
     dsl
 }
 
-fn after_literal(node: &SyntaxElement) -> bool {
-    let prev = prev_sibling(node);
+fn after_literal(element: &SyntaxElement) -> bool {
+    fn is_literal(kind: SyntaxKind) -> bool {
+        kind == NODE_ATTR_SET || kind == NODE_LIST
+    }
+
+    let prev = prev_sibling(element);
     return if let Some(body) = prev.clone().and_then(With::cast).and_then(|w| w.body()) {
         is_literal(body.kind())
     } else {
         prev.map(|it| is_literal(it.kind())) == Some(true)
     };
+}
 
-    fn is_literal(kind: SyntaxKind) -> bool {
-        kind == NODE_ATTR_SET || kind == NODE_LIST
+fn common_binops(element: &SyntaxElement) -> bool {
+    fn is_concat_or_update(kind: SyntaxKind) -> bool {
+        kind == TOKEN_CONCAT || kind == TOKEN_UPDATE
     }
+    !is_concat_or_update(element.kind())
 }
 
-fn next_sibling_has_newline(element: &SyntaxElement) -> bool {
-    element
-        .next_sibling_or_token()
-        .and_then(|e| e.into_token().map(|t| t.text().contains("\n")))
-        .unwrap_or(false)
+fn inline_with_attr_set(element: &SyntaxElement) -> bool {
+    fn inline_attr_set(element: &SyntaxElement) -> Option<bool> {
+        let inline_attr = element
+            .parent()?
+            .descendants_with_tokens()
+            .find(|e| e.kind() == NODE_ATTR_SET)
+            .map(|t| before_token_has_newline(&t));
+        inline_attr
+    }
+    inline_attr_set(element) == Some(false)
+        && element.parent().and_then(|e| e.first_child().map(|n| n.kind() == NODE_ATTR_SET))
+            == Some(true)
+}
+fn inside_node_has_newline(element: &SyntaxElement) -> bool {
+    element.as_node().map(|e| has_newline(e)).unwrap_or(false)
+}
+fn paren_open_newline(element: &SyntaxElement) -> bool {
+    fn after_paren_open_newline(element: &SyntaxElement) -> Option<bool> {
+        element
+            .parent()?
+            .first_child_or_token()
+            .and_then(|e| next_token_sibling(&e).map(|e| e.text().contains("\n")))
+    }
+    after_paren_open_newline(element) == Some(true)
 }
 
-fn node_has_newline(element: &SyntaxElement) -> bool {
-    let before_node_if = prev_non_whitespace_parent(element)
-        .and_then(|e| e.into_token().map(|t| t.kind() != TOKEN_ELSE))
+fn node_inside_paren(element: &SyntaxElement) -> bool {
+    fn inside_paren_exist_node(element: &SyntaxElement) -> Option<bool> {
+        let open_paren_token_unit = element.parent()?.first_child_or_token()?.text_range().start();
+        let paren_contain_node_unit = element
+            .parent()?
+            .descendants()
+            .find(|e| e.kind() == NODE_LIST || e.kind() == NODE_ATTR_SET)?
+            .ancestors()
+            .find(|e| e.kind() == NODE_PAREN)?
+            .text_range()
+            .start();
+        Some(open_paren_token_unit == paren_contain_node_unit)
+    }
+
+    fn node_outside_key_value(element: &SyntaxElement) -> Option<bool> {
+        let paren_contain_node_unit = element
+            .parent()?
+            .descendants_with_tokens()
+            .take_while(|e| e.kind() != NODE_LET_IN && e.kind() != NODE_KEY_VALUE)
+            .any(|t| t.kind() == NODE_LIST || t.kind() == NODE_ATTR_SET);
+
+        Some(paren_contain_node_unit)
+    }
+
+    inside_paren_exist_node(element).unwrap_or(false)
+        && node_outside_key_value(element) == Some(true)
+}
+
+fn between_open_paren_not_newline(element: &SyntaxElement) -> bool {
+    !between_open_paren_newline(element)
+}
+
+fn between_open_paren_newline(element: &SyntaxElement) -> bool {
+    fn after_paren_open_newline(element: &SyntaxElement) -> Option<bool> {
+        let between_paren_list_has_newline = element
+            .parent()?
+            .descendants_with_tokens()
+            .take_while(|n| n.kind() != NODE_ATTR_SET && n.kind() != NODE_LIST)
+            .filter(|element| match element {
+                NodeOrToken::Token(_) => true,
+                _ => false,
+            })
+            .any(|t| t.as_token().map(|n| n.text().contains("\n")).unwrap_or(false));
+
+        Some(between_paren_list_has_newline)
+    }
+    after_paren_open_newline(element) == Some(true)
+}
+
+fn next_is_select_attrset(element: &SyntaxElement) -> bool {
+    let select = next_sibling(element).map(|n| n.kind() == NODE_SELECT).unwrap_or(false);
+    let attrset = next_sibling(element).map(|n| n.kind() == NODE_ATTR_SET).unwrap_or(false);
+    select || attrset
+}
+
+fn after_else_not_newline(element: &SyntaxElement) -> bool {
+    let token_else = prev_non_whitespace_parent(element)
+        .and_then(|e| e.into_token().map(|t| t.kind() == TOKEN_ELSE))
         .unwrap_or(false);
-    let newline_pattern = get_parent(element).map(|e| has_newline(&e)).unwrap_or(false);
-
-    (not_on_top_level(element) || before_node_if) & newline_pattern
-}
-
-fn not_inside_in_pattern(element: &SyntaxElement) -> bool {
-    prev_non_whitespace_parent(element)
-        .and_then(|e| e.into_token().map(|t| t.kind() != TOKEN_IN))
-        .unwrap_or(false)
-}
-
-fn next_sibling_is_paren(element: &SyntaxElement) -> bool {
-    next_non_whitespace_sibling(element)
-        .and_then(|e| e.into_node().map(|t| t.kind() == NODE_PAREN))
-        .unwrap_or(false)
-}
-
-fn paren_inside_list(element: &SyntaxElement) -> bool {
-    element.as_token().map(|e| e.ancestors().any(|n| n.kind() == NODE_LIST)).unwrap_or(false)
-}
-
-fn parent_has_newline(element: &SyntaxElement) -> bool {
-    element.parent().map(|e| has_newline(&e)).unwrap_or(false)
-}
-
-fn next_is_attrset(element: &SyntaxElement) -> bool {
-    next_non_whitespace_sibling(element)
-        .and_then(|e| e.into_node().map(|n| n.kind() == NODE_ATTR_SET))
-        .unwrap_or(false)
-}
-
-fn prev_is_attrset(element: &SyntaxElement) -> bool {
-    prev_non_whitespace_sibling(element)
-        .and_then(|e| e.into_node().map(|n| n.kind() == NODE_ATTR_SET))
-        .unwrap_or(false)
-}
-
-fn next_is_lambda_and_has_let(element: &SyntaxElement) -> bool {
-    let is_lambda = next_non_whitespace_sibling(element)
-        .and_then(|e| e.into_node().map(|n| n.kind() == NODE_LAMBDA))
-        .unwrap_or(false);
-
-    let token_let = element
-        .parent()
-        .map(|n| walk_non_whitespace(&n).any(|it| it.kind() == NODE_LET_IN))
-        .unwrap_or(false);
-
-    token_let & is_lambda
+    let has_newline = prev_token_parent(element).map(|t| t.text().contains("\n")).unwrap_or(false);
+    token_else & !has_newline
 }
 
 fn prev_is_let(element: &SyntaxElement) -> bool {
     prev_non_whitespace_sibling(element)
         .and_then(|e| e.into_node().map(|n| n.kind() == NODE_LET_IN))
         .unwrap_or(false)
+}
+
+fn prev_parent_is_newline(element: &SyntaxElement) -> bool {
+    prev_token_parent(element).map(|n| n.text().contains('\n')).unwrap_or(false)
 }
 
 fn paren_on_top_level(element: &SyntaxElement) -> bool {
@@ -270,45 +295,8 @@ fn paren_on_top_level(element: &SyntaxElement) -> bool {
     }
 }
 
-fn after_token_has_newline(element: &SyntaxElement) -> bool {
-    next_token_sibling(element).map(|e| e.text().contains("\n")).unwrap_or(false)
-}
-
 fn before_token_has_newline(element: &SyntaxElement) -> bool {
     prev_token_sibling(element).map(|e| e.text().contains("\n")).unwrap_or(false)
-}
-
-fn around_paren_has_newline(element: &SyntaxElement) -> bool {
-    fn around_paren_is_newline(element: &SyntaxElement) -> Option<bool> {
-        if element.as_token()?.kind() == TOKEN_PAREN_CLOSE {
-            let open_paren = get_parent(element)?.first_child_or_token()?;
-            Some(after_token_has_newline(&open_paren) | before_token_has_newline(element))
-        } else {
-            let close_paren = get_parent(element)?.last_child_or_token()?;
-            Some(after_token_has_newline(element) | before_token_has_newline(&close_paren))
-        }
-    }
-    around_paren_is_newline(element) == Some(true)
-}
-
-fn prev_paren_has_update(element: &SyntaxElement) -> bool {
-    prev_sibling(element)
-        .map(|n| walk_tokens(&n).any(|it| it.kind() == TOKEN_UPDATE))
-        .unwrap_or(false)
-}
-
-fn next_parent_has_update(element: &SyntaxElement) -> bool {
-    next_non_whitespace_parent(element)
-        .and_then(|e| e.into_token().map(|it| it.kind() == TOKEN_UPDATE))
-        .unwrap_or(false)
-}
-
-fn paren_has_token_update(element: &SyntaxElement) -> bool {
-    let token_update = element
-        .parent()
-        .map(|n| walk_tokens(&n).any(|it| it.kind() == TOKEN_UPDATE))
-        .unwrap_or(false);
-    token_update & next_is_attrset(element)
 }
 
 fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
@@ -320,21 +308,43 @@ fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
     find(element) == Some(true)
 }
 
-// special-cased to force a linebreak after `let` when `in` is not inline
-fn let_contain_linebreak_pattern(element: &SyntaxElement) -> bool {
-    fn find(element: &SyntaxElement) -> Option<bool> {
-        let token_let = next_non_whitespace_sibling(element)?;
-        let let_pattern = next_token_sibling(&token_let)?.text().contains('\n');
+fn header_has_multi_value(element: &SyntaxElement) -> bool {
+    let key_value = element.parent().map(|e| {
+        e.children().fold(0, |mut v, e| {
+            if e.kind() == NODE_KEY_VALUE {
+                v += 1;
+                return v;
+            } else {
+                v += 0;
+                return v;
+            }
+        })
+    });
+    key_value.map(|e| e >= 2).unwrap_or(false)
+}
 
-        Some(let_pattern)
+// special-cased to force a linebreak after `let` when `in` is not inline and key value >= 2
+fn after_let_newline(element: &SyntaxElement) -> bool {
+    header_has_multi_value(element)
+}
+
+fn in_body_newline(element: &SyntaxElement) -> bool {
+    fn body_has_newline(element: &SyntaxElement) -> Option<bool> {
+        next_non_whitespace_sibling(element)?.as_node().map(|e| has_newline(e))
     }
 
-    find(element) == Some(true)
+    fn header_is_multiline(element: &SyntaxElement) -> Option<bool> {
+        next_token_sibling(&element.parent()?.first_child_or_token()?)
+            .map(|e| e.text().contains('\n'))
+    }
+
+    body_has_newline(element) == Some(true)
+        || (header_is_multiline(element) == Some(true) || header_has_multi_value(element))
 }
 
 fn let_inside_lambda_or_paren(element: &SyntaxElement) -> bool {
     fn find(element: &SyntaxElement) -> Option<bool> {
-        let parent_let = get_parent(element)?;
+        let parent_let = element.parent()?;
         let inside_lambda_pattern =
             prev_non_whitespace_parent(element)?.into_token()?.text().contains(':');
         let inside_paren_pattern =
@@ -345,34 +355,18 @@ fn let_inside_lambda_or_paren(element: &SyntaxElement) -> bool {
             NodeOrToken::Node(_) => false,
             NodeOrToken::Token(it) => it.text().contains('\n'),
         };
+        let between_let_in_newline = parent_let
+            .children_with_tokens()
+            .take_while(|e| e.kind() != TOKEN_IN)
+            .any(|t| t.as_token().map(|n| n.text().contains("\n")).unwrap_or(false));
+
         Some(
             prev_let_linebreak_pattern
                 || inside_lambda_pattern
                 || inside_paren_pattern
-                || inside_assign_pattern,
+                || (inside_assign_pattern
+                    && (header_has_multi_value(element) || between_let_in_newline)),
         )
-    }
-
-    find(element) == Some(true)
-}
-
-fn in_direct_below_root_pattern(element: &SyntaxElement) -> bool {
-    fn find(element: &SyntaxElement) -> Option<bool> {
-        let parent_in = on_top_level(element);
-        let get_let = get_parent(element)?.first_child_or_token()?;
-        let prev_in_linebreak_pattern = let_contain_linebreak_pattern(&get_let);
-        Some(parent_in & prev_in_linebreak_pattern)
-    }
-
-    find(element) == Some(true)
-}
-
-fn prev_in_contain_linebreak_pattern(element: &SyntaxElement) -> bool {
-    fn find(element: &SyntaxElement) -> Option<bool> {
-        let prev_in_token_pattern = prev_token_sibling(element)?.text().contains('\n');
-        let get_let = get_parent(element)?.first_child_or_token()?;
-        let prev_in_linebreak_pattern = let_contain_linebreak_pattern(&get_let);
-        Some(prev_in_token_pattern || prev_in_linebreak_pattern)
     }
 
     find(element) == Some(true)
@@ -383,6 +377,37 @@ pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
         .anchor([NODE_PAT_ENTRY, NODE_PATTERN])
+        
+
+        .rule("Indent binops")
+            .inside(p(NODE_BIN_OP) & p(after_concat_is_newline) & p(not_on_top_level))
+            .set(Indent)
+            .test(r#"
+                {
+                foo = bar ++
+                [ baz ];
+                }
+            "#, r#"
+                {
+                  foo = bar ++
+                    [ baz ];
+                }
+            "#)
+        .rule("Indent binops top level")
+            .inside(p(NODE_BIN_OP) & p(on_top_level))
+            .not_matching(p(TOKEN_CONCAT) | p(VALUES))
+            .set(Indent)
+            .test(r#"
+                {
+                foo = bar ++
+                [ baz ];
+                }
+            "#, r#"
+                {
+                  foo = bar ++
+                    [ baz ];
+                }
+            "#)
 
         .rule("Indent list content")
             .inside(NODE_LIST)
@@ -424,10 +449,15 @@ pub(crate) fn indentation() -> IndentDsl {
                   foo = bar;
                 }
             "#)
-
-        .rule("Indent let bindings")
-            .inside(p(NODE_LET_IN) & p(not_on_top_level))
+        
+        .rule("Indent newline let bindings ")
+            .inside(p(NODE_LET_IN) & p(newline_let))
             .not_matching([T![let], T![in]])
+            .set(Indent)
+        
+        .rule("Indent let bindings after key value")
+            .inside(p(NODE_LET_IN) & p(no_newline_let))
+            .not_matching(p([T![let], T![in], NODE_WITH]) | p(VALUES))
             .set(Indent)
             .test(r#"
                 (
@@ -443,25 +473,10 @@ pub(crate) fn indentation() -> IndentDsl {
                     x = 1;
                     inherit z;
                   in
-                    x
+                  x
                 )
             "#)
 
-        .rule("Indent let top-level bindings")
-            .inside(p(NODE_LET_IN) & p(on_top_level))
-            .not_matching(p([T![let], T![in]]) | p(VALUES))
-            .set(Indent)
-            .test(r#"
-                let
-                x = 1;
-                in
-                x
-            "#, r#"
-                let
-                  x = 1;
-                in
-                x
-            "#)
 
         .rule("Indent attribute value")
             .inside(NODE_KEY_VALUE)
@@ -496,9 +511,14 @@ pub(crate) fn indentation() -> IndentDsl {
                 , baz
                 }: foo
             "#)
-
+        
         .rule("Indent lambda body")
-            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(inline_lambda))
+            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_not_newline))
+            .set(Indent)
+        
+         .rule("Indent newline lambda body")
+            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_newline))
+            .not_matching(p([TOKEN_COMMENT]) | p(VALUES)) 
             .set(Indent)
             .test(r#"
                 {}:
@@ -521,9 +541,10 @@ pub(crate) fn indentation() -> IndentDsl {
                     fnbody;
                 }
             "#)
-
-        .rule("Indent apply arg")
-            .inside(NODE_APPLY)
+        
+        .rule("Indent top-level apply arg")
+            .inside(p(NODE_APPLY) & p(on_top_level))
+            .not_matching([T!["{"], T!["}"], NODE_ATTR_SET])
             .set(Indent)
             .test(r#"
                 foo
@@ -532,6 +553,23 @@ pub(crate) fn indentation() -> IndentDsl {
                 foo
                   bar baz
             "#)
+
+        .rule("Indent apply arg")
+            .inside(p(NODE_APPLY) & p(not_on_top_level) & p(not_inline_apply))
+            .not_matching([T!["{"], T!["}"]])
+            .set(Indent)
+            .test(r#"
+                foo
+                bar baz
+            "#, r#"
+                foo
+                  bar baz
+            "#)
+
+        .rule("Indent apply arg")
+            .inside(p(NODE_APPLY) & p(not_on_top_level) & p(inline_apply))
+            .not_matching([T!["{"], T!["}"]])
+            .set(Indent)
 
         .rule("Indent with body in attribute")
             .inside([NODE_WITH, NODE_ASSERT])
@@ -565,9 +603,14 @@ pub(crate) fn indentation() -> IndentDsl {
                     bar;
                 }
             "#)
-
+        
         .rule("Indent if-then-else")
-            .inside(NODE_IF_ELSE)
+            .inside(p(NODE_IF_ELSE) & p(inline_if_else))
+            .not_matching(p([T![if], T![then], T![else]]) | p(VALUES))
+            .set(Indent)
+        
+        .rule("Indent if-then-else")
+            .inside(p(NODE_IF_ELSE) & p(not_inline_if_else))
             .not_matching([T![if], T![then], T![else]])
             .set(Indent)
             .test(r#"
@@ -611,8 +654,97 @@ pub(crate) fn indentation() -> IndentDsl {
     dsl
 }
 
-fn inline_lambda(element: &SyntaxElement) -> bool {
-    prev_token_sibling(element).map(|t| t.text().contains("\n")) != Some(true)
+fn inline_apply(element: &SyntaxElement) -> bool {
+    !not_inline_apply(element)
+}
+
+fn not_inline_apply(element: &SyntaxElement) -> bool {
+    fn not_inline_function_apply(element: &SyntaxElement) -> Option<bool> {
+        let first_el = element
+            .ancestors()
+            .filter(|e| e.kind() == NODE_APPLY)
+            .max_by_key(|e| e.text_range().end());
+        first_el.map(|e| before_token_has_newline(&e.into()))
+    }
+    not_inline_function_apply(element) == Some(true)
+}
+
+fn inline_if_else(element: &SyntaxElement) -> bool {
+    !not_inline_if_else(element)
+}
+
+fn not_inline_if_else(element: &SyntaxElement) -> bool {
+    fn not_inline_if_then_else(element: &SyntaxElement) -> Option<bool> {
+        let first_el = element
+            .as_node()?
+            .descendants_with_tokens()
+            .take_while(|e| e.kind() != TOKEN_ELSE)
+            .filter(|element| match element {
+                NodeOrToken::Token(_) => true,
+                _ => false,
+            })
+            .any(|t| t.as_token().map(|e| e.text().contains("\n")).unwrap_or(false));
+
+        Some(first_el)
+    }
+
+    not_inline_if_then_else(element) == Some(true)
+}
+
+fn pattern_newline(element: &SyntaxElement) -> bool {
+    fn lambda_has_newline(element: &SyntaxElement) -> Option<bool> {
+        let first_el = element
+            .ancestors()
+            .find(|e| e.kind() == NODE_KEY_VALUE)?
+            .children()
+            .find(|e| e.kind() == NODE_LAMBDA)?;
+
+        Some(
+            first_el.first_child().map(|e| has_newline(&e)).unwrap_or(false)
+                || before_token_has_newline(&first_el.into()),
+        )
+    }
+
+    lambda_has_newline(element) == Some(true) || before_token_has_newline(element)
+}
+
+fn pattern_not_newline(element: &SyntaxElement) -> bool {
+    !pattern_newline(element)
+}
+
+fn after_concat_is_newline(element: &SyntaxElement) -> bool {
+    fn node_newline(element: &SyntaxElement) -> Option<bool> {
+        let first_el = element.as_node()?.descendants().filter(|e| e.kind() != NODE_BIN_OP).nth(0);
+        first_el.map(|e| has_newline(&e))
+    }
+    fn prev_newline(element: &SyntaxElement) -> Option<bool> {
+        let first_el = element
+            .ancestors()
+            .filter(|e| e.kind() == NODE_BIN_OP)
+            .max_by_key(|e| e.text_range().end());
+        first_el.map(|e| before_token_has_newline(&e.into()))
+    }
+
+    node_newline(element) == Some(false) && prev_newline(element) == Some(false)
+}
+
+fn newline_let(element: &SyntaxElement) -> bool {
+    let inline_let_in = element
+        .as_node()
+        .map(|n| {
+            n.children_with_tokens()
+                .take_while(|e| e.kind() != TOKEN_IN)
+                .any(|t| t.as_token().map(|n| n.text().contains("\n")).unwrap_or(false))
+        })
+        .unwrap_or(false);
+
+    let inside_key_value = element.parent().map(|e| e.kind() == NODE_KEY_VALUE).unwrap_or(false);
+
+    !before_token_has_newline(element) && inside_key_value && !inline_let_in
+}
+
+fn no_newline_let(element: &SyntaxElement) -> bool {
+    !newline_let(element)
 }
 
 static VALUES: &[SyntaxKind] = &[
@@ -718,6 +850,16 @@ foo = x:
         let test_data = {
             let dir = env!("CARGO_MANIFEST_DIR");
             PathBuf::from(dir).join("test_data")
+        };
+        let tests = TestCase::collect_from_dir(&test_data);
+        run(&tests);
+    }
+
+    #[test]
+    fn test_nixpkgs_repository_bad_good_tests() {
+        let test_data = {
+            let dir = env!("CARGO_MANIFEST_DIR");
+            PathBuf::from(dir).join("test_data/nixpkgs_repository")
         };
         let tests = TestCase::collect_from_dir(&test_data);
         run(&tests);
