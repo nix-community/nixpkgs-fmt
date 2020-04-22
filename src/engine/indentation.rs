@@ -276,14 +276,21 @@ pub(super) fn indent_custom_anchor(
     kind: SyntaxKind,
     anchor_set: &PatternSet<&Pattern>,
 ) -> Option<IndentLevel> {
-    let default_indent = IndentLevel::default();
-    let custom_anchor_node = element.ancestors().find(|e| e.kind() == kind)?;
-    let indent = match indent_anchor(&custom_anchor_node.clone().into(), model, anchor_set) {
-        None => default_indent,
-        Some((_element, indent)) => indent,
+    let indent = IndentLevel::default();
+    // Calculates current indent on NODE_STRING_INTERPOLATION inside NODE_STRING
+    let parent = element.parent()?;
+    let init_indent = match indent_anchor(&parent.clone().into(), model, anchor_set) {
+        None => indent,
+        Some((_, top_indent)) => top_indent,
     };
 
-    Some(indent)
+    let original_anchor = parent.ancestors().filter(|e| e.kind() == kind);
+    fn count_indent(mut acc: IndentLevel, _node: SyntaxNode) -> IndentLevel {
+        acc += IndentLevel::default().indent();
+        acc
+    }
+    let node_indent = original_anchor.fold(init_indent, count_indent);
+    Some(node_indent)
 }
 
 impl FmtModel {

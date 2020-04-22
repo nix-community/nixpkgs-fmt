@@ -56,4 +56,14 @@
       else "No Example:: {blank}"
     }
   '';
+
+  nested_antiquotation = mkBefore
+    ''
+      ${optionalString cfg.earlySetup ''
+        ${optionalString cfg.earlySetup ''
+          setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
+        ''}
+        setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
+      ''}
+    '';
 }

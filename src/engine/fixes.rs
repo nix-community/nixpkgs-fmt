@@ -22,10 +22,11 @@ use crate::{
 pub(super) fn fix(element: SyntaxElement, model: &mut FmtModel, anchor_set: &PatternSet<&Pattern>) {
     match element {
         NodeOrToken::Node(node) => {
-            let multiline_string = node
-                .children_with_tokens()
-                .any(|e| e.as_token().map(|n| n.text().starts_with('\n')).unwrap_or(false));
-
+            let multiline_string = node.children_with_tokens().any(|e| {
+                e.as_token()
+                    .map(|n| n.text().trim_start_matches(' ').starts_with('\n'))
+                    .unwrap_or(false)
+            });
             if node.kind() == NODE_STRING && multiline_string {
                 fix_string_indentation(&node, model, anchor_set)
             }
@@ -73,7 +74,6 @@ fn fix_string_indentation(
                 } else {
                     indent_custom_anchor(&element, model, NODE_STRING_INTERPOL, anchor_set)
                         .unwrap_or(default_indent)
-                        .indent()
                 }
             } else {
                 match indent_anchor(&element, model, anchor_set) {
@@ -83,6 +83,7 @@ fn fix_string_indentation(
             }
         }
     };
+    println!("node: {:?}, indent: {:?}", node, quote_indent);
     let content_indent = quote_indent.indent();
 
     let indent_ranges: Vec<TextRange> = node_indent_ranges(node).collect();
