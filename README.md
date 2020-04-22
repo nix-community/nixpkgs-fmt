@@ -96,7 +96,6 @@ ARGS:
     <FILE>...    File to reformat in place. If no file is passed, read from stdin.
 
 ```
-
 ### Tree traversal
 
 When `nixpkgs-fmt` is given a folder as a file argument, it will traverse that

@@ -1,4 +1,29 @@
 
+0.8.0 / 2020-04-22
+==================
+
+### Formatting changes
+
+  * Change multiline string formatting rules (#193) 
+  * Change `${ .. }` formatting rules (#187)
+  * Change function apply function rules (#174)
+  * Change `let .. in ..` formatting rules (#180)
+  * Change binops formatting rules (#177)
+  * Update test_data (#173, #174, #176, 177, #180, #182, #183, #187, #188, #193)
+  * Change brackets' formatting rules (#188)
+  * Change `( .. )` formatting rules (#177, #180, #182, #183)
+  * Change `if .. then .. else` formatting rules (#176)
+  * Change comment rules (#180, #193)
+  * Change semicolon formatting rules (#172)
+  * Change lambda function formatting rules (#173)
+  * Change `{ .. }` formatting rules (#177)
+
+### Other
+
+  * Update README (#192)
+  * Update naersk
+  * Update flake.nix (#173, #188, 193)
+
 0.7.0 / 2020-02-09
 ==================
 
