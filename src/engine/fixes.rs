@@ -83,7 +83,6 @@ fn fix_string_indentation(
             }
         }
     };
-    println!("node: {:?}, indent: {:?}", node, quote_indent);
     let content_indent = quote_indent.indent();
 
     let indent_ranges: Vec<TextRange> = node_indent_ranges(node).collect();
