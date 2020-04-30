@@ -70,6 +70,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_newline).newline()
         .inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_not_newline).no_space()
         .inside(NODE_PAREN).before(T![")"]).when(prev_is_let).when(paren_on_top_level).newline()
+        .inside(NODE_PAREN).before(T![")"]).when(prev_is_if).when(not_inside_node_interpol).newline()
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
         .inside(NODE_ATTR_SET).before(T!["}"]).single_space_or_newline()
@@ -218,7 +219,9 @@ fn node_inside_paren(element: &SyntaxElement) -> bool {
         let paren_contain_node_unit = element
             .parent()?
             .descendants()
-            .find(|e| e.kind() == NODE_LIST || e.kind() == NODE_ATTR_SET)?
+            .find(|e| {
+                e.kind() == NODE_LIST || e.kind() == NODE_ATTR_SET || e.kind() == NODE_STRING
+            })?
             .ancestors()
             .find(|e| e.kind() == NODE_PAREN)?
             .text_range()
@@ -230,8 +233,13 @@ fn node_inside_paren(element: &SyntaxElement) -> bool {
         let paren_contain_node_unit = element
             .parent()?
             .descendants_with_tokens()
-            .take_while(|e| e.kind() != NODE_LET_IN && e.kind() != NODE_KEY_VALUE)
-            .any(|t| t.kind() == NODE_LIST || t.kind() == NODE_ATTR_SET);
+            .take_while(|e| {
+                e.kind() != NODE_LET_IN
+                    && e.kind() != NODE_KEY_VALUE
+                    && e.kind() != NODE_IF_ELSE
+                    && e.kind() != NODE_APPLY
+            })
+            .any(|t| t.kind() == NODE_LIST || t.kind() == NODE_ATTR_SET || t.kind() == NODE_STRING);
 
         Some(paren_contain_node_unit)
     }
@@ -249,7 +257,9 @@ fn between_open_paren_newline(element: &SyntaxElement) -> bool {
         let between_paren_list_has_newline = element
             .parent()?
             .descendants_with_tokens()
-            .take_while(|n| n.kind() != NODE_ATTR_SET && n.kind() != NODE_LIST)
+            .take_while(|n| {
+                n.kind() != NODE_ATTR_SET && n.kind() != NODE_LIST && n.kind() != NODE_STRING
+            })
             .filter(|element| match element {
                 NodeOrToken::Token(_) => true,
                 _ => false,
@@ -281,7 +291,6 @@ fn not_inside_node_interpol(element: &SyntaxElement) -> bool {
 
 fn inside_node_interpol(element: &SyntaxElement) -> bool {
     element.ancestors().any(|n| n.kind() == NODE_STRING_INTERPOL)
-    //.unwrap_or(false)
 }
 
 fn not_inline_if(element: &SyntaxElement) -> bool {
@@ -324,6 +333,14 @@ fn prev_is_let(element: &SyntaxElement) -> bool {
     prev_non_whitespace_sibling(element)
         .and_then(|e| e.into_node().map(|n| n.kind() == NODE_LET_IN))
         .unwrap_or(false)
+}
+
+fn prev_is_if(element: &SyntaxElement) -> bool {
+    let node_if = prev_non_whitespace_sibling(element)
+        .and_then(|e| e.into_node().map(|n| n.kind() == NODE_IF_ELSE))
+        .unwrap_or(false);
+    let is_expanded_if = element.parent().map(|e| has_newline(&e)).unwrap_or(false);
+    node_if && is_expanded_if
 }
 
 fn prev_parent_is_newline(element: &SyntaxElement) -> bool {
