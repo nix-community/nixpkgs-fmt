@@ -291,15 +291,34 @@ fn node_is_function(element: &SyntaxElement) -> bool {
 
 // Special case if function is nested inside certain node
 fn outside_inline_pattern(element: &SyntaxElement) -> bool {
-    let function_inside_node = element.ancestors().any(|e| {
+    let function_inside_node = element.ancestors().find(|e| {
         e.kind() == NODE_PATTERN
             || e.kind() == NODE_BIN_OP
             || e.kind() == NODE_IF_ELSE
             || e.kind() == NODE_WITH
             || e.kind() == NODE_INHERIT
             || e.kind() == NODE_OR_DEFAULT
+            || e.kind() == NODE_ASSERT
+            || e.kind() == NODE_LAMBDA
     });
-    !function_inside_node
+
+    match function_inside_node {
+        Some(node) if node.kind() == NODE_ASSERT => {
+            let closing_semicolon = element.text_range().start();
+            node.descendants_with_tokens()
+                .filter(|element| match element {
+                    NodeOrToken::Token(_) => true,
+                    _ => false,
+                })
+                .take_while(|e| e.text_range().start() != closing_semicolon)
+                .any(|t| t.as_token().map(|n| n.text().contains("\n")).unwrap_or(false))
+        }
+        Some(node) if node.kind() == NODE_LAMBDA => false,
+        Some(node) if node.kind() == NODE_IF_ELSE => false,
+        _ => true,
+    }
+
+    // !function_inside_node || function_inside_assert(element) == Some(false)
 }
 
 fn paren_open_newline(element: &SyntaxElement) -> bool {
@@ -710,7 +729,7 @@ pub(crate) fn indentation() -> IndentDsl {
         
          .rule("Indent newline lambda body")
             .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_newline))
-            .not_matching(p([TOKEN_COMMENT]) | p(VALUES)) 
+            .not_matching(p(TOKEN_COMMENT) | p(VALUES)) 
             .set(Indent)
             .test(r#"
                 {}:

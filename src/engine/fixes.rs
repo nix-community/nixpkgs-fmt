@@ -182,6 +182,10 @@ fn fix_string_interpolation(
     anchor_set: &PatternSet<&Pattern>,
 ) {
     for element in walk_non_whitespace(node) {
+        if element.parent().map(|it| it.text_range().start()) == Some(element.text_range().start())
+        {
+            continue;
+        }
         string_interpol_indent(&element, model, anchor_set);
     }
 }

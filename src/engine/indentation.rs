@@ -3,17 +3,13 @@ use std::{
     fmt,
 };
 
-use rnix::{
-    NodeOrToken, SmolStr, SyntaxElement, SyntaxKind,
-    SyntaxKind::{NODE_ROOT, TOKEN_ELSE, TOKEN_IN, TOKEN_THEN},
-    SyntaxNode, SyntaxToken, TextUnit,
-};
+use rnix::{SmolStr, SyntaxElement, SyntaxKind, SyntaxKind::*, SyntaxNode, SyntaxToken, TextUnit};
 
 use crate::{
     dsl::{IndentRule, Modality, RuleName},
     engine::{BlockPosition, FmtModel, SpaceBlock, SpaceBlockOrToken},
     pattern::{Pattern, PatternSet},
-    tree_utils::prev_non_whitespace_token_sibling,
+    tree_utils::{prev_non_whitespace_token_sibling, prev_token_sibling},
 };
 
 const INDENT_SIZE: u32 = 2;
@@ -193,29 +189,43 @@ pub(super) fn string_interpol_indent(
     model: &mut FmtModel,
     anchor_set: &PatternSet<&Pattern>,
 ) {
+    let indent = IndentLevel::default();
     let anchor_indent = match indent_anchor(&element, model, anchor_set) {
         Some((_anchor, indent)) => indent,
         _ => IndentLevel::default(),
     };
+
+    let anchor_custom =
+        indent_custom_anchor(&element, model, NODE_STRING_INTERPOL, anchor_set).unwrap_or(indent);
+
     let block = model.block_for(&element, BlockPosition::Before);
     if !block.has_newline() {
         // No need to indent an element if it doesn't start a line
         return;
     }
-
-    if element.parent().map(|it| it.text_range().start()) == Some(element.text_range().start()) {
-        match element {
-            NodeOrToken::Token(_token) => {
-                block.set_indent(anchor_indent, RuleName::new("String Interpolation Value"))
+    match element {
+        e if e.kind() == NODE_APPLY => {
+            let node_string_count =
+                e.ancestors().filter(|e| e.kind() == NODE_STRING_INTERPOL).count();
+            let node_string = e
+                .ancestors()
+                .find(|e| e.kind() == NODE_STRING)
+                .and_then(|t| prev_token_sibling(&t.into()).map(|e| e.text().contains("\n")))
+                .unwrap_or(false);
+            if node_string_count < 2 && !node_string {
+                block
+                    .set_indent(anchor_custom.indent(), RuleName::new("String Interpolation Value"))
+            } else {
+                block.set_indent(anchor_custom, RuleName::new("String Interpolation Value"))
             }
-            _ => return,
         }
-    }
-
-    if element.kind() == TOKEN_THEN || element.kind() == TOKEN_ELSE {
-        block.set_indent(anchor_indent, RuleName::new("String Interpolation Value"))
-    } else {
-        block.set_indent(anchor_indent.indent(), RuleName::new("String Interpolation"))
+        e if e.kind() == TOKEN_INTERPOL_END => {
+            block.set_indent(anchor_indent.indent(), RuleName::new("String Interpolation Value"))
+        }
+        e if e.kind() == TOKEN_SQUARE_B_CLOSE => {
+            block.set_indent(anchor_custom, RuleName::new("String Interpolation Value"))
+        }
+        _ => block.set_indent(anchor_custom.indent(), RuleName::new("String Interpolation Value")),
     }
 }
 
