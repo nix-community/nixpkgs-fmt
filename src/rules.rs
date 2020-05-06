@@ -77,6 +77,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_ATTR_SET).before(T!["}"]).single_space_or_newline()
         .test("{}", "{ }")
         .inside(NODE_ATTR_SET).between(T!["{"], T!["}"]).single_space()
+        .inside(NODE_ATTR_SET).before(NODE_KEY_VALUE).single_space_or_optional_newline()
         .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, NODE_KEY_VALUE).single_space_or_newline()
         .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, TOKEN_COMMENT).single_space_or_optional_newline()
 
