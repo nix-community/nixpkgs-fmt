@@ -727,9 +727,12 @@ pub(crate) fn indentation() -> IndentDsl {
         .rule("Indent lambda body")
             .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_not_newline))
             .set(Indent)
-        
+        .rule("Indent newline lambda body")
+            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_newline) & p(lambda_inside_node_pattern))
+            .not_matching(p(TOKEN_COMMENT)) 
+            .set(Indent)
          .rule("Indent newline lambda body")
-            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_newline))
+            .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_newline) & p(lambda_outside_node_pattern))
             .not_matching(p(TOKEN_COMMENT) | p(VALUES)) 
             .set(Indent)
             .test(r#"
@@ -825,7 +828,7 @@ pub(crate) fn indentation() -> IndentDsl {
         
         .rule("Indent if-then-else")
             .inside(p(NODE_IF_ELSE) & p(not_inline_if_else))
-            .not_matching([T![if], T![then], T![else]])
+            .not_matching([T![if], T![then], T![else], TOKEN_COMMENT])
             .set(Indent)
             .test(r#"
                 if
@@ -924,6 +927,14 @@ fn pattern_newline(element: &SyntaxElement) -> bool {
 
 fn pattern_not_newline(element: &SyntaxElement) -> bool {
     !pattern_newline(element)
+}
+
+fn lambda_inside_node_pattern(element: &SyntaxElement) -> bool {
+    element.ancestors().any(|e| e.kind() == NODE_PATTERN)
+}
+
+fn lambda_outside_node_pattern(element: &SyntaxElement) -> bool {
+    !lambda_inside_node_pattern(element)
 }
 
 fn after_concat_is_newline(element: &SyntaxElement) -> bool {
