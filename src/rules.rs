@@ -69,6 +69,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PAREN).before(T![")"]).when(paren_open_newline).newline()
         .inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_newline).newline()
         .inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_not_newline).no_space()
+        
         .inside(NODE_PAREN).before(T![")"]).when(prev_is_let).when(paren_on_top_level).newline()
         .inside(NODE_PAREN).before(T![")"]).when(prev_is_if).when(not_inside_node_interpol).newline()
         .inside(NODE_PAREN).before(T![")"]).when(inside_multiple_argument_function).newline()
@@ -135,6 +136,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_IF_ELSE).before(T![then]).single_space_or_optional_newline()
         .inside(NODE_IF_ELSE).after([T![if],T![then]]).single_space_or_optional_newline()
         .inside(NODE_IF_ELSE).around(T![else]).single_space_or_optional_newline()
+        .inside(NODE_IF_ELSE).after(T![else]).when(after_else_has_newline).newline()
         
         // special-case to force a linebreak before `=` in
         //
@@ -292,7 +294,7 @@ fn node_is_function(element: &SyntaxElement) -> bool {
 
 // Special case if function is nested inside certain node
 fn outside_inline_pattern(element: &SyntaxElement) -> bool {
-    let function_inside_node = element.ancestors().find(|e| {
+    let node = element.ancestors().find(|e| {
         e.kind() == NODE_PATTERN
             || e.kind() == NODE_BIN_OP
             || e.kind() == NODE_IF_ELSE
@@ -303,23 +305,26 @@ fn outside_inline_pattern(element: &SyntaxElement) -> bool {
             || e.kind() == NODE_LAMBDA
     });
 
-    match function_inside_node {
-        Some(node) if node.kind() == NODE_ASSERT => {
+    node.and_then(|e| match e.kind() {
+        NODE_ASSERT => {
             let closing_semicolon = element.text_range().start();
-            node.descendants_with_tokens()
+            let has_newline = e
+                .descendants_with_tokens()
                 .filter(|element| match element {
                     NodeOrToken::Token(_) => true,
                     _ => false,
                 })
                 .take_while(|e| e.text_range().start() != closing_semicolon)
-                .any(|t| t.as_token().map(|n| n.text().contains("\n")).unwrap_or(false))
+                .any(|t| t.as_token().map(|n| n.text().contains("\n")).unwrap_or(false));
+            Some(has_newline)
         }
-        Some(node) if node.kind() == NODE_LAMBDA => false,
-        Some(node) if node.kind() == NODE_IF_ELSE => false,
-        _ => true,
-    }
+        NODE_LAMBDA => Some(false),
 
-    // !function_inside_node || function_inside_assert(element) == Some(false)
+        NODE_IF_ELSE => Some(false),
+
+        _ => Some(true),
+    })
+    .unwrap_or(true)
 }
 
 fn paren_open_newline(element: &SyntaxElement) -> bool {
@@ -357,6 +362,13 @@ fn inside_multiple_argument_function(element: &SyntaxElement) -> bool {
     multiple_argument_function(element).unwrap_or(false)
 }
 
+fn multiline_string(element: &SyntaxElement) -> bool {
+    if element.kind() == NODE_STRING {
+        element.as_node().map(|e| has_newline(&e)).unwrap_or(false);
+    }
+    false
+}
+
 fn node_inside_paren(element: &SyntaxElement) -> bool {
     fn inside_paren_exist_node(element: &SyntaxElement) -> Option<bool> {
         let open_paren_token_unit = element.parent()?.first_child_or_token()?.text_range().start();
@@ -364,7 +376,7 @@ fn node_inside_paren(element: &SyntaxElement) -> bool {
             .parent()?
             .descendants()
             .find(|e| {
-                e.kind() == NODE_LIST || e.kind() == NODE_ATTR_SET || e.kind() == NODE_STRING
+                e.kind() == NODE_LIST || e.kind() == NODE_ATTR_SET || multiline_string(element)
             })?
             .ancestors()
             .find(|e| e.kind() == NODE_PAREN)?
@@ -378,10 +390,7 @@ fn node_inside_paren(element: &SyntaxElement) -> bool {
             .parent()?
             .descendants_with_tokens()
             .take_while(|e| {
-                e.kind() != NODE_LET_IN
-                    && e.kind() != NODE_KEY_VALUE
-                    && e.kind() != NODE_IF_ELSE
-                    && e.kind() != NODE_APPLY
+                e.kind() != NODE_LET_IN && e.kind() != NODE_KEY_VALUE && e.kind() != NODE_IF_ELSE
             })
             .any(|t| t.kind() == NODE_LIST || t.kind() == NODE_ATTR_SET || t.kind() == NODE_STRING);
 
@@ -398,7 +407,7 @@ fn between_open_paren_not_newline(element: &SyntaxElement) -> bool {
 
 fn between_open_paren_newline(element: &SyntaxElement) -> bool {
     fn after_paren_open_newline(element: &SyntaxElement) -> Option<bool> {
-        let between_paren_list_has_newline = element
+        let between_paren_node_has_newline = element
             .parent()?
             .descendants_with_tokens()
             .take_while(|n| {
@@ -410,7 +419,7 @@ fn between_open_paren_newline(element: &SyntaxElement) -> bool {
             })
             .any(|t| t.as_token().map(|n| n.text().contains("\n")).unwrap_or(false));
 
-        Some(between_paren_list_has_newline)
+        Some(between_paren_node_has_newline)
     }
     after_paren_open_newline(element) == Some(true)
 }
@@ -471,6 +480,22 @@ fn between_if_then_not_newline(element: &SyntaxElement) -> bool {
     }
 
     not_inline_if_then_else(element) == Some(false)
+}
+
+// This function to make sure let..in inside else get expanded
+fn after_else_has_newline(element: &SyntaxElement) -> bool {
+    next_non_whitespace_sibling(element)
+        .and_then(|e| match e.as_node() {
+            Some(node) => {
+                if node.kind() == NODE_LET_IN {
+                    Some(has_newline(&node))
+                } else {
+                    Some(false)
+                }
+            }
+            _ => Some(false),
+        })
+        .unwrap_or(false)
 }
 
 fn prev_is_let(element: &SyntaxElement) -> bool {
