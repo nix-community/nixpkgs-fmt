@@ -1,5 +1,7 @@
 {
   f = { x
   , y
-  }: body;
+      }: body;
+
+  testAllTrue = expr: {inherit expr;expected=map (x: true) expr; };
 }

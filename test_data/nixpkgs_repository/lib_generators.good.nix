@@ -7,7 +7,8 @@
     let
       # map function to string for each key val
       mapAttrsToStringsSep = sep: mapFn: attrs:
-        libStr.concatStringsSep sep
+        libStr.concatStringsSep
+          sep
           (libAttr.mapAttrsToList mapFn attrs);
       mkSection = sectName: sectValues: ''
         [${mkSectionName sectName}]

@@ -66,4 +66,11 @@ nested_antiquotation = mkBefore
   setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
   ''}
   '';
+
+singleAsciiDoc = value: ''
+Example::
+${
+builtins.toJSON value.example
+}
+'';
 }

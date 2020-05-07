@@ -1,7 +1,8 @@
 {
   driver = let warn = if skipLint then lib.warn "Linting is disabled!" else lib.id; in
-    warn
-      (runCommand testDriverName
+    warn (
+      runCommand
+        testDriverName
         {
           buildInputs = [ makeWrapper ];
           testScript = testScript';
@@ -30,5 +31,5 @@
             --set VLANS '${toString vlans}' \
             ${lib.optionalString (builtins.length vms == 1) "--set USE_SERIAL 1"}
         ''
-      ); # "
+    ); # "
 }

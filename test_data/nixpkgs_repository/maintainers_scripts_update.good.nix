@@ -29,7 +29,8 @@
     if attrSet == null then
       builtins.throw "Attribute path `${path}` does not exists."
     else
-      packagesWith (name: pkg: builtins.hasAttr "updateScript" pkg)
+      packagesWith
+        (name: pkg: builtins.hasAttr "updateScript" pkg)
         (name: pkg: pkg)
         attrSet;
 }
