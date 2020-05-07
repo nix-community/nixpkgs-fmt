@@ -1,4 +1,23 @@
 
+0.9.0 / 2020-05-07
+==================
+
+### Formatting changes
+
+  * Change lambda inside node pattern indentation rules (#204)
+  * Change key value spacing rues (#204)
+  * Change `${ .. }` formatting rules (#204)
+  * Change `( .. )` spacing rules (#204)
+  * Update test_data (#202, #204)
+  * Change `assert` indentation rules (#202)
+  * Change `inherit` spacing rules (#202)
+  * Change function apply formatting rules (#202, #204)
+  * Change `if .. then .. else` spacing rules (#202)
+
+### Other
+
+  * Remove debug print when running nixpkgs-fmt
+
 0.8.0 / 2020-04-22
 ==================
 
