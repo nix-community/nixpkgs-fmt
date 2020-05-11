@@ -1179,16 +1179,6 @@ foo = x:
             let name = self.name.as_ref().map(|it| it.as_str()).unwrap_or("");
             let expected = &self.after;
             let actual = &reformat_string(&self.before);
-            if expected != actual {
-                return Err(format!(
-                    "\n\nAssertion failed: wrong formatting\
-                     \nTest: {}\n\
-                     \nBefore:\n{}\n\
-                     \nAfter:\n{}\n\
-                     \nExpected:\n{}\n",
-                    name, self.before, actual, self.after,
-                ));
-            }
             let second_round = &reformat_string(actual);
             if actual != second_round {
                 return Err(format!(
@@ -1197,6 +1187,16 @@ foo = x:
                      \nBefore:\n{}\n\
                      \nAfter:\n{}\n",
                     name, actual, second_round,
+                ));
+            }
+            if expected != actual {
+                return Err(format!(
+                    "\n\nAssertion failed: wrong formatting\
+                     \nTest: {}\n\
+                     \nBefore:\n{}\n\
+                     \nAfter:\n{}\n\
+                     \nExpected:\n{}\n",
+                    name, self.before, actual, self.after,
                 ));
             }
             Ok(())
