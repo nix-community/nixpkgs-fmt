@@ -40,8 +40,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("a  -   b", "a - b")
         .test("a*  b", "a * b")
         .test("a/  b", "a / b")
-        .inside(NODE_BIN_OP).around(BIN_OPS).when(common_binops).single_space_or_optional_newline()
-        .inside(NODE_BIN_OP).around(TOKEN_CONCAT).single_space_or_optional_newline()
+        .inside(NODE_BIN_OP).around(BIN_OPS)/*.when(common_binops)*/.single_space_or_optional_newline()
+        // .inside(NODE_BIN_OP).around(TOKEN_CONCAT).single_space_or_optional_newline()
 
         .test("foo . bar . baz", "foo.bar.baz")
         .inside(NODE_SELECT).around(T![.]).no_space()
@@ -196,12 +196,12 @@ fn after_literal(element: &SyntaxElement) -> bool {
     };
 }
 
-fn common_binops(element: &SyntaxElement) -> bool {
-    fn is_concat_or_update(kind: SyntaxKind) -> bool {
-        kind == TOKEN_CONCAT || kind == TOKEN_UPDATE
-    }
-    !is_concat_or_update(element.kind())
-}
+// fn common_binops(element: &SyntaxElement) -> bool {
+//     fn is_concat_or_update(kind: SyntaxKind) -> bool {
+//         kind == TOKEN_CONCAT || kind == TOKEN_UPDATE
+//     }
+//     !is_concat_or_update(element.kind())
+// }
 
 fn inline_with_attr_set(element: &SyntaxElement) -> bool {
     fn inline_attr_set(element: &SyntaxElement) -> Option<bool> {
