@@ -40,8 +40,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("a  -   b", "a - b")
         .test("a*  b", "a * b")
         .test("a/  b", "a / b")
-        .inside(NODE_BIN_OP).around(BIN_OPS)/*.when(common_binops)*/.single_space_or_optional_newline()
-        // .inside(NODE_BIN_OP).around(TOKEN_CONCAT).single_space_or_optional_newline()
+        .inside(NODE_BIN_OP).around(BIN_OPS).single_space_or_optional_newline()
 
         .test("foo . bar . baz", "foo.bar.baz")
         .inside(NODE_SELECT).around(T![.]).no_space()
@@ -69,7 +68,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PAREN).before(T![")"]).when(paren_open_newline).newline()
         .inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_newline).newline()
         .inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_not_newline).no_space()
-        
+
         .inside(NODE_PAREN).before(T![")"]).when(prev_is_let).when(paren_on_top_level).newline()
         .inside(NODE_PAREN).before(T![")"]).when(prev_is_if).when(not_inside_node_interpol).newline()
         .inside(NODE_PAREN).before(T![")"]).when(inside_multiple_argument_function).newline()
@@ -107,10 +106,10 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LET_IN).before(T![in]).when(header_has_multi_value).when(before_token_not_newline).newline()
         .inside(NODE_LET_IN).after(T![in]).when(in_body_newline).newline()
         .inside(NODE_LET_IN).before(NODE_KEY_VALUE).when(header_has_multi_value).when(before_token_not_newline).newline()
-        
+
         .test("{a?3}: a", "{ a ? 3 }: a")
         .inside(NODE_PAT_ENTRY).around(T![?]).single_space()
-        
+
         .test("f  x", "f x")
         .inside(NODE_APPLY).between(VALUES, VALUES).single_space_or_optional_newline()
         .inside(NODE_APPLY).before(NODE_PAREN).when(last_argument_in_function).single_space()
@@ -137,7 +136,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_IF_ELSE).after([T![if],T![then]]).single_space_or_optional_newline()
         .inside(NODE_IF_ELSE).around(T![else]).single_space_or_optional_newline()
         .inside(NODE_IF_ELSE).after(T![else]).when(after_else_has_newline).newline()
-        
+
         // special-case to force a linebreak before `=` in
         //
         // ```nix
@@ -160,13 +159,13 @@ pub(crate) fn spacing() -> SpacingDsl {
             pattern: NODE_ROOT.into(),
             space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::None }
         })
-        
+
         .add_rule(dsl::SpacingRule {
             name: None,
             pattern: NODE_ROOT.into(),
             space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
         })
-        
+
         .add_rule(dsl::SpacingRule {
             name: None,
             pattern: p(TOKEN_LET) & p(after_let_newline),
@@ -195,13 +194,6 @@ fn after_literal(element: &SyntaxElement) -> bool {
         prev.map(|it| is_literal(it.kind())) == Some(true)
     };
 }
-
-// fn common_binops(element: &SyntaxElement) -> bool {
-//     fn is_concat_or_update(kind: SyntaxKind) -> bool {
-//         kind == TOKEN_CONCAT || kind == TOKEN_UPDATE
-//     }
-//     !is_concat_or_update(element.kind())
-// }
 
 fn inline_with_attr_set(element: &SyntaxElement) -> bool {
     fn inline_attr_set(element: &SyntaxElement) -> Option<bool> {
@@ -614,7 +606,7 @@ pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
         .anchor([NODE_PAT_ENTRY, NODE_PATTERN])
-        
+
 
         .rule("Indent binops")
             .inside(p(NODE_BIN_OP) & p(after_concat_is_newline) & p(not_on_top_level))
@@ -686,12 +678,12 @@ pub(crate) fn indentation() -> IndentDsl {
                   foo = bar;
                 }
             "#)
-        
+
         .rule("Indent newline let bindings ")
             .inside(p(NODE_LET_IN) & p(newline_let))
             .not_matching([T![let], T![in]])
             .set(Indent)
-        
+
         .rule("Indent let bindings after key value")
             .inside(p(NODE_LET_IN) & p(no_newline_let))
             .not_matching(p([T![let], T![in], NODE_WITH, NODE_ASSERT]) | p(VALUES))
@@ -748,17 +740,17 @@ pub(crate) fn indentation() -> IndentDsl {
                 , baz
                 }: foo
             "#)
-        
+
         .rule("Indent lambda body")
             .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_not_newline))
             .set(Indent)
         .rule("Indent newline lambda body")
             .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_newline) & p(lambda_inside_node_pattern))
-            .not_matching(p(TOKEN_COMMENT)) 
+            .not_matching(p(TOKEN_COMMENT))
             .set(Indent)
          .rule("Indent newline lambda body")
             .inside(p(NODE_LAMBDA) & p(not_on_top_level) & p(pattern_newline) & p(lambda_outside_node_pattern))
-            .not_matching(p(TOKEN_COMMENT) | p(VALUES)) 
+            .not_matching(p(TOKEN_COMMENT) | p(VALUES))
             .set(Indent)
             .test(r#"
                 {}:
@@ -781,7 +773,7 @@ pub(crate) fn indentation() -> IndentDsl {
                     fnbody;
                 }
             "#)
-        
+
         .rule("Indent top-level apply arg")
             .inside(p(NODE_APPLY) & p(on_top_level))
             .not_matching([T!["{"], T!["}"], NODE_ATTR_SET])
@@ -845,12 +837,12 @@ pub(crate) fn indentation() -> IndentDsl {
                     bar;
                 }
             "#)
-        
+
         .rule("Indent if-then-else")
             .inside(p(NODE_IF_ELSE) & p(inline_if_else))
             .not_matching(p([T![if], T![then], T![else]]) | p(VALUES))
             .set(Indent)
-        
+
         .rule("Indent if-then-else")
             .inside(p(NODE_IF_ELSE) & p(not_inline_if_else))
             .not_matching([T![if], T![then], T![else], TOKEN_COMMENT])
