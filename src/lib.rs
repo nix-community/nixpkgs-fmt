@@ -16,13 +16,13 @@ use crate::dsl::RuleName;
 /// From this Diff, you can get either the resulting `String`, or the
 /// reformatted syntax node.
 #[derive(Debug)]
-pub struct FmtDiff {
+pub(crate) struct FmtDiff {
     original_node: SyntaxNode,
     edits: Vec<(AtomEdit, Option<RuleName>)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AtomEdit {
+pub(crate) struct AtomEdit {
     pub delete: TextRange,
     pub insert: SmolStr,
 }
@@ -60,57 +60,29 @@ impl fmt::Display for FmtDiff {
 
 impl FmtDiff {
     /// Get the diff of deletes and inserts
-    pub fn text_diff(&self) -> Vec<AtomEdit> {
+    pub(crate) fn text_diff(&self) -> Vec<AtomEdit> {
         self.edits.iter().map(|(edit, _reason)| edit.clone()).collect()
     }
 
     /// Whether or not formatting did caused any changes
-    pub fn has_changes(&self) -> bool {
+    pub(crate) fn has_changes(&self) -> bool {
         !self.edits.is_empty()
     }
 
-    pub fn explain(&self) -> String {
-        let mut buf = String::new();
-        let mut line_start: TextUnit = 0.into();
-        for line in self.original_node.to_string().lines() {
-            let line_len = TextUnit::of_str(line) + TextUnit::of_str("\n");
-            let line_range = TextRange::offset_len(line_start, line_len);
-
-            buf.push_str(line);
-            let mut first = true;
-            for (edit, reason) in self.edits.iter() {
-                if line_range.contains(edit.delete.end()) {
-                    if first {
-                        first = false;
-                        buf.push_str("  # ")
-                    } else {
-                        buf.push_str(", ")
-                    }
-                    buf.push_str(&format!("{}: ", edit.delete));
-                    if let Some(reason) = reason {
-                        buf.push_str(&reason.to_string());
-                    } else {
-                        buf.push_str("unnamed rule")
-                    }
-                }
-            }
-            buf.push('\n');
-
-            line_start += line_len;
-        }
-        buf
-    }
-
     /// Apply the formatting suggestions and return the new node
-    pub fn to_node(&self) -> SyntaxNode {
-        unimplemented!()
+    pub(crate) fn to_node(&self) -> SyntaxNode {
+        if self.has_changes() {
+            rnix::parse(&self.to_string()).node()
+        } else {
+            self.original_node.clone()
+        }
     }
 }
 
-pub fn reformat_node(node: &SyntaxNode) -> FmtDiff {
+pub fn reformat_node(node: &SyntaxNode) -> SyntaxNode {
     let spacing = rules::spacing();
     let indentation = rules::indentation();
-    engine::format(&spacing, &indentation, node)
+    engine::reformat(&spacing, &indentation, node, None)
 }
 
 pub fn reformat_string(text: &str) -> String {
@@ -123,8 +95,7 @@ pub fn reformat_string(text: &str) -> String {
 
     let ast = rnix::parse(&*text);
     let root_node = ast.node();
-    let diff = reformat_node(&root_node);
-    let res = diff.to_string();
+    let res = reformat_node(&root_node).to_string();
     match line_endings {
         LineEndings::Unix => res,
         LineEndings::Dos => convert_to_dos_line_endings(res),
@@ -134,9 +105,39 @@ pub fn reformat_string(text: &str) -> String {
 pub fn explain(text: &str) -> String {
     let (text, _line_endings) = convert_to_unix_line_endings(text);
     let ast = rnix::parse(&*text);
-    let root_node = ast.node();
-    let diff = reformat_node(&root_node);
-    diff.explain()
+    let spacing = rules::spacing();
+    let indentation = rules::indentation();
+    let mut explanation = Vec::new();
+    engine::reformat(&spacing, &indentation, &ast.node(), Some(&mut explanation));
+
+    let mut buf = String::new();
+    let mut line_start: TextUnit = 0.into();
+    for line in text.to_string().lines() {
+        let line_len = TextUnit::of_str(line) + TextUnit::of_str("\n");
+        let line_range = TextRange::offset_len(line_start, line_len);
+
+        buf.push_str(line);
+        let mut first = true;
+        for (edit, reason) in explanation.iter() {
+            if line_range.contains(edit.delete.end()) {
+                if first {
+                    first = false;
+                    buf.push_str("  # ")
+                } else {
+                    buf.push_str(", ")
+                }
+                buf.push_str(&format!("{}: ", edit.delete));
+                match reason {
+                    Some(reason) => buf.push_str(&reason.to_string()),
+                    None => buf.push_str("unnamed rule"),
+                }
+            }
+        }
+        buf.push('\n');
+
+        line_start += line_len;
+    }
+    buf
 }
 
 enum LineEndings {
@@ -177,7 +178,7 @@ mod tests {
         assert_eq!(
             explanation,
             "{
-foo =1;  # [1; 2): Indent attribute set content, [7; 7): Space after =
+foo =1;  # [7; 7): Space after =
 }
 "
         )
