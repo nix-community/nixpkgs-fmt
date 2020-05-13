@@ -149,7 +149,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         // ```
         .add_rule(dsl::SpacingRule {
             name: None,
-            pattern: p(TOKEN_ASSIGN) & p(next_sibling_is_multiline_lambda_pattern),
+            pattern: p(T![=]) & p(next_sibling_is_multiline_lambda_pattern),
             space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
         })
 
@@ -168,13 +168,13 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         .add_rule(dsl::SpacingRule {
             name: None,
-            pattern: p(TOKEN_LET) & p(after_let_newline),
+            pattern: p(T![let]) & p(after_let_newline),
             space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
         })
 
         .add_rule(dsl::SpacingRule {
             name: None,
-            pattern: p(TOKEN_LET) & p(let_inside_lambda_or_paren),
+            pattern: p(T![let]) & p(let_inside_lambda_or_paren),
             space: dsl::Space { loc: dsl::SpaceLoc::Before, value: dsl::SpaceValue::Newline }
         })
         ;
@@ -424,7 +424,7 @@ fn next_is_select_attrset(element: &SyntaxElement) -> bool {
 
 fn after_else_is_inline_if(element: &SyntaxElement) -> bool {
     let token_else = prev_non_whitespace_parent(element)
-        .and_then(|e| e.into_token().map(|t| t.kind() == TOKEN_ELSE))
+        .and_then(|e| e.into_token().map(|t| t.kind() == T![else]))
         .unwrap_or(false);
     let has_newline = prev_token_parent(element).map(|t| t.text().contains("\n")).unwrap_or(false);
     token_else & !has_newline
@@ -443,7 +443,7 @@ fn not_inline_if(element: &SyntaxElement) -> bool {
         let first_el = element
             .parent()?
             .descendants_with_tokens()
-            .take_while(|e| e.kind() != TOKEN_ELSE)
+            .take_while(|e| e.kind() != T![else])
             .filter(|element| match element {
                 NodeOrToken::Token(_) => true,
                 _ => false,
@@ -461,7 +461,7 @@ fn between_if_then_not_newline(element: &SyntaxElement) -> bool {
         let first_el = element
             .parent()?
             .descendants_with_tokens()
-            .take_while(|e| e.kind() != TOKEN_THEN)
+            .take_while(|e| e.kind() != T![then])
             .filter(|element| match element {
                 NodeOrToken::Token(_) => true,
                 _ => false,
@@ -586,7 +586,7 @@ fn let_inside_lambda_or_paren(element: &SyntaxElement) -> bool {
         };
         let between_let_in_newline = parent_let
             .children_with_tokens()
-            .take_while(|e| e.kind() != TOKEN_IN)
+            .take_while(|e| e.kind() != T![in])
             .any(|t| t.as_token().map(|n| n.text().contains("\n")).unwrap_or(false));
 
         Some(
@@ -624,7 +624,7 @@ pub(crate) fn indentation() -> IndentDsl {
             "#)
         .rule("Indent binops top level")
             .inside(p(NODE_BIN_OP) & p(on_top_level))
-            .not_matching(p(TOKEN_CONCAT) | p(VALUES))
+            .not_matching(p(T![++]) | p(VALUES))
             .set(Indent)
             .test(r#"
                 {
@@ -912,7 +912,7 @@ fn not_inline_if_else(element: &SyntaxElement) -> bool {
         let first_el = element
             .as_node()?
             .descendants_with_tokens()
-            .take_while(|e| e.kind() != TOKEN_ELSE)
+            .take_while(|e| e.kind() != T![else])
             .filter(|element| match element {
                 NodeOrToken::Token(_) => true,
                 _ => false,
@@ -975,7 +975,7 @@ fn newline_let(element: &SyntaxElement) -> bool {
         .as_node()
         .map(|n| {
             n.children_with_tokens()
-                .take_while(|e| e.kind() != TOKEN_IN)
+                .take_while(|e| e.kind() != T![in])
                 .any(|t| t.as_token().map(|n| n.text().contains("\n")).unwrap_or(false))
         })
         .unwrap_or(false);
