@@ -16,25 +16,40 @@ use crate::{
 };
 
 /// The main entry point for formatting
-pub(crate) fn format(
+pub(crate) fn reformat(
     spacing_dsl: &SpacingDsl,
     indent_dsl: &IndentDsl,
-    root: &SyntaxNode,
-) -> FmtDiff {
-    let mut model = FmtModel::new(root.clone());
+    node: &SyntaxNode,
+    // Passing optional reference is just a cute type-safe way for the caller to
+    // decide if they need explanation.
+    mut explanation: Option<&mut Vec<(AtomEdit, Option<RuleName>)>>,
+) -> SyntaxNode {
+    // First, adjust spacing rules between the nodes.
+    // This can force some newlines.
+    let mut model = FmtModel::new(node.clone());
 
     // First, adjust spacing rules between the nodes.
     // This can force some newlines.
     let spacing_rule_set = PatternSet::new(spacing_dsl.rules.iter());
-    for element in walk_non_whitespace(root) {
+    for element in walk_non_whitespace(node) {
         for rule in spacing_rule_set.matching(element.clone()) {
             rule.apply(&element, &mut model)
         }
     }
 
+    let spacing_diff = model.into_diff();
+    if let Some(explanation) = &mut explanation {
+        if spacing_diff.has_changes() {
+            explanation.extend(spacing_diff.edits.clone())
+        }
+    }
+    let node = spacing_diff.to_node();
+
     // Next, for each node which starts the newline, adjust the indent.
+    let mut model = FmtModel::new(node.clone());
+
     let anchor_set = PatternSet::new(indent_dsl.anchors.iter());
-    for element in walk_non_whitespace(root) {
+    for element in walk_non_whitespace(&node) {
         let block = model.block_for(&element, BlockPosition::Before);
         if !block.has_newline() {
             // No need to indent an element if it doesn't start a line
@@ -66,11 +81,20 @@ pub(crate) fn format(
 
     // Finally, do custom touch-ups like re-indenting of string literals and
     // replacing URLs with string literals.
-    for element in walk_non_whitespace(root) {
+    for element in walk_non_whitespace(&node) {
         fixes::fix(element, &mut model, &anchor_set)
     }
 
-    model.into_diff()
+    let indent_diff = model.into_diff();
+    if let Some(explanation) = explanation {
+        // We don't add indentation explanations if we had whitespace changes,
+        // as that'll require fixing up the original ranges. This could be done,
+        // but it's not clear if it is really necessary.
+        if indent_diff.has_changes() && explanation.is_empty() {
+            explanation.extend(indent_diff.edits.clone())
+        }
+    }
+    indent_diff.to_node()
 }
 
 impl FmtDiff {
