@@ -44,6 +44,19 @@
       bla = hoi
     '';
 
+  singleAsciiDoc = value: ''
+    ${
+      if lib.hasAttr "example" value
+      then ''
+        Example::
+        ${
+          builtins.toJSON value.example
+        }
+      ''
+      else "No Example:: {blank}"
+    }
+  '';
+
   nested_antiquotation =
     mkBefore
       ''

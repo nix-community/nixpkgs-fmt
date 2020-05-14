@@ -2,9 +2,10 @@
   fooA = fun.f a b (with c; d);
   fooB = fun (with a; b) c d;
   fooC = fun a (with b; c) d;
-  fooD = fun a b (with c; {
-    inherit d;
-  });
+  fooD =
+    fun a b (with c; {
+      inherit d;
+    });
   fooF =
     fun
       (with a; b)
@@ -39,9 +40,10 @@
   barA = fun a b { inherit d; };
   barB = fun { inherit b; } c d;
   barC = fun a { inherit c; } d;
-  barD = fun a b {
-    inherit d;
-  };
+  barD =
+    fun a b {
+      inherit d;
+    };
   barF =
     fun
       { inherit b; }

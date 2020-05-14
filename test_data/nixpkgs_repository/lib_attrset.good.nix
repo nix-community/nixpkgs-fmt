@@ -12,5 +12,6 @@
           else if isAttrs pat then isAttrs val && matchAttrs pat val
           else pat == val
         )
-        [ pattern attrs ]));
+        [ pattern attrs ]
+    ));
 }

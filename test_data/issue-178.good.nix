@@ -9,5 +9,6 @@
     map
       ({ name }:
         { inherit name; })
-      cfg.feeds);
+      cfg.feeds
+  );
 }

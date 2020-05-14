@@ -6,10 +6,9 @@
       )
     )
   );
-  xxx = listToAttrs (
-    concatMap (name:
-      let a = 4; in 5
-    ));
+  xxx = listToAttrs (concatMap (name:
+    let a = 4; in 5
+  ));
   foldAttrs = op: nul: list_of_attrs:
     fold
       (n: a:
