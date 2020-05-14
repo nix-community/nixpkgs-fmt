@@ -17,7 +17,5 @@
           crossDrv = overrideDerivation drv.crossDrv f;
           nativeDrv = overrideDerivation drv.nativeDrv f;
         }
-        else { }
-      )
-    );
+        else { }));
 }

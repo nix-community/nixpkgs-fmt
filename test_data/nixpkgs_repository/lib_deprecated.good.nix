@@ -19,5 +19,6 @@
               ++ (maybeAttrNullable "propagatedNativeBuildInputs" [ ] y)
               ++ ys;
             acc = acc';
-          });
+          }
+          );
 }

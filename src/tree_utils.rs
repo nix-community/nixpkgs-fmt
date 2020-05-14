@@ -65,14 +65,14 @@ pub(crate) fn prev_sibling(element: &SyntaxElement) -> Option<SyntaxNode> {
     )
 }
 
-pub(crate) fn next_sibling(element: &SyntaxElement) -> Option<SyntaxNode> {
+/*pub(crate) fn next_sibling(element: &SyntaxElement) -> Option<SyntaxNode> {
     successors(element.next_sibling_or_token(), |it| it.next_sibling_or_token()).find_map(
         |element| match element {
             NodeOrToken::Node(it) => Some(it),
             NodeOrToken::Token(_) => None,
         },
     )
-}
+}*/
 
 pub(crate) fn not_on_top_level(element: &SyntaxElement) -> bool {
     !on_top_level(element)

@@ -55,5 +55,6 @@
     buildLinux ({
       version = "${foo}-mptcp_v1.0.0";
       inherit bar;
-    });
+    }
+    );
 }

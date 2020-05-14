@@ -10,9 +10,9 @@ use crate::{
     dsl::{self, IndentDsl, IndentValue::*, SpacingDsl},
     pattern::p,
     tree_utils::{
-        has_newline, next_non_whitespace_sibling, next_sibling, next_token_sibling,
-        not_on_top_level, on_top_level, prev_non_whitespace_parent, prev_non_whitespace_sibling,
-        prev_sibling, prev_token_parent, prev_token_sibling,
+        has_newline, next_non_whitespace_sibling, next_token_sibling, not_on_top_level,
+        on_top_level, prev_non_whitespace_parent, prev_non_whitespace_sibling, prev_sibling,
+        prev_token_parent, prev_token_sibling,
     },
 };
 
@@ -48,7 +48,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("{} :92", "{}: 92")
         .inside(NODE_LAMBDA).before(T![:]).no_space()
         .inside(NODE_LAMBDA).after(T![:]).single_space_or_optional_newline()
-        .inside(NODE_LAMBDA).before(NODE_IDENT).when(prev_parent_is_newline).when(next_is_select_attrset).newline()
+        //.inside(NODE_LAMBDA).before(NODE_IDENT).when(prev_parent_is_newline).when(next_is_select_attrset).newline()
 
         .test("[1 2 3]", "[ 1 2 3 ]")
         .inside(NODE_LIST).after(T!["["]).single_space_or_newline()
@@ -65,13 +65,16 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
         .inside(NODE_PAREN).before(T![")"]).no_space_or_optional_newline()
-        .inside(NODE_PAREN).before(T![")"]).when(paren_open_newline).newline()
-        .inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_newline).newline()
-        .inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_not_newline).no_space()
+        .inside(NODE_PAREN).after(T!["("]).when(has_no_brackets).no_space_or_newline()
+        .inside(NODE_PAREN).before(T![")"]).when(has_no_brackets).no_space_or_newline()
+        //.inside(NODE_PAREN).before(NODE_APPLY).when()
+        //.inside(NODE_PAREN).before(T![")"]).when(paren_open_newline).newline()
+        //.inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_newline).newline()
+        //.inside(NODE_PAREN).before(T![")"]).when(node_inside_paren).when(between_open_paren_not_newline).no_space()
 
-        .inside(NODE_PAREN).before(T![")"]).when(prev_is_let).when(paren_on_top_level).newline()
-        .inside(NODE_PAREN).before(T![")"]).when(prev_is_if).when(not_inside_node_interpol).newline()
-        .inside(NODE_PAREN).before(T![")"]).when(inside_multiple_argument_function).newline()
+        //.inside(NODE_PAREN).before(T![")"]).when(prev_is_let).newline()
+        //.inside(NODE_PAREN).before(T![")"]).when(prev_is_if).when(not_inside_node_interpol).newline()
+        //.inside(NODE_PAREN).before(T![")"]).when(inside_multiple_argument_function).newline()
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
         .inside(NODE_ATTR_SET).before(T!["}"]).single_space_or_newline()
@@ -319,7 +322,7 @@ fn outside_inline_pattern(element: &SyntaxElement) -> bool {
     .unwrap_or(true)
 }
 
-fn paren_open_newline(element: &SyntaxElement) -> bool {
+/*fn paren_open_newline(element: &SyntaxElement) -> bool {
     fn after_paren_open_newline(element: &SyntaxElement) -> Option<bool> {
         element
             .parent()?
@@ -359,9 +362,26 @@ fn multiline_string(element: &SyntaxElement) -> bool {
         element.as_node().map(|e| has_newline(&e)).unwrap_or(false);
     }
     false
+}*/
+
+fn has_no_brackets(element: &SyntaxElement) -> bool {
+    let parent = match element.parent() {
+        None => return true,
+        Some(it) => it,
+    };
+    parent.children().all(|it| {
+        it.kind() != NODE_ATTR_SET
+            && it.kind() != NODE_PATTERN
+            && it.kind() != NODE_LAMBDA
+            && it.kind() != NODE_APPLY
+            && it.kind() != NODE_WITH
+            && it.kind() != NODE_BIN_OP
+            && it.kind() != NODE_IF_ELSE
+            && it.kind() != NODE_LIST
+    })
 }
 
-fn node_inside_paren(element: &SyntaxElement) -> bool {
+/*fn node_inside_paren(element: &SyntaxElement) -> bool {
     fn inside_paren_exist_node(element: &SyntaxElement) -> Option<bool> {
         let open_paren_token_unit = element.parent()?.first_child_or_token()?.text_range().start();
         let paren_contain_node_unit = element
@@ -421,7 +441,7 @@ fn next_is_select_attrset(element: &SyntaxElement) -> bool {
     let attrset = next_sibling(element).map(|n| n.kind() == NODE_ATTR_SET).unwrap_or(false);
     select || attrset
 }
-
+*/
 fn after_else_is_inline_if(element: &SyntaxElement) -> bool {
     let token_else = prev_non_whitespace_parent(element)
         .and_then(|e| e.into_token().map(|t| t.kind() == T![else]))
@@ -490,7 +510,7 @@ fn after_else_has_newline(element: &SyntaxElement) -> bool {
         .unwrap_or(false)
 }
 
-fn prev_is_let(element: &SyntaxElement) -> bool {
+/*fn prev_is_let(element: &SyntaxElement) -> bool {
     prev_non_whitespace_sibling(element)
         .and_then(|e| e.into_node().map(|n| n.kind() == NODE_LET_IN))
         .unwrap_or(false)
@@ -518,7 +538,7 @@ fn paren_on_top_level(element: &SyntaxElement) -> bool {
         NODE_SELECT | NODE_PAREN | NODE_APPLY => paren_on_top_level(&parent.into()),
         _ => false,
     }
-}
+}*/
 
 fn before_token_has_newline(element: &SyntaxElement) -> bool {
     prev_token_sibling(element).map(|e| e.text().contains("\n")).unwrap_or(false)

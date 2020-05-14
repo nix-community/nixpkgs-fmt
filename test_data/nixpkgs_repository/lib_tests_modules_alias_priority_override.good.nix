@@ -8,14 +8,12 @@
     ({ config, lib, ... }:
       {
         enableAlias = lib.mkForce false;
-      }
-    )
+      })
 
     # Enable the normal (non-aliased) option.
     ({ config, lib, ... }:
       {
         enable = true;
-      }
-    )
+      })
   ];
 }

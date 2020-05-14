@@ -8,8 +8,6 @@
   testB = buildLinux (
     map
       ({ name }:
-        { inherit name; }
-      )
-      cfg.feeds
-  );
+        { inherit name; })
+      cfg.feeds);
 }
