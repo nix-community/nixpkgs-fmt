@@ -313,6 +313,21 @@ impl FmtModel {
             SpaceBlockOrToken::Token(it) => {
                 let (len, has_newline) = len_of_last_line(it.text());
                 indent.alignment += len;
+                // Special case for interpolated strings like
+                //
+                //  ''
+                //    foo ${
+                //      92
+                //    }
+                //  ''
+                //
+                // we want to anchor to the first non-blank string fragment
+                if it.kind() == TOKEN_STRING_CONTENT && has_newline {
+                    let last_line = &it.text()[it.text().rfind('\n').unwrap_or_default() + 1..];
+                    indent.level = 0;
+                    indent.alignment =
+                        last_line.chars().take_while(char::is_ascii_whitespace).count() as u32;
+                }
                 has_newline
             }
             SpaceBlockOrToken::SpaceBlock(it) => {

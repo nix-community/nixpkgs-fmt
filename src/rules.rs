@@ -605,7 +605,7 @@ fn let_inside_lambda_or_paren(element: &SyntaxElement) -> bool {
 pub(crate) fn indentation() -> IndentDsl {
     let mut dsl = IndentDsl::default();
     dsl
-        .anchor([NODE_PAT_ENTRY, NODE_PATTERN])
+        .anchor([NODE_PAT_ENTRY, NODE_PATTERN, NODE_STRING_INTERPOL])
 
 
         .rule("Indent binops")
@@ -883,6 +883,10 @@ pub(crate) fn indentation() -> IndentDsl {
                     ;
                 }
             "#)
+        .rule("Indent interpolated strings")
+            .inside(NODE_STRING_INTERPOL)
+            .not_matching(TOKEN_INTERPOL_END)
+            .set(Indent)
     ;
 
     dsl
