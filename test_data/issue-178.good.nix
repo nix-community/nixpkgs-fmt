@@ -5,10 +5,8 @@
     src = sources.nixpkgs-fmt;
   }).nixpkgs-fmt.build;
 
-  testB = buildLinux (
-    map
-      ({ name }:
-        { inherit name; })
-      cfg.feeds
-  );
+  testB = buildLinux (map
+    ({ name }:
+      { inherit name; })
+    cfg.feeds);
 }
