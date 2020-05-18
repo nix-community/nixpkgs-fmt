@@ -11,7 +11,7 @@ use crate::{
     dsl::{IndentDsl, RuleName, SpacingDsl},
     engine::fmt_model::{BlockPosition, FmtModel, SpaceBlock, SpaceBlockOrToken},
     pattern::PatternSet,
-    tree_utils::walk_non_whitespace,
+    tree_utils::{walk_non_whitespace, walk_non_whitespace_non_interpol},
     AtomEdit, FmtDiff,
 };
 
@@ -49,7 +49,7 @@ pub(crate) fn reformat(
     let mut model = FmtModel::new(node.clone());
 
     let anchor_set = PatternSet::new(indent_dsl.anchors.iter());
-    for element in walk_non_whitespace(&node) {
+    for element in walk_non_whitespace_non_interpol(&node) {
         let block = model.block_for(&element, BlockPosition::Before);
         if !block.has_newline() {
             // No need to indent an element if it doesn't start a line
@@ -81,7 +81,7 @@ pub(crate) fn reformat(
 
     // Finally, do custom touch-ups like re-indenting of string literals and
     // replacing URLs with string literals.
-    for element in walk_non_whitespace(&node) {
+    for element in walk_non_whitespace_non_interpol(&node) {
         fixes::fix(element, &mut model, &anchor_set)
     }
 
