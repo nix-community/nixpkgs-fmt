@@ -69,15 +69,17 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
         .inside(NODE_PAREN).before(T![")"]).no_space_or_optional_newline()
-        .inside(NODE_PAREN).before(T![")"]).no_space_or_optional_newline()
-        .inside(NODE_PAREN).around(NODE_ATTR_SET).no_space_or_newline()
-        .inside(NODE_PAREN).around(NODE_LET_IN).no_space_or_newline()
-        .inside(NODE_PAREN).around(NODE_IF_ELSE).when(not_inline_if).single_space_or_newline()
-        .inside(NODE_PAREN).around(NODE_IF_ELSE).no_space()
-        .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
-        .inside(NODE_PAREN).around(NODE_APPLY).no_space_or_optional_newline()
-        .inside(NODE_PAREN).around(NODE_APPLY).when(last_argument_is_bracket).no_space()
-        .inside(NODE_PAREN).before(NODE_LAMBDA).no_space_or_optional_newline()
+        .inside(NODE_PAREN).after(T!["("]).when(has_no_brackets).no_space_or_newline()
+        .inside(NODE_PAREN).before(T![")"]).when(has_no_brackets).no_space_or_newline()
+        .inside(NODE_PAREN).before(T![")"]).when(contain_lambda).no_space_or_newline()
+        // .inside(NODE_PAREN).around(NODE_ATTR_SET).no_space_or_newline()
+        // .inside(NODE_PAREN).around(NODE_LET_IN).no_space_or_newline()
+        // .inside(NODE_PAREN).around(NODE_IF_ELSE).when(not_inline_if).single_space_or_newline()
+        // .inside(NODE_PAREN).around(NODE_IF_ELSE).no_space()
+        // .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
+        // .inside(NODE_PAREN).around(NODE_APPLY).no_space_or_optional_newline()
+        // .inside(NODE_PAREN).around(NODE_APPLY).when(last_argument_is_bracket).no_space()
+        // .inside(NODE_PAREN).before(NODE_LAMBDA).no_space_or_optional_newline()
 
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
@@ -202,6 +204,28 @@ fn after_literal(element: &SyntaxElement) -> bool {
     } else {
         prev.map(|it| is_literal(it.kind())) == Some(true)
     };
+}
+
+fn has_no_brackets(element: &SyntaxElement) -> bool {
+    let parent = match element.parent() {
+        None => return true,
+        Some(it) => it,
+    };
+    parent.children().all(|it| match it.kind() {
+        NODE_ATTR_SET | NODE_PATTERN | NODE_WITH | NODE_BIN_OP |  NODE_LIST => true,
+        _ => false,
+    })
+}
+
+fn contain_lambda(element: &SyntaxElement) -> bool {
+    let parent = match element.parent() {
+        None => return true,
+        Some(it) => it,
+    };
+    match parent.first_child() {
+        None => return false,
+        Some(it) => it.kind() == NODE_LAMBDA,
+    }
 }
 
 fn inline_with_attr_set(element: &SyntaxElement) -> bool {
