@@ -3,8 +3,8 @@ use std::iter::successors;
 use rnix::{
     NodeOrToken, SyntaxElement,
     SyntaxKind::{
-        NODE_APPLY, NODE_ASSERT, NODE_IF_ELSE, NODE_LAMBDA, NODE_LET_IN, NODE_ROOT, NODE_WITH,
-        TOKEN_WHITESPACE,
+        NODE_APPLY, NODE_ASSERT, NODE_IF_ELSE, NODE_LAMBDA, NODE_LET_IN, NODE_ROOT,
+        NODE_STRING_INTERPOL, NODE_WITH, TOKEN_WHITESPACE,
     },
     SyntaxNode, SyntaxToken, WalkEvent,
 };
@@ -19,6 +19,29 @@ pub(crate) fn walk_non_whitespace(node: &SyntaxNode) -> impl Iterator<Item = Syn
     node.preorder_with_tokens().filter_map(|event| match event {
         WalkEvent::Enter(element) => Some(element).filter(|it| it.kind() != TOKEN_WHITESPACE),
         WalkEvent::Leave(_) => None,
+    })
+}
+
+pub(crate) fn walk_non_whitespace_non_interpol(
+    node: &SyntaxNode,
+) -> impl Iterator<Item = SyntaxElement> {
+    let mut interpool_level = 0;
+    node.preorder_with_tokens().filter_map(move |event| {
+        match &event {
+            WalkEvent::Enter(element) if element.kind() == NODE_STRING_INTERPOL => {
+                interpool_level += 1
+            }
+            WalkEvent::Leave(element) if element.kind() == NODE_STRING_INTERPOL => {
+                interpool_level -= 1
+            }
+            _ => (),
+        }
+        match event {
+            WalkEvent::Enter(element) => {
+                Some(element).filter(|it| interpool_level == 0 && it.kind() != TOKEN_WHITESPACE)
+            }
+            WalkEvent::Leave(_) => None,
+        }
     })
 }
 

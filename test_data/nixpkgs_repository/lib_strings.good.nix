@@ -7,7 +7,7 @@
     assert lib.assertMsg
       (strw <= width)
       "fixedWidthString: requested string length (${
-        toString width}) must not be shorter than actual length (${
-        toString strw})";
+          toString width}) must not be shorter than actual length (${
+          toString strw})";
     if strw == width then str else filler + fixedWidthString reqWidth filler str;
 }

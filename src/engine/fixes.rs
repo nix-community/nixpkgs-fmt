@@ -2,36 +2,25 @@ use std::cmp::min;
 
 use rnix::{
     NodeOrToken, SyntaxElement,
-    SyntaxKind::{NODE_STRING, NODE_STRING_INTERPOL, TOKEN_COMMENT, TOKEN_STRING_CONTENT},
+    SyntaxKind::{NODE_STRING, TOKEN_COMMENT, TOKEN_STRING_CONTENT, TOKEN_WHITESPACE},
     SyntaxNode, SyntaxToken, TextRange, TextUnit,
 };
 
+use super::indentation::single_line_comment_indent;
 use crate::{
     engine::{
-        indentation::{
-            indent_anchor, indent_custom_anchor, single_line_comment_indent,
-            string_interpol_indent, IndentLevel,
-        },
+        indentation::{indent_anchor, IndentLevel},
         BlockPosition, FmtModel,
     },
     pattern::{Pattern, PatternSet},
-    tree_utils::walk_non_whitespace,
     AtomEdit,
 };
 
 pub(super) fn fix(element: SyntaxElement, model: &mut FmtModel, anchor_set: &PatternSet<&Pattern>) {
     match element {
         NodeOrToken::Node(node) => {
-            let multiline_string = node.children_with_tokens().any(|e| {
-                e.as_token()
-                    .map(|n| n.text().trim_start_matches(' ').starts_with('\n'))
-                    .unwrap_or(false)
-            });
-            if node.kind() == NODE_STRING && multiline_string {
+            if let NODE_STRING = node.kind() {
                 fix_string_indentation(&node, model, anchor_set)
-            }
-            if node.kind() == NODE_STRING_INTERPOL {
-                fix_string_interpolation(&node, model, anchor_set)
             }
         }
         NodeOrToken::Token(token) => {
@@ -47,39 +36,15 @@ fn fix_string_indentation(
     model: &mut FmtModel,
     anchor_set: &PatternSet<&Pattern>,
 ) {
-    let element: SyntaxElement = node.clone().into();
     let quote_indent = {
-        let inside_interpolation = node.ancestors().any(|e| e.kind() == NODE_STRING_INTERPOL);
-        let default_indent = IndentLevel::default();
+        let element: SyntaxElement = node.clone().into();
         let block = model.block_for(&element, BlockPosition::Before);
         if block.text().contains('\n') {
             IndentLevel::from_whitespace_block(block.text())
         } else {
-            let multiline_interpol_string = node
-                .ancestors()
-                .find(|e| e.kind() == NODE_STRING_INTERPOL)
-                .map(|n| {
-                    n.descendants_with_tokens()
-                        .take_while(|d| d.kind() != NODE_STRING)
-                        .any(|t| t.as_token().map(|e| e.text().contains("\n")).unwrap_or(false))
-                })
-                .unwrap_or(false);
-
-            if inside_interpolation {
-                if multiline_interpol_string {
-                    match indent_anchor(&element, model, anchor_set) {
-                        None => return,
-                        Some((_element, indent)) => indent,
-                    }
-                } else {
-                    indent_custom_anchor(&element, model, NODE_STRING_INTERPOL, anchor_set)
-                        .unwrap_or(default_indent)
-                }
-            } else {
-                match indent_anchor(&element, model, anchor_set) {
-                    None => return,
-                    Some((_element, indent)) => indent,
-                }
+            match indent_anchor(&element, model, anchor_set) {
+                None => return,
+                Some((_element, indent)) => indent,
             }
         }
     };
@@ -176,20 +141,6 @@ fn fix_comment_indentation(
     }
 }
 
-fn fix_string_interpolation(
-    node: &SyntaxNode,
-    model: &mut FmtModel,
-    anchor_set: &PatternSet<&Pattern>,
-) {
-    for element in walk_non_whitespace(node) {
-        if element.parent().map(|it| it.text_range().start()) == Some(element.text_range().start())
-        {
-            continue;
-        }
-        string_interpol_indent(&element, model, anchor_set);
-    }
-}
-
 /// For indented string like
 ///
 /// ```nix
@@ -203,9 +154,9 @@ fn fix_string_interpolation(
 /// hello, `"    "` before world and `""` before the last `''`.
 fn node_indent_ranges(indented_string: &SyntaxNode) -> impl Iterator<Item = TextRange> {
     indented_string
-        .children_with_tokens()
+        .descendants_with_tokens()
         .filter_map(|it| it.into_token())
-        .filter(|it| it.kind() == TOKEN_STRING_CONTENT)
+        .filter(|it| it.kind() == TOKEN_STRING_CONTENT || it.kind() == TOKEN_WHITESPACE)
         .flat_map(|string_bit| {
             let start_offset = string_bit.text_range().start();
             string_indent_ranges(string_bit.text())

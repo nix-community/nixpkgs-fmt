@@ -3,13 +3,13 @@ use std::{
     fmt,
 };
 
-use rnix::{SmolStr, SyntaxElement, SyntaxKind, SyntaxKind::*, SyntaxNode, SyntaxToken, TextUnit};
+use rnix::{SmolStr, SyntaxElement, SyntaxKind::*, SyntaxNode, SyntaxToken, TextUnit};
 
 use crate::{
     dsl::{IndentRule, Modality, RuleName},
     engine::{BlockPosition, FmtModel, SpaceBlock, SpaceBlockOrToken},
     pattern::{Pattern, PatternSet},
-    tree_utils::{prev_non_whitespace_token_sibling, prev_token_sibling},
+    tree_utils::prev_non_whitespace_token_sibling,
 };
 
 const INDENT_SIZE: u32 = 2;
@@ -184,51 +184,6 @@ pub(super) fn default_indent(
     block.set_indent(anchor_indent, RuleName::new("Preserve indentation"));
 }
 
-pub(super) fn string_interpol_indent(
-    element: &SyntaxElement,
-    model: &mut FmtModel,
-    anchor_set: &PatternSet<&Pattern>,
-) {
-    let indent = IndentLevel::default();
-    let anchor_indent = match indent_anchor(&element, model, anchor_set) {
-        Some((_anchor, indent)) => indent,
-        _ => IndentLevel::default(),
-    };
-
-    let anchor_custom =
-        indent_custom_anchor(&element, model, NODE_STRING_INTERPOL, anchor_set).unwrap_or(indent);
-
-    let block = model.block_for(&element, BlockPosition::Before);
-    if !block.has_newline() {
-        // No need to indent an element if it doesn't start a line
-        return;
-    }
-    match element {
-        e if e.kind() == NODE_APPLY => {
-            let node_string_count =
-                e.ancestors().filter(|e| e.kind() == NODE_STRING_INTERPOL).count();
-            let node_string = e
-                .ancestors()
-                .find(|e| e.kind() == NODE_STRING)
-                .and_then(|t| prev_token_sibling(&t.into()).map(|e| e.text().contains("\n")))
-                .unwrap_or(false);
-            if node_string_count < 2 && !node_string {
-                block
-                    .set_indent(anchor_custom.indent(), RuleName::new("String Interpolation Value"))
-            } else {
-                block.set_indent(anchor_custom, RuleName::new("String Interpolation Value"))
-            }
-        }
-        e if e.kind() == TOKEN_INTERPOL_END => {
-            block.set_indent(anchor_indent.indent(), RuleName::new("String Interpolation Value"))
-        }
-        e if e.kind() == TOKEN_SQUARE_B_CLOSE => {
-            block.set_indent(anchor_custom, RuleName::new("String Interpolation Value"))
-        }
-        _ => block.set_indent(anchor_custom.indent(), RuleName::new("String Interpolation Value")),
-    }
-}
-
 pub(super) fn single_line_comment_indent(
     token: &SyntaxToken,
     model: &mut FmtModel,
@@ -278,29 +233,6 @@ pub(super) fn indent_anchor(
         }
     }
     None
-}
-
-pub(super) fn indent_custom_anchor(
-    element: &SyntaxElement,
-    model: &mut FmtModel,
-    kind: SyntaxKind,
-    anchor_set: &PatternSet<&Pattern>,
-) -> Option<IndentLevel> {
-    let indent = IndentLevel::default();
-    // Calculates current indent on NODE_STRING_INTERPOLATION inside NODE_STRING
-    let parent = element.parent()?;
-    let init_indent = match indent_anchor(&parent.clone().into(), model, anchor_set) {
-        None => indent,
-        Some((_, top_indent)) => top_indent,
-    };
-
-    let original_anchor = parent.ancestors().filter(|e| e.kind() == kind);
-    fn count_indent(mut acc: IndentLevel, _node: SyntaxNode) -> IndentLevel {
-        acc += IndentLevel::default().indent();
-        acc
-    }
-    let node_indent = original_anchor.fold(init_indent, count_indent);
-    Some(node_indent)
 }
 
 impl FmtModel {
