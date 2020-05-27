@@ -9,68 +9,55 @@ postFixup =  ''
       '';
 
 foo = ''
-    bar = ${builtins.concatStringsSep " " [
-1
-2
-3
-]}
-    bla = hoi
-  '';
+  bar = ${builtins.concatStringsSep " " [
+    1
+    2
+    3
+  ]}
+  bla = hoi
+'';
 
 bar = ''
-foo
-${
-foo
-}
-foo
+  foo
+  ${
+    foo
+  }
+  foo
   '';
 
 baz =
     ''
 foo
 ${
-foo
+  foo
 }
 foo
     '';
 
 qux =
-    ''
+  ''
     bar = ${builtins.concatStringsSep " " [
-1
-2
-3
-]}
+      1
+      2
+      3
+    ]}
     bla = hoi
-    '';
-
-singleAsciiDoc = value: ''
-  ${
-if lib.hasAttr "example" value
-then ''
-Example::
-${
-builtins.toJSON value.example
-}
-''
-else "No Example:: {blank}"
-    }
   '';
 
 nested_antiquotation = mkBefore
   ''
-  ${optionalString cfg.earlySetup ''
-  ${optionalString cfg.earlySetup ''
-  setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
-  ''}
-  setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
-  ''}
+    ${optionalString cfg.earlySetup ''
+      ${optionalString cfg.earlySetup ''
+        setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
+      ''}
+      setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
+    ''}
   '';
 
 singleAsciiDoc = value: ''
 Example::
 ${
-builtins.toJSON value.example
+  builtins.toJSON value.example
 }
 '';
 }

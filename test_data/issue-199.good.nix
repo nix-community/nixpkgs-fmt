@@ -14,7 +14,7 @@ let
       bla
     '' else ''
       blub
-     '')}
+    '')}
   '';
 
   d = ''
@@ -22,7 +22,7 @@ let
       bla
     '' else ''
       blub
-     ''}
+    ''}
   '';
 
 
