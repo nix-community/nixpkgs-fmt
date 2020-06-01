@@ -45,9 +45,7 @@
     '';
 
   singleAsciiDoc = value: ''
-    ${
-      if lib.hasAttr "example" value
-      then ''
+    ${if lib.hasAttr "example" value then ''
         Example::
         ${
           builtins.toJSON value.example
@@ -57,16 +55,15 @@
     }
   '';
 
-  nested_antiquotation =
-    mkBefore
-      ''
+  nested_antiquotation = mkBefore
+    ''
+      ${optionalString cfg.earlySetup ''
         ${optionalString cfg.earlySetup ''
-          ${optionalString cfg.earlySetup ''
-            setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
-          ''}
           setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
         ''}
-      '';
+        setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
+      ''}
+    '';
 
   singleAsciiDoc = value: ''
     Example::

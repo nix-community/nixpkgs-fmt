@@ -1,11 +1,11 @@
-{ 
+{
   testA= [(fetchurl {
   url = "bla";
 })];
 
   testB = [( fetchurl{url="bla";} )];
 
-  testC = { 
+  testC = {
   testA1= [(fetchurl {
   url = "bla";
 })];
@@ -42,6 +42,5 @@ in
 buildLinux ({
   version = "${foo}-mptcp_v1.0.0";
   inherit bar;
-}
-);
+});
 }

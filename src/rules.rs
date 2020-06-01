@@ -3,7 +3,7 @@ use rnix::{
     types::{Lambda, TypedNode, With},
     NodeOrToken, SyntaxElement, SyntaxKind,
     SyntaxKind::*,
-    T,
+    SyntaxNode, T,
 };
 
 use crate::{
@@ -71,15 +71,12 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PAREN).before(T![")"]).no_space_or_optional_newline()
         .inside(NODE_PAREN).after(T!["("]).when(has_no_brackets).no_space_or_newline()
         .inside(NODE_PAREN).before(T![")"]).when(has_no_brackets).no_space_or_newline()
-        .inside(NODE_PAREN).before(T![")"]).when(contain_lambda).no_space_or_newline()
-        // .inside(NODE_PAREN).around(NODE_ATTR_SET).no_space_or_newline()
-        // .inside(NODE_PAREN).around(NODE_LET_IN).no_space_or_newline()
-        // .inside(NODE_PAREN).around(NODE_IF_ELSE).when(not_inline_if).single_space_or_newline()
-        // .inside(NODE_PAREN).around(NODE_IF_ELSE).no_space()
-        // .inside(NODE_PAREN).after(T!["("]).no_space_or_optional_newline()
-        // .inside(NODE_PAREN).around(NODE_APPLY).no_space_or_optional_newline()
-        // .inside(NODE_PAREN).around(NODE_APPLY).when(last_argument_is_bracket).no_space()
-        // .inside(NODE_PAREN).before(NODE_LAMBDA).no_space_or_optional_newline()
+        .inside(NODE_PAREN).after(T!["("]).when(apply_with_bracket).no_space()
+        .inside(NODE_PAREN).before(T![")"]).when(apply_with_bracket).no_space()
+        .inside(NODE_PAREN).after(NODE_LAMBDA).no_space_or_newline()
+        .inside(NODE_PAREN).before(T![")"]).when(lambda_inline_bracket).no_space()
+        .inside(NODE_PAREN).before(NODE_LAMBDA).no_space_or_optional_newline()
+        .inside(NODE_PAREN).before(T![")"]).when(node_with).no_space()
 
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
@@ -208,24 +205,66 @@ fn after_literal(element: &SyntaxElement) -> bool {
 
 fn has_no_brackets(element: &SyntaxElement) -> bool {
     let parent = match element.parent() {
-        None => return true,
+        None => return false,
         Some(it) => it,
     };
     parent.children().all(|it| match it.kind() {
-        NODE_ATTR_SET | NODE_PATTERN | NODE_WITH | NODE_BIN_OP |  NODE_LIST => true,
-        _ => false,
+        NODE_ATTR_SET | NODE_PATTERN | NODE_WITH | NODE_BIN_OP | NODE_LIST | NODE_IF_ELSE
+        | NODE_LAMBDA => false,
+        _ => true,
     })
 }
 
-fn contain_lambda(element: &SyntaxElement) -> bool {
+fn apply_with_bracket(element: &SyntaxElement) -> bool {
     let parent = match element.parent() {
         None => return true,
         Some(it) => it,
     };
-    match parent.first_child() {
-        None => return false,
-        Some(it) => it.kind() == NODE_LAMBDA,
+
+    if let Some(NODE_APPLY) = parent.first_child().map(|e| e.kind()) {
+        if let Some(value) =
+            parent.first_child().and_then(rnix::types::Apply::cast).and_then(|e| e.value())
+        {
+            match value.kind() {
+                NODE_ATTR_SET | NODE_PAREN => return true,
+                _ => return false,
+            }
+        }
     }
+    return false;
+}
+
+fn lambda_inline_bracket(element: &SyntaxElement) -> bool {
+    fn get_lambda_body(node: Option<SyntaxNode>) -> bool {
+        if let Some(value) = node.and_then(Lambda::cast).and_then(|e| e.body()) {
+            match value.kind() {
+                NODE_ATTR_SET => return before_token_not_newline(&value.into()),
+                NODE_LAMBDA => return get_lambda_body(Some(value)),
+                _ => return false,
+            }
+        }
+        return false;
+    }
+    let parent = match element.parent() {
+        None => return true,
+        Some(it) => it.first_child(),
+    };
+
+    get_lambda_body(parent)
+}
+
+fn node_with(element: &SyntaxElement) -> bool {
+    let parent = match element.parent() {
+        None => return true,
+        Some(it) => it,
+    };
+
+    if let Some(NODE_WITH) = parent.first_child().map(|e| e.kind()) {
+        if let Some(token) = parent.first_child().and_then(|e| prev_token_sibling(&e.into())) {
+            return !token.text().contains('\n');
+        }
+    }
+    return false;
 }
 
 fn inline_with_attr_set(element: &SyntaxElement) -> bool {
