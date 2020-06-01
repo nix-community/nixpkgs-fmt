@@ -44,8 +44,6 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("a*  b", "a * b")
         .test("a/  b", "a / b")
         .inside(NODE_BIN_OP).around(BIN_OPS).single_space_or_optional_newline()
-        .inside(NODE_BIN_OP).after(NODE_PAREN).single_space_or_optional_newline()
-        .inside(NODE_BIN_OP).after(NODE_PAREN).when(argument_has_newline).newline()
 
         .test("foo . bar . baz", "foo.bar.baz")
         .inside(NODE_SELECT).around(T![.]).no_space()
@@ -73,10 +71,10 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PAREN).before(T![")"]).when(has_no_brackets).no_space_or_newline()
         .inside(NODE_PAREN).after(T!["("]).when(apply_with_bracket).no_space()
         .inside(NODE_PAREN).before(T![")"]).when(apply_with_bracket).no_space()
-        .inside(NODE_PAREN).after(NODE_LAMBDA).no_space_or_newline()
         .inside(NODE_PAREN).before(T![")"]).when(lambda_inline_bracket).no_space()
-        .inside(NODE_PAREN).before(NODE_LAMBDA).no_space_or_optional_newline()
         .inside(NODE_PAREN).before(T![")"]).when(node_with).no_space()
+        .inside(NODE_PAREN).after(NODE_LAMBDA).no_space_or_newline()
+        .inside(NODE_PAREN).before(NODE_LAMBDA).no_space_or_optional_newline()
 
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
@@ -209,8 +207,8 @@ fn has_no_brackets(element: &SyntaxElement) -> bool {
         Some(it) => it,
     };
     parent.children().all(|it| match it.kind() {
-        NODE_ATTR_SET | NODE_PATTERN | NODE_WITH | NODE_BIN_OP | NODE_LIST | NODE_IF_ELSE
-        | NODE_LAMBDA => false,
+        NODE_ATTR_SET | NODE_PATTERN | NODE_WITH | NODE_LIST | NODE_LAMBDA => false,
+        NODE_IF_ELSE | NODE_BIN_OP => before_token_has_newline(&it.into()),
         _ => true,
     })
 }
