@@ -45,7 +45,8 @@
     '';
 
   singleAsciiDoc = value: ''
-    ${if lib.hasAttr "example" value then ''
+    ${
+      if lib.hasAttr "example" value then ''
         Example::
         ${
           builtins.toJSON value.example

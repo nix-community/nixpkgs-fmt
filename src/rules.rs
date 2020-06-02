@@ -3,7 +3,7 @@ use rnix::{
     types::{Lambda, TypedNode, With},
     NodeOrToken, SyntaxElement, SyntaxKind,
     SyntaxKind::*,
-    SyntaxNode, T,
+    T,
 };
 
 use crate::{
@@ -69,12 +69,6 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_PAREN).before(T![")"]).no_space_or_optional_newline()
         .inside(NODE_PAREN).after(T!["("]).when(has_no_brackets).no_space_or_newline()
         .inside(NODE_PAREN).before(T![")"]).when(has_no_brackets).no_space_or_newline()
-        .inside(NODE_PAREN).after(T!["("]).when(apply_with_bracket).no_space()
-        .inside(NODE_PAREN).before(T![")"]).when(apply_with_bracket).no_space()
-        .inside(NODE_PAREN).before(T![")"]).when(lambda_inline_bracket).no_space()
-        .inside(NODE_PAREN).before(T![")"]).when(node_with).no_space()
-        .inside(NODE_PAREN).after(NODE_LAMBDA).no_space_or_newline()
-        .inside(NODE_PAREN).before(NODE_LAMBDA).no_space_or_optional_newline()
 
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
@@ -133,7 +127,6 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         .test("if  cond  then  tru  else  fls", "if cond then tru else fls")
         .inside(NODE_IF_ELSE).before(T![if]).when(after_else_is_inline_if).single_space()
-        .inside(NODE_IF_ELSE).before(T![if]).when(inside_node_interpol).when(between_if_then_not_newline).no_space()
         .inside(NODE_IF_ELSE).before(T![then]).when(before_token_has_newline).newline()
         .inside(NODE_IF_ELSE).before(T![then]).single_space_or_optional_newline()
         .inside(NODE_IF_ELSE).after([T![if],T![then]]).single_space_or_optional_newline()
@@ -207,62 +200,23 @@ fn has_no_brackets(element: &SyntaxElement) -> bool {
         Some(it) => it,
     };
     parent.children().all(|it| match it.kind() {
-        NODE_ATTR_SET | NODE_PATTERN | NODE_WITH | NODE_LIST | NODE_LAMBDA => false,
-        NODE_IF_ELSE | NODE_BIN_OP => before_token_has_newline(&it.into()),
+        NODE_ATTR_SET | NODE_PATTERN | NODE_LIST => false,
+        NODE_IF_ELSE | NODE_BIN_OP | NODE_WITH | NODE_LAMBDA => {
+            before_token_has_newline(&it.into())
+        }
+        NODE_APPLY => {
+            if let Some(value) =
+                it.first_child().and_then(rnix::types::Apply::cast).and_then(|e| e.value())
+            {
+                match value.kind() {
+                    NODE_ATTR_SET | NODE_PAREN => return false,
+                    _ => return true && before_token_has_newline(&it.into()),
+                }
+            }
+            return false;
+        }
         _ => true,
     })
-}
-
-fn apply_with_bracket(element: &SyntaxElement) -> bool {
-    let parent = match element.parent() {
-        None => return true,
-        Some(it) => it,
-    };
-
-    if let Some(NODE_APPLY) = parent.first_child().map(|e| e.kind()) {
-        if let Some(value) =
-            parent.first_child().and_then(rnix::types::Apply::cast).and_then(|e| e.value())
-        {
-            match value.kind() {
-                NODE_ATTR_SET | NODE_PAREN => return true,
-                _ => return false,
-            }
-        }
-    }
-    return false;
-}
-
-fn lambda_inline_bracket(element: &SyntaxElement) -> bool {
-    fn get_lambda_body(node: Option<SyntaxNode>) -> bool {
-        if let Some(value) = node.and_then(Lambda::cast).and_then(|e| e.body()) {
-            match value.kind() {
-                NODE_ATTR_SET => return before_token_not_newline(&value.into()),
-                NODE_LAMBDA => return get_lambda_body(Some(value)),
-                _ => return false,
-            }
-        }
-        return false;
-    }
-    let parent = match element.parent() {
-        None => return true,
-        Some(it) => it.first_child(),
-    };
-
-    get_lambda_body(parent)
-}
-
-fn node_with(element: &SyntaxElement) -> bool {
-    let parent = match element.parent() {
-        None => return true,
-        Some(it) => it,
-    };
-
-    if let Some(NODE_WITH) = parent.first_child().map(|e| e.kind()) {
-        if let Some(token) = parent.first_child().and_then(|e| prev_token_sibling(&e.into())) {
-            return !token.text().contains('\n');
-        }
-    }
-    return false;
 }
 
 fn inline_with_attr_set(element: &SyntaxElement) -> bool {
@@ -406,10 +360,6 @@ fn after_else_is_inline_if(element: &SyntaxElement) -> bool {
     token_else & !has_newline
 }
 
-fn inside_node_interpol(element: &SyntaxElement) -> bool {
-    element.ancestors().any(|n| n.kind() == NODE_STRING_INTERPOL)
-}
-
 fn not_inline_if(element: &SyntaxElement) -> bool {
     fn not_inline_if_then_else(element: &SyntaxElement) -> Option<bool> {
         let first_el = element
@@ -426,24 +376,6 @@ fn not_inline_if(element: &SyntaxElement) -> bool {
     }
 
     not_inline_if_then_else(element) == Some(true)
-}
-
-fn between_if_then_not_newline(element: &SyntaxElement) -> bool {
-    fn not_inline_if_then_else(element: &SyntaxElement) -> Option<bool> {
-        let first_el = element
-            .parent()?
-            .descendants_with_tokens()
-            .take_while(|e| e.kind() != T![then])
-            .filter(|element| match element {
-                NodeOrToken::Token(_) => true,
-                _ => false,
-            })
-            .any(|t| t.as_token().map(|e| e.text().contains("\n")).unwrap_or(false));
-
-        Some(first_el)
-    }
-
-    not_inline_if_then_else(element) == Some(false)
 }
 
 fn before_token_has_newline(element: &SyntaxElement) -> bool {
