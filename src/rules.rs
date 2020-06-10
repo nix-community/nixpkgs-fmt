@@ -11,8 +11,8 @@ use crate::{
     pattern::p,
     tree_utils::{
         has_newline, next_non_whitespace_sibling, next_sibling, next_token_sibling,
-        not_on_top_level, on_top_level, prev_non_whitespace_parent, prev_sibling,
-        prev_token_sibling,
+        not_on_top_level, on_top_level, prev_non_whitespace_parent, prev_non_whitespace_sibling,
+        prev_sibling, prev_token_sibling,
     },
 };
 
@@ -32,8 +32,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_KEY_VALUE).before(T![;]).no_space_or_optional_newline()
         .inside(NODE_KEY_VALUE).before(T![;]).when(after_literal).no_space()
         .inside(NODE_KEY_VALUE).before(NODE_IF_ELSE).when(not_inline_if).single_space_or_newline()
-        .inside(NODE_KEY_VALUE).around(NODE_APPLY).single_space_or_optional_newline()
-        .inside(NODE_KEY_VALUE).before(NODE_APPLY).when(multiple_argument).single_space()
+        // .inside(NODE_KEY_VALUE).around(NODE_APPLY).single_space_or_optional_newline()
+        // .inside(NODE_KEY_VALUE).before(NODE_APPLY).when(multiple_argument).single_space()
 
         .test("a++\nb", "a ++\nb")
         .test("a==  b", "a == b")
@@ -110,20 +110,7 @@ pub(crate) fn spacing() -> SpacingDsl {
 
         .test("f  x", "f x")
         .inside(NODE_APPLY).between(VALUES, VALUES).single_space_or_optional_newline()
-        .inside(NODE_APPLY).after(NODE_APPLY).single_space_or_newline()
-        .inside(NODE_APPLY).after(NODE_APPLY).when(last_argument_is_multiline_string).single_space()
-        .inside(NODE_APPLY).after(NODE_APPLY).when(next_argument_is_bracket).single_space()
-        .inside(NODE_APPLY).before(NODE_PAREN).single_space_or_newline()
-        .inside(NODE_APPLY).before(NODE_PAREN).when(inline_last_argument).single_space()
-        .inside(NODE_APPLY).before(NODE_PAREN).when(next_argument_is_newline).single_space_or_optional_newline()
-        .inside(NODE_APPLY).before(NODE_ATTR_SET).single_space_or_newline()
-        .inside(NODE_APPLY).before(NODE_ATTR_SET).when(inline_last_argument).single_space()
-        .inside(NODE_APPLY).before(NODE_ATTR_SET).when(multiline_last_argument).single_space()
-
-        .inside(NODE_APPLY).before(NODE_SELECT).when(is_argument).single_space_or_newline()
-        .inside(NODE_APPLY).before(NODE_IDENT).when(is_argument).single_space_or_newline()
-        .inside(NODE_APPLY).before(NODE_STRING).single_space_or_optional_newline()
-        .inside(NODE_APPLY).before(NODE_STRING).when(multiline_last_argument).newline()
+        .inside(NODE_APPLY).before(VALUES).when(should_be_newline).single_space_or_newline()
 
         .test("if  cond  then  tru  else  fls", "if cond then tru else fls")
         .inside(NODE_IF_ELSE).after(T![if]).single_space_or_optional_newline()
@@ -227,68 +214,45 @@ fn inline_with_attr_set(element: &SyntaxElement) -> bool {
             == Some(true)
 }
 
-fn next_argument_is_newline(element: &SyntaxElement) -> bool {
-    match element.parent() {
-        None => false,
-        Some(it) => match next_token_sibling(&it.into()) {
-            None => false,
-            Some(it) => it.text().contains("\n"),
+fn should_be_newline(element: &SyntaxElement) -> bool {
+    let parent = match element.parent() {
+        None => return false,
+        Some(it) => it,
+    };
+
+    let apply = match element.parent() {
+        None => return false,
+        Some(it) => rnix::types::Apply::cast(it),
+    };
+
+    match element.kind() {
+        NODE_APPLY => false,
+        NODE_SELECT | NODE_IDENT => {
+            if is_argument(element) {
+                return has_newline(&parent);
+            }
+            false
+        }
+        NODE_PAREN | NODE_ATTR_SET => match last_argument_in_function(element) {
+            true => {
+                if let Some(fun) = apply.clone().and_then(|e| e.lambda()) {
+                    match fun.kind() {
+                        // node is in multi-argument function
+                        NODE_APPLY => {
+                            if let Some(node) = prev_non_whitespace_sibling(element) {
+                                return node.as_node().map(|t| has_newline(t)).unwrap_or(false);
+                            }
+                            return false;
+                        }
+                        // node is unary function
+                        _ => return false,
+                    }
+                }
+                return false;
+            }
+            false => return has_newline(&parent),
         },
-    }
-}
-
-fn last_argument_is_multiline_string(element: &SyntaxElement) -> bool {
-    match element.as_node() {
-        None => false,
-        Some(it) => it
-            .next_sibling()
-            .map(|it| match it.kind() {
-                NODE_STRING => it.children_with_tokens().any(|e| match e.as_token() {
-                    None => false,
-                    Some(it) => it.text().contains("\n"),
-                }),
-                _ => false,
-            })
-            .unwrap_or(false),
-    }
-}
-
-fn next_argument_is_bracket(element: &SyntaxElement) -> bool {
-    match element.as_node() {
-        None => false,
-        Some(it) => it
-            .next_sibling()
-            .map(|it| match it.kind() {
-                NODE_ATTR_SET | NODE_PAREN | NODE_LIST => true,
-                _ => false,
-            })
-            .unwrap_or(false),
-    }
-}
-// example:
-// {               |------------------> !prev_argument_has_newline
-//   foo = fun (bar a b) ( |
-//     baz b c             |----------> last_argument_in_function
-//   )                     |
-// }
-fn inline_last_argument(element: &SyntaxElement) -> bool {
-    last_argument_in_function(element) && !prev_argument_has_newline(element)
-}
-
-fn multiline_last_argument(element: &SyntaxElement) -> bool {
-    last_argument_in_function(element) && prev_argument_has_newline(element)
-}
-
-fn last_argument_is_bracket(element: &SyntaxElement) -> bool {
-    match element.as_node() {
-        None => false,
-        Some(it) => it
-            .last_child()
-            .map(|it| match it.kind() {
-                NODE_ATTR_SET | NODE_PAREN | NODE_LIST => true,
-                _ => false,
-            })
-            .unwrap_or(false),
+        _ => false,
     }
 }
 
@@ -309,30 +273,6 @@ fn last_argument_in_function(element: &SyntaxElement) -> bool {
     };
 
     is_last_argument
-}
-
-fn prev_argument_has_newline(element: &SyntaxElement) -> bool {
-    match prev_sibling(element) {
-        None => false,
-        Some(it) => has_newline(&it),
-    }
-}
-
-// to check for function with multi argument that is not a brackets
-// example:
-// {
-//   foo = fun "baz" "
-//     test a b
-//   "
-// }
-
-fn multiple_argument(element: &SyntaxElement) -> bool {
-    let multiple_arg = match element.as_node() {
-        None => false,
-        Some(it) => it.first_child().map(|e| e.kind() == NODE_APPLY).unwrap_or(false),
-    };
-
-    multiple_arg && !last_argument_is_bracket(element)
 }
 
 fn has_expression_node(element: &SyntaxElement) -> bool {

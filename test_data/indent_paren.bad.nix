@@ -15,8 +15,7 @@ foldAttrs = op: nul: list_of_attrs:
    o // { ${name} = op n.${name} (a.${name} or nul); }
   ) a (attrNames n)
   ) {} list_of_attrs;
-bar = fun "arg"
-(callPackage ./. {
+bar = fun "arg" (callPackage ./. {
   inherit foo;
 });
 }
