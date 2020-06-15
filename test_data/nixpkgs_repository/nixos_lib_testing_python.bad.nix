@@ -10,7 +10,7 @@ driver = let warn = if skipLint then lib.warn "Linting is disabled!" else lib.id
       mkdir -p $out/bin
       echo -n "$testScript" > $out/test-script
       ${lib.optionalString (!skipLint) ''
-      ${python3Packages.black}/bin/black --check --diff $out/test-script
+        ${python3Packages.black}/bin/black --check --diff $out/test-script
       ''}
       ln -s ${testDriver}/bin/nixos-test-driver $out/bin/
       vms=($(for i in ${toString vms}; do echo $i/bin/run-*-vm; done))

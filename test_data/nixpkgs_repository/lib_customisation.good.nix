@@ -11,13 +11,11 @@
       //
       (drv.passthru or { })
       //
-      (
-        if (drv ? crossDrv && drv ? nativeDrv)
-        then {
-          crossDrv = overrideDerivation drv.crossDrv f;
-          nativeDrv = overrideDerivation drv.nativeDrv f;
-        }
-        else { }
-      )
+      (if (drv ? crossDrv && drv ? nativeDrv)
+      then {
+        crossDrv = overrideDerivation drv.crossDrv f;
+        nativeDrv = overrideDerivation drv.nativeDrv f;
+      }
+      else { })
     );
 }

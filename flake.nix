@@ -22,15 +22,13 @@
         forAllSystems (
           system:
           {
-            nixpkgs-fmt = (
-              import nixpkgs {
-                inherit system;
-                overlays = [
-                  naerskOverlay
-                  self.overlay
-                ];
-              }
-            ).nixpkgs-fmt;
+            nixpkgs-fmt = (import nixpkgs {
+              inherit system;
+              overlays = [
+                naerskOverlay
+                self.overlay
+              ];
+            }).nixpkgs-fmt;
           }
         );
 

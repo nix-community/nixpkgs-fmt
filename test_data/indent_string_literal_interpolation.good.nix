@@ -44,16 +44,27 @@
       bla = hoi
     '';
 
-  nested_antiquotation =
-    mkBefore
+  singleAsciiDoc = value: ''
+    ${
+      if lib.hasAttr "example" value then ''
+        Example::
+        ${
+          builtins.toJSON value.example
+        }
       ''
+      else "No Example:: {blank}"
+    }
+  '';
+
+  nested_antiquotation = mkBefore
+    ''
+      ${optionalString cfg.earlySetup ''
         ${optionalString cfg.earlySetup ''
-          ${optionalString cfg.earlySetup ''
-            setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
-          ''}
           setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
         ''}
-      '';
+        setfont -C /dev/console $extraUtils/share/consolefonts/font.psf
+      ''}
+    '';
 
   singleAsciiDoc = value: ''
     Example::
