@@ -1,17 +1,64 @@
 {
-    "inputs": {
-        "naersk": {
-            "inputs": {},
-            "narHash": "sha256-vzZJKBxOELYkBQULXRjfQeSDO3+5YkWoFJcPpf7koBU=",
-            "originalUrl": "github:nmattia/naersk",
-            "url": "github:nmattia/naersk/be6d7bfe6132d7b0bf93fa754f35fb6be516b25f"
-        },
-        "nixpkgs": {
-            "inputs": {},
-            "narHash": "sha256-NB+H7zK3BB//zM127FqgbG4iAfY+nS/IOyO+uGWA5Ho=",
-            "originalUrl": "nixpkgs",
-            "url": "github:edolstra/nixpkgs/7845bf5f4b3013df1cf036e9c9c3a55a30331db9"
-        }
+  "nodes": {
+    "naersk": {
+      "info": {
+        "lastModified": 1594027828,
+        "narHash": "sha256-l2Uv7GmY+JNTkzGW+gDvT8AnRBRindwfhAA9ucfG20U="
+      },
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "owner": "nmattia",
+        "repo": "naersk",
+        "rev": "d5a23213d561893cebdf0d251502430334673036",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nmattia",
+        "repo": "naersk",
+        "type": "github"
+      }
     },
-    "version": 3
+    "nixpkgs": {
+      "info": {
+        "lastModified": 1594123140,
+        "narHash": "sha256-hQKTbYy+occsWlX6nWdWXx1riC25wiUcEyikmEcdblo="
+      },
+      "locked": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "a1bc66a59681c4772eb41f5f78483add52e7dee1",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "nixpkgs_2": {
+      "info": {
+        "lastModified": 1594123140,
+        "narHash": "sha256-hQKTbYy+occsWlX6nWdWXx1riC25wiUcEyikmEcdblo="
+      },
+      "locked": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "a1bc66a59681c4772eb41f5f78483add52e7dee1",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "root": {
+      "inputs": {
+        "naersk": "naersk",
+        "nixpkgs": "nixpkgs_2"
+      }
+    }
+  },
+  "root": "root",
+  "version": 5
 }
