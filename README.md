@@ -30,7 +30,7 @@ requirement the output will change.
 For nixpkgs-fmt we have a few of these:
 
 1. Minimize merge conflicts. nixpkgs is seen in a lot of pull-requests and we
-   want to avoid them getting unnecessarily stable.
+   want to avoid them getting unnecessarily stale.
 2. Only expand, don't collapse. It's up to the developer to choose if an
    element should be on a single line or multiple lines.
 3. Respect the developer's expressivity. Empty lines can be useful as a way to
