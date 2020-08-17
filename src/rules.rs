@@ -32,8 +32,6 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_KEY_VALUE).before(T![;]).no_space_or_optional_newline()
         .inside(NODE_KEY_VALUE).before(T![;]).when(after_literal).no_space()
         .inside(NODE_KEY_VALUE).before(NODE_IF_ELSE).when(not_inline_if).single_space_or_newline()
-        // .inside(NODE_KEY_VALUE).around(NODE_APPLY).single_space_or_optional_newline()
-        // .inside(NODE_KEY_VALUE).before(NODE_APPLY).when(multiple_argument).single_space()
 
         .test("a++\nb", "a ++\nb")
         .test("a==  b", "a == b")
