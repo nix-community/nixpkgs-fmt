@@ -1,4 +1,25 @@
+1.0.0 / 2020-08-17
+==================
 
+### Formatting Changes
+  * Add NODE_APPLY rule, remove top_level predicate from spacing and modify test data (#212)
+  * Refactor node paren predicate to match node binop and if_else
+  * Simplify parentheses rules and fix some test_data to match new rule (#212)
+  * Simplify node if_else rules(#212)
+  * Unified rules for node apply and remove node apply rule under node key value (#212)
+  * Alternative interpolation indentation strategy (#214)
+  * Remove unnecessary predicates for NODE_PAREN rules (#212)
+  * Commit whitespace changes before computing indentation (#209)
+
+### Other
+  
+  * Update flake to the new format
+  * Use T! macro for symbolic tokens(#211)
+  * Remove some commented code (#217)
+  * Fix typo (#216)
+  * Remove some dead code (#208)
+  * Check idempotence before expected (#207)
+  
 0.9.0 / 2020-05-07
 ==================
 

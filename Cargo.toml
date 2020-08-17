@@ -1,6 +1,6 @@
 [package]
 name = "nixpkgs-fmt"
-version = "0.9.0"
+version = "1.0.0"
 authors = [
   "Aleksey Kladov <aleksey.kladov@gmail.com>",
   "zimbatm <zimbatm@zimbatm.com>"
