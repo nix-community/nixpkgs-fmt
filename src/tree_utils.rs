@@ -123,11 +123,6 @@ pub(crate) fn prev_non_whitespace_token_sibling(element: &SyntaxElement) -> Opti
     )
 }
 
-pub(crate) fn prev_non_whitespace_parent(element: &SyntaxElement) -> Option<SyntaxElement> {
-    successors(element.parent()?.prev_sibling_or_token(), |it| it.prev_sibling_or_token())
-        .find(|it| it.kind() != TOKEN_WHITESPACE)
-}
-
 pub(crate) fn prev_non_whitespace_sibling(element: &SyntaxElement) -> Option<SyntaxElement> {
     successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token())
         .find(|it| it.kind() != TOKEN_WHITESPACE)

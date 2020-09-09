@@ -50,7 +50,12 @@ fn ensure_space(
                 block.set_text(" ", rule_name)
             }
         }
-        SpaceValue::Newline => block.set_text("\n", rule_name),
+        SpaceValue::Newline => {
+            // This will ignore if the block already has a newline
+            if !block.has_newline() {
+                block.set_text("\n", rule_name)
+            }
+        }
         SpaceValue::None => block.set_text("", rule_name),
         SpaceValue::NoneOptionalNewline => {
             if !block.has_newline() {
