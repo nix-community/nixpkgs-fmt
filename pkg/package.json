@@ -18,5 +18,5 @@
   ],
   "module": "nixpkgs_fmt_wasm.js",
   "types": "nixpkgs_fmt_wasm.d.ts",
-  "sideEffects": "false"
+  "sideEffects": false
 }
