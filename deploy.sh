@@ -32,7 +32,7 @@ run git clone --depth=1 --branch=gh-pages "$origin_url" "$workdir/repo"
 
 run rsync -rl --exclude .git --delete wasm/ "$workdir/repo"
 
-run rm "$workdir/repo/pkg/.gitignore"
+run rm -f "$workdir/repo/pkg/.gitignore"
 
 run cd "$workdir/repo"
 
