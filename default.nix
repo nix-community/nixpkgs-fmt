@@ -1,31 +1,11 @@
-{ pkgs ? import ./nix/nixpkgs.nix }:
+{ system ? builtins.currentSystem }:
 let
-  lib = pkgs.lib;
-
-  # another attempt to make filterSource nicer to use
-  allowSource = { allow, src }:
-    let
-      out = builtins.filterSource filter src;
-      filter = path: _fileType:
-        lib.any (checkElem path) allow;
-      checkElem = path: elem:
-        lib.hasPrefix (toString elem) (toString path);
-    in
-    out;
-  src = allowSource {
-    allow = [
-      ./Cargo.lock
-      ./Cargo.toml
-      ./fuzz
-      ./src
-      ./test_data
-      ./wasm
-    ];
-    src = ./.;
+  flake-compat = builtins.fetchurl {
+    url = "https://raw.githubusercontent.com/edolstra/flake-compat/99f1c2157fba4bfe6211a321fd0ee43199025dbf/default.nix";
+    sha256 = "1vas5z58901gavy5d53n1ima482yvly405jp9l8g07nr4abmzsyb";
   };
 in
-pkgs.naersk.buildPackage {
-  inherit src;
-  root = ./.;
-  cratePaths = [ "." ];
+import flake-compat {
+  src = ./.;
+  inherit system;
 }
