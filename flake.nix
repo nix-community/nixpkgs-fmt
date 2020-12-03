@@ -20,15 +20,14 @@
       ];
 
       overlay = final: prev: {
-        nixpkgs-fmt = {
-          defaultPackage = final.naersk.buildPackage {
+        nixpkgs-fmt = rec {
+          nixpkgs-fmt = final.naersk.buildPackage {
             src = self;
             root = self;
             cratePaths = [ "." ];
           };
+          defaultPackage = nixpkgs-fmt;
         };
-
-        # defaultPackage = final.nixpkgs-fmt;
       };
 
       shell = { pkgs }:
