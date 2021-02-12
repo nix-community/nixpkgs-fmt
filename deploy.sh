@@ -28,8 +28,6 @@ if [[ -n "${DEPLOY_SSH_KEY:-}" ]]; then
   export GIT_SSH_COMMAND="ssh -i '$ssh_key_path'"
 fi
 
-run wasm/build.sh
-
 run git clone --depth=1 --branch=gh-pages "$origin_url" "$workdir/repo"
 
 run rsync -rl --exclude .git --delete wasm/ "$workdir/repo"
