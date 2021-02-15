@@ -3,7 +3,8 @@ use std::{
     fmt,
 };
 
-use rnix::{SmolStr, SyntaxElement, SyntaxKind::*, SyntaxNode, SyntaxToken, TextUnit};
+use rnix::{SyntaxElement, SyntaxKind::*, SyntaxNode, SyntaxToken, TextSize};
+use smol_str::SmolStr;
 
 use crate::{
     dsl::{IndentRule, Modality, RuleName},
@@ -94,7 +95,7 @@ impl IndentLevel {
         }
     }
 
-    pub(super) fn from_len(len: TextUnit) -> IndentLevel {
+    pub(super) fn from_len(len: TextSize) -> IndentLevel {
         let len: u32 = len.into();
         IndentLevel { level: len / INDENT_SIZE, alignment: len % INDENT_SIZE }
     }
@@ -103,7 +104,7 @@ impl IndentLevel {
         IndentLevel { level: self.level + 1, alignment: self.alignment }
     }
 
-    pub(super) fn len(self) -> TextUnit {
+    pub(super) fn len(self) -> TextSize {
         (self.level * INDENT_SIZE + self.alignment).into()
     }
 

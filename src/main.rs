@@ -178,7 +178,7 @@ fn try_main(args: Args) -> Result<()> {
             let res = match output_format {
                 OutputFormat::Default => {
                     let mut buf = String::new();
-                    for error in ast.root_errors() {
+                    for error in ast.errors() {
                         writeln!(buf, "error: {}", error).unwrap();
                     }
                     writeln!(buf, "{}", ast.root().dump()).unwrap();
