@@ -128,7 +128,7 @@ pub fn explain(text: &str) -> String {
                     buf.push_str(", ")
                 }
                 buf.push_str(&format!(
-                    "{}..{}: ",
+                    "[{}; {}): ",
                     usize::from(edit.delete.start()),
                     usize::from(edit.delete.end())
                 ));

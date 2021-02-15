@@ -212,9 +212,9 @@ mod tests {
         assert_eq!(
             indent_ranges,
             vec![
-                TextRange::from_to(20.into(), 24.into()),
-                TextRange::from_to(44.into(), 52.into()),
-                TextRange::from_to(61.into(), 65.into()),
+                TextRange::new(20.into(), 24.into()),
+                TextRange::new(44.into(), 52.into()),
+                TextRange::new(61.into(), 65.into()),
             ]
         );
 
@@ -235,9 +235,9 @@ mod tests {
         assert_eq!(
             indent_ranges,
             vec![
-                TextRange::from_to(26.into(), 30.into()),
-                TextRange::from_to(56.into(), 64.into()),
-                TextRange::from_to(73.into(), 77.into()),
+                TextRange::new(26.into(), 30.into()),
+                TextRange::new(56.into(), 64.into()),
+                TextRange::new(73.into(), 77.into()),
             ]
         );
     }
