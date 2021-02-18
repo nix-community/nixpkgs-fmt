@@ -7,7 +7,8 @@ mod pattern;
 
 use std::{borrow::Cow, fmt, fmt::Formatter};
 
-use rnix::{SmolStr, SyntaxNode, TextRange, TextUnit};
+use rnix::{SyntaxNode, TextRange, TextSize};
+use smol_str::SmolStr;
 
 use crate::dsl::RuleName;
 
@@ -111,10 +112,10 @@ pub fn explain(text: &str) -> String {
     engine::reformat(&spacing, &indentation, &ast.node(), Some(&mut explanation));
 
     let mut buf = String::new();
-    let mut line_start: TextUnit = 0.into();
+    let mut line_start: TextSize = 0.into();
     for line in text.to_string().lines() {
-        let line_len = TextUnit::of_str(line) + TextUnit::of_str("\n");
-        let line_range = TextRange::offset_len(line_start, line_len);
+        let line_len = TextSize::of(line) + TextSize::of("\n");
+        let line_range = TextRange::at(line_start, line_len);
 
         buf.push_str(line);
         let mut first = true;
@@ -126,7 +127,11 @@ pub fn explain(text: &str) -> String {
                 } else {
                     buf.push_str(", ")
                 }
-                buf.push_str(&format!("{}: ", edit.delete));
+                buf.push_str(&format!(
+                    "[{}; {}): ",
+                    usize::from(edit.delete.start()),
+                    usize::from(edit.delete.end())
+                ));
                 match reason {
                     Some(reason) => buf.push_str(&reason.to_string()),
                     None => buf.push_str("unnamed rule"),

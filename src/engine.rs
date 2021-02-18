@@ -5,7 +5,8 @@ mod indentation;
 mod spacing;
 mod fixes;
 
-use rnix::{SmolStr, SyntaxNode, TextRange};
+use rnix::{SyntaxNode, TextRange};
+use smol_str::SmolStr;
 
 use crate::{
     dsl::{IndentDsl, RuleName, SpacingDsl},

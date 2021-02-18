@@ -1,9 +1,9 @@
-use std::cmp::min;
+use std::{cmp::min, convert::TryFrom};
 
 use rnix::{
     NodeOrToken, SyntaxElement,
     SyntaxKind::{NODE_STRING, TOKEN_COMMENT, TOKEN_STRING_CONTENT, TOKEN_WHITESPACE},
-    SyntaxNode, SyntaxToken, TextRange, TextUnit,
+    SyntaxNode, SyntaxToken, TextRange, TextSize,
 };
 
 use super::indentation::single_line_comment_indent;
@@ -58,9 +58,9 @@ fn fix_string_indentation(
     };
 
     let first_line_is_blank =
-        first_indent.start() == node.text_range().start() + TextUnit::of_str("''\n");
+        first_indent.start() == node.text_range().start() + TextSize::of("''\n");
 
-    let last_line_is_blank = last_indent.end() + TextUnit::of_str("''") == node.text_range().end();
+    let last_line_is_blank = last_indent.end() + TextSize::of("''") == node.text_range().end();
 
     if !first_line_is_blank {
         return;
@@ -76,7 +76,7 @@ fn fix_string_indentation(
 
     if content_indent != IndentLevel::from_len(common_indent) {
         for &range in content_ranges.iter() {
-            let delete = TextRange::offset_len(range.start(), min(common_indent, range.len()));
+            let delete = TextRange::at(range.start(), min(common_indent, range.len()));
             model.raw_edit(AtomEdit { delete, insert: content_indent.into() })
         }
     }
@@ -111,7 +111,7 @@ fn fix_comment_indentation(
     let mut first = true;
     for line in token.text().lines() {
         let offset = curr_offset;
-        curr_offset += TextUnit::of_str(line) + TextUnit::of_char('\n');
+        curr_offset += TextSize::of(line) + TextSize::of('\n');
         if first {
             first = false;
             continue;
@@ -119,16 +119,18 @@ fn fix_comment_indentation(
 
         if let Some(ws_end) = line.find(|it| it != ' ') {
             if let Some(to_add) = new_indent.checked_sub(old_indent) {
-                let indent = IndentLevel::from_len(TextUnit::from_usize(to_add));
+                let indent =
+                    IndentLevel::from_len(TextSize::try_from(to_add).expect("woah big number"));
                 model.raw_edit(AtomEdit {
-                    delete: TextRange::offset_len(offset, 0.into()),
+                    delete: TextRange::at(offset, 0.into()),
                     insert: indent.into(),
                 })
             } else {
                 model.raw_edit(AtomEdit {
-                    delete: TextRange::offset_len(
+                    delete: TextRange::at(
                         offset,
-                        TextUnit::from_usize(min(ws_end, old_indent - new_indent)),
+                        TextSize::try_from(min(ws_end, old_indent - new_indent))
+                            .expect("woah big number"),
                     ),
                     insert: "".into(),
                 })
@@ -179,9 +181,9 @@ fn string_indent_ranges(mut s: &str) -> Vec<TextRange> {
             continue;
         }
 
-        return Some(TextRange::from_to(
-            TextUnit::from_usize(offset - indent_len),
-            TextUnit::from_usize(offset),
+        return Some(TextRange::new(
+            TextSize::try_from(offset - indent_len).expect("woah big numbers"),
+            TextSize::try_from(offset).expect("woah big numbers"),
         ));
     })
     .collect()
@@ -210,9 +212,9 @@ mod tests {
         assert_eq!(
             indent_ranges,
             vec![
-                TextRange::from_to(20.into(), 24.into()),
-                TextRange::from_to(44.into(), 52.into()),
-                TextRange::from_to(61.into(), 65.into()),
+                TextRange::new(20.into(), 24.into()),
+                TextRange::new(44.into(), 52.into()),
+                TextRange::new(61.into(), 65.into()),
             ]
         );
 
@@ -233,9 +235,9 @@ mod tests {
         assert_eq!(
             indent_ranges,
             vec![
-                TextRange::from_to(26.into(), 30.into()),
-                TextRange::from_to(56.into(), 64.into()),
-                TextRange::from_to(73.into(), 77.into()),
+                TextRange::new(26.into(), 30.into()),
+                TextRange::new(56.into(), 64.into()),
+                TextRange::new(73.into(), 77.into()),
             ]
         );
     }

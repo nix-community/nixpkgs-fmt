@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use rnix::{
-    NodeOrToken, SmolStr, SyntaxElement,
+    NodeOrToken, SyntaxElement,
     SyntaxKind::{NODE_ROOT, TOKEN_COMMENT, TOKEN_WHITESPACE},
-    SyntaxNode, SyntaxToken, TextRange, TextUnit,
+    SyntaxNode, SyntaxToken, TextRange, TextSize,
 };
+use smol_str::SmolStr;
 
 use crate::{dsl::RuleName, engine::FmtDiff, tree_utils::preceding_tokens, AtomEdit};
 
@@ -32,10 +33,10 @@ pub(super) struct FmtModel {
     blocks: Vec<SpaceBlock>,
     /// Maps offset to an index of the block, for which the offset is the start
     /// offset.
-    by_start_offset: HashMap<TextUnit, usize>,
+    by_start_offset: HashMap<TextSize, usize>,
     /// Maps offset to an index of the block, for which the offset is the end
     /// offset.
-    by_end_offset: HashMap<TextUnit, usize>,
+    by_end_offset: HashMap<TextSize, usize>,
     /// Arbitrary non-whitespace edits created by the last formatter phase.
     fixes: Vec<AtomEdit>,
 }
@@ -68,14 +69,14 @@ pub(super) enum BlockPosition {
 #[derive(Debug)]
 pub(super) enum OriginalSpace {
     Some(SyntaxToken),
-    None { offset: TextUnit },
+    None { offset: TextSize },
 }
 
 impl OriginalSpace {
     fn text_range(&self) -> TextRange {
         match self {
             OriginalSpace::Some(token) => token.text_range(),
-            OriginalSpace::None { offset } => TextRange::from_to(*offset, *offset),
+            OriginalSpace::None { offset } => TextRange::new(*offset, *offset),
         }
     }
 }
@@ -114,7 +115,7 @@ impl SpaceBlock {
     }
     pub(crate) fn original_text(&self) -> &str {
         match &self.original {
-            OriginalSpace::Some(token) => token.text().as_str(),
+            OriginalSpace::Some(token) => token.text(),
             OriginalSpace::None { .. } => "",
         }
     }

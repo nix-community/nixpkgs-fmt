@@ -35,9 +35,9 @@
           inherit (pkgs) stdenv darwin;
 
           rustChan = pkgs.rustChannelOf {
-            date = "2019-09-13";
+            date = "2020-12-29";
             channel = "nightly";
-            sha256 = "06881g7ba2hzmfq5vaz888d2q762zf4bxjc621rw3g8z702ps7w9";
+            sha256 = "sha256-HEBBUpbIgjbluKyT1oKU/KvQFOBFPML9vuAHuXuhoYA=";
           };
 
           rust = rustChan.rust.override {
