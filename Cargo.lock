@@ -257,7 +257,7 @@ checksum = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
 
 [[package]]
 name = "nixpkgs-fmt"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "clap",
  "crossbeam-channel 0.3.9",
@@ -338,8 +338,9 @@ dependencies = [
 
 [[package]]
 name = "rowan"
-version = "0.12.5"
-source = "git+https://github.com/rust-analyzer/rowan#109885a86b7a095f637927944003add60d2f7ef3"
+version = "0.12.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1b36e449f3702f3b0c821411db1cbdf30fb451726a9456dce5dabcd44420043"
 dependencies = [
  "countme",
  "hashbrown",
