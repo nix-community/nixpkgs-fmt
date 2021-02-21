@@ -1,3 +1,24 @@
+
+1.1.0 / 2021-02-21
+==================
+
+### Formatting Changes
+
+  * relax spacing rule for Newline type, simplify NODE_LET_IN spacing rule, clean up warnings (#220)
+  * fix #205 - Add space between inherit (#219)
+
+### Other
+
+  * Merge pull request #230 from jD91mZM2/bump-rnix
+  * Bump rust version in nix
+  * Update rnix + rowan
+  * deploy.sh: build wasm before deploying
+  * flake: make defaultPackage an alias of nixpkgs-fmt
+  * flake update (#227)
+  * add dependabot for updating github actions (#226)
+  * ci: update GH actions (#225)
+
+
 1.0.0 / 2020-08-17
 ==================
 
