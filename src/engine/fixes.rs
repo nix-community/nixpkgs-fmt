@@ -93,20 +93,25 @@ fn fix_comment_indentation(
     anchor_set: &PatternSet<&Pattern>,
 ) {
     let is_block_comment = token.text().starts_with("/*");
+    let normal_indent = match indent_anchor(&token.clone().into(), model, anchor_set) {
+        None => return,
+        Some((_element, indent)) => indent,
+    };
     let block = model.block_for(&token.clone().into(), BlockPosition::Before);
     if !is_block_comment {
         single_line_comment_indent(token, model, anchor_set);
         return;
     }
 
-    let (old_indent, new_indent) =
-        match (indent_level(block.original_text()), indent_level(block.text())) {
-            (Some(old), Some(new)) => (old, new),
-            _ => return,
-        };
-    if old_indent == new_indent {
-        return;
-    }
+    let comment_indent = {
+        if block.text().contains('\n') {
+            IndentLevel::from_whitespace_block(block.text())
+        } else {
+            normal_indent
+        }
+    };
+
+    let content_indent = comment_indent.indent();
     let mut curr_offset = token.text_range().start();
     let mut first = true;
     for line in token.text().lines() {
@@ -116,30 +121,26 @@ fn fix_comment_indentation(
             first = false;
             continue;
         }
-
+        let last_line_only_end_block = line.ends_with("*/") && line.trim_start() == "*/";
         if let Some(ws_end) = line.find(|it| it != ' ') {
-            if let Some(to_add) = new_indent.checked_sub(old_indent) {
-                let indent =
-                    IndentLevel::from_len(TextSize::try_from(to_add).expect("woah big number"));
+            if !last_line_only_end_block {
                 model.raw_edit(AtomEdit {
-                    delete: TextRange::at(offset, 0.into()),
-                    insert: indent.into(),
+                    delete: TextRange::at(
+                        offset,
+                        TextSize::try_from(ws_end).expect("woah big number"),
+                    ),
+                    insert: content_indent.into(),
                 })
             } else {
                 model.raw_edit(AtomEdit {
                     delete: TextRange::at(
                         offset,
-                        TextSize::try_from(min(ws_end, old_indent - new_indent))
-                            .expect("woah big number"),
+                        TextSize::try_from(ws_end).expect("woah big number"),
                     ),
-                    insert: "".into(),
+                    insert: comment_indent.into(),
                 })
             }
         }
-    }
-
-    fn indent_level(text: &str) -> Option<usize> {
-        text.rfind('\n').map(|idx| text.len() - idx - 1)
     }
 }
 
