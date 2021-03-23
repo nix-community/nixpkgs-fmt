@@ -32,7 +32,7 @@
 
       shell = { pkgs }:
         let
-          inherit (pkgs) stdenv darwin;
+          inherit (pkgs) lib stdenv darwin;
 
           rustChan = pkgs.rustChannelOf {
             date = "2020-12-29";
@@ -63,7 +63,7 @@
             pkgs.wasm-pack
             rust
           ]
-          ++ stdenv.lib.optionals stdenv.isDarwin [
+          ++ lib.optionals stdenv.isDarwin [
             darwin.apple_sdk.frameworks.Security
           ]
           ;
