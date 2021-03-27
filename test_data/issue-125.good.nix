@@ -22,8 +22,7 @@ let
   paz = v:
     let x = 3; in
     x;
-  qux = v:
-    let y = 3; in y;
+  qux = v: let y = 3; in y;
   nux = v:
     let
       x = 3;

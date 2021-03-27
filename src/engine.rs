@@ -12,7 +12,7 @@ use crate::{
     dsl::{IndentDsl, RuleName, SpacingDsl},
     engine::fmt_model::{BlockPosition, FmtModel, SpaceBlock, SpaceBlockOrToken},
     pattern::PatternSet,
-    tree_utils::{walk_non_whitespace, walk_non_whitespace_non_interpol},
+    tree_utils::walk_non_whitespace_non_interpol,
     AtomEdit, FmtDiff,
 };
 
@@ -32,7 +32,7 @@ pub(crate) fn reformat(
     // First, adjust spacing rules between the nodes.
     // This can force some newlines.
     let spacing_rule_set = PatternSet::new(spacing_dsl.rules.iter());
-    for element in walk_non_whitespace(node) {
+    for element in walk_non_whitespace_non_interpol(node) {
         for rule in spacing_rule_set.matching(element.clone()) {
             rule.apply(&element, &mut model)
         }
@@ -56,7 +56,6 @@ pub(crate) fn reformat(
             // No need to indent an element if it doesn't start a line
             continue;
         }
-
         // In cases like
         //
         // ```nix
