@@ -1,4 +1,20 @@
 
+1.2.0 / 2021-03-29
+==================
+
+### Formatting Changes
+
+nixpkgs-fmt is now fully idempotent over nixpkgs!
+
+  * add format rule for NODE_OR_DEFAULT, adding nixpkgs repo test, and remove walk_non_whitespace function (#235)
+  * add and fix new test_date to match the new block comment formatting (#233)
+
+### Other
+
+  * flake: use `lib` instead of `stdenv.lib` (PR #234)
+  * refactor block comment formatting
+  * update vscode's setting.json
+
 1.1.0 / 2021-02-21
 ==================
 
