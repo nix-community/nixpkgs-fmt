@@ -72,4 +72,13 @@ ${
   builtins.toJSON value.example
 }
 '';
+
+script = writeText "build-maven-repository.sh" ''
+  ${lib.concatStrings (map (dep: let
+    fetch = if (url != "") then ((if authenticated then requireFile else fetchurl) {
+      inherit url sha1;
+    }) else "";
+  in ''
+  '') info.dependencies)}
+'';
 }

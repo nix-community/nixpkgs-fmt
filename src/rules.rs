@@ -50,7 +50,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LAMBDA).before(T![:]).no_space()
         .inside(NODE_LAMBDA).after(T![:]).single_space_or_optional_newline()
         .inside(NODE_LAMBDA).before(NODE_IF_ELSE).when(not_inline_if).single_space_or_newline()
-        .inside(NODE_LAMBDA).before(NODE_LET_IN).newline()
+        .inside(NODE_LAMBDA).before(NODE_LET_IN).single_space_or_newline()
 
         .test("[1 2 3]", "[ 1 2 3 ]")
         .inside(NODE_LIST).after(T!["["]).single_space_or_newline()
@@ -95,6 +95,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_INHERIT).around(NODE_INHERIT_FROM).single_space_or_optional_newline()
         .inside(NODE_INHERIT).around(T![;]).no_space_or_optional_newline()
         .inside(NODE_INHERIT).before(NODE_IDENT).single_space_or_optional_newline()
+        .inside(NODE_INHERIT).before(NODE_OR_DEFAULT).single_space_or_optional_newline()
         .inside(NODE_INHERIT).after(NODE_IDENT).no_space_or_optional_newline()
         .inside(NODE_INHERIT_FROM).after(T!["("]).no_space()
         .inside(NODE_INHERIT_FROM).before(T![")"]).no_space()
