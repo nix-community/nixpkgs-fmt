@@ -432,7 +432,7 @@ pub(crate) fn indentation() -> IndentDsl {
                   92
                 )
             "#)
-
+        
         .rule("Indent attribute set content")
             .inside(NODE_ATTR_SET)
             .not_matching([T!["{"], T!["}"]])
