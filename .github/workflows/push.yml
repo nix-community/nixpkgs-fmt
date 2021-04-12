@@ -12,7 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: cachix/install-nix-action@v13
-    - uses: cachix/cachix-action@v9
+    - uses: cachix/cachix-action@v10
       with:
         name: nix-community
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
