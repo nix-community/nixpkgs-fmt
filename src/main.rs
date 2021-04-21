@@ -75,7 +75,7 @@ fn parse_args() -> Result<Args> {
                 .takes_value(true)
                 .requires("parse")
                 .possible_values(&["rnix", "json"])
-                .help("Set output format of --parse. Values: rnix, json"),
+                .help("Set output format of --parse"),
         )
         .arg(
             Arg::with_name("explain")
