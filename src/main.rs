@@ -72,8 +72,10 @@ fn parse_args() -> Result<Args> {
             Arg::with_name("output-format")
                 .long("output-format")
                 .requires("parse")
+                .value_name("FORMAT")
+                .takes_value(true)
                 .possible_values(&["json"])
-                .help("Output syntax tree in JSON format"),
+                .help("Set output format of --parse. Values: default, json"),
         )
         .arg(
             Arg::with_name("explain")
