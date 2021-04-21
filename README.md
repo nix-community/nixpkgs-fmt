@@ -76,25 +76,26 @@ exists and what role it can play.
 
 ## Usage
 
-`$ nixpkgs-fmt --help 2>&1 || true`
+`$ nixpkgs-fmt --help`
 ```
-nixpkgs-fmt 0.9.0
+nixpkgs-fmt 1.2.0
 Format Nix code
 
 USAGE:
-    nixpkgs-fmt [FLAGS] [FILE]...
+    nixpkgs-fmt [FLAGS] [OPTIONS] [FILE]...
 
 FLAGS:
-        --check            Only test if the formatter would produce differences
-        --explain          Show which rules are violated
-    -h, --help             Prints help information
-        --output-format    Output syntax tree in JSON format
-        --parse            Show syntax tree instead of reformatting
-    -V, --version          Prints version information
+        --check      Only test if the formatter would produce differences
+        --explain    Show which rules are violated
+    -h, --help       Prints help information
+        --parse      Show syntax tree instead of reformatting
+    -V, --version    Prints version information
+
+OPTIONS:
+        --output-format <FORMAT>    Set output format of --parse [default: rnix]  [possible values: rnix, json]
 
 ARGS:
     <FILE>...    File to reformat in place. If no file is passed, read from stdin.
-
 ```
 ### Tree traversal
 
