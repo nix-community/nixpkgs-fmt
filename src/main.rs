@@ -46,7 +46,7 @@ enum Src {
 
 #[derive(Debug)]
 enum OutputFormat {
-    Default,
+    Rnix, // rnix library: ast.root().dump()
     Json,
 }
 
@@ -71,11 +71,11 @@ fn parse_args() -> Result<Args> {
         .arg(
             Arg::with_name("output-format")
                 .long("output-format")
-                .requires("parse")
                 .value_name("FORMAT")
                 .takes_value(true)
-                .possible_values(&["json"])
-                .help("Set output format of --parse. Values: default, json"),
+                .requires("parse")
+                .possible_values(&["rnix", "json"])
+                .help("Set output format of --parse. Values: rnix, json"),
         )
         .arg(
             Arg::with_name("explain")
@@ -100,7 +100,7 @@ fn parse_args() -> Result<Args> {
     let operation = if matches.is_present("parse") {
         let output_format = match matches.value_of("output-format") {
             Some("json") => OutputFormat::Json,
-            _ => OutputFormat::Default,
+            _ => OutputFormat::Rnix,
         };
         Operation::Parse { output_format }
     } else if matches.is_present("explain") {
@@ -178,7 +178,7 @@ fn try_main(args: Args) -> Result<()> {
             let input = read_single_source(&args.src)?;
             let ast = rnix::parse(&input);
             let res = match output_format {
-                OutputFormat::Default => {
+                OutputFormat::Rnix => {
                     let mut buf = String::new();
                     for error in ast.errors() {
                         writeln!(buf, "error: {}", error).unwrap();
