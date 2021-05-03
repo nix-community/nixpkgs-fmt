@@ -76,7 +76,7 @@ exists and what role it can play.
 
 ## Usage
 
-`$ nixpkgs-fmt --help`
+<!-- `$ nixpkgs-fmt --help 2>&1 || true` -->
 ```
 nixpkgs-fmt 1.2.0
 Format Nix code
