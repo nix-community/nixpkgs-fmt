@@ -73,7 +73,6 @@ fn parse_args() -> Result<Args> {
                 .long("output-format")
                 .value_name("FORMAT")
                 .takes_value(true)
-                .requires("parse")
                 .possible_values(&["rnix", "json"])
                 .default_value("rnix")
                 .help("Set output format of --parse"),
