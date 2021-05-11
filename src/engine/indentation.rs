@@ -4,6 +4,7 @@ use std::{
 };
 
 use rnix::{SyntaxElement, SyntaxKind::*, SyntaxNode, SyntaxToken, TextSize};
+use serde_json::from_str;
 use smol_str::SmolStr;
 
 use crate::{
@@ -86,6 +87,29 @@ impl IndentLevel {
     pub(super) fn from_str(s: &str) -> IndentLevel {
         let len = len_for_indent(s);
         IndentLevel { level: len / INDENT_SIZE, alignment: len % INDENT_SIZE }
+    }
+
+    /// adjust `IndentLevel` based on whitespace provided
+    pub(super) fn adjust_alignment(self, new_indent: IndentLevel) -> IndentLevel {
+        if new_indent.len() > TextSize::from(5) {
+            return new_indent;
+        }
+        IndentLevel { level: self.level, alignment: new_indent.alignment }
+    }
+
+    /// adding alignment for multiline comment
+    pub(super) fn add_alignment(self, new_indent: IndentLevel) -> IndentLevel {
+        if self.level < new_indent.level {
+            return new_indent;
+        }
+        IndentLevel { level: self.level, alignment: new_indent.alignment }
+    }
+
+    pub(super) fn get_whitespace_block(s: &str) -> IndentLevel {
+        match s.find(|c: char| !c.is_whitespace()) {
+            None => IndentLevel::default(),
+            Some(idx) => IndentLevel::from_str(&s[..idx]),
+        }
     }
 
     pub(super) fn from_whitespace_block(s: &str) -> IndentLevel {
