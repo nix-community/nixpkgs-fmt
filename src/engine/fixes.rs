@@ -5,6 +5,7 @@ use rnix::{
     SyntaxKind::{NODE_STRING, TOKEN_COMMENT, TOKEN_STRING_CONTENT, TOKEN_WHITESPACE},
     SyntaxNode, SyntaxToken, TextRange, TextSize,
 };
+use smol_str::SmolStr;
 
 use super::indentation::single_line_comment_indent;
 use crate::{
@@ -121,23 +122,21 @@ fn fix_comment_indentation(
             first = false;
             continue;
         }
-        let last_line_only_end_block = line.ends_with("*/") && line.trim_start() == "*/";
+        let last_line_only_end_block = line.ends_with("*/") || line.trim_start() == "*/";
+        let start_with_asterisk = line.trim_start().starts_with("*");
+        let current_indent = IndentLevel::get_whitespace_block(line);
         if let Some(ws_end) = line.find(|it| it != ' ') {
-            if !last_line_only_end_block {
+            let delete =
+                TextRange::at(offset, TextSize::try_from(ws_end).expect("woah big number"));
+            if last_line_only_end_block || start_with_asterisk {
                 model.raw_edit(AtomEdit {
-                    delete: TextRange::at(
-                        offset,
-                        TextSize::try_from(ws_end).expect("woah big number"),
-                    ),
-                    insert: content_indent.into(),
+                    delete,
+                    insert: comment_indent.add_alignment(current_indent).into(),
                 })
             } else {
                 model.raw_edit(AtomEdit {
-                    delete: TextRange::at(
-                        offset,
-                        TextSize::try_from(ws_end).expect("woah big number"),
-                    ),
-                    insert: comment_indent.into(),
+                    delete,
+                    insert: content_indent.adjust_alignment(current_indent).into(),
                 })
             }
         }
