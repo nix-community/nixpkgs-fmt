@@ -6,38 +6,32 @@ let
     inherit system;
     config = { };
     overlays = [
-      (import "${inputs.mozilla}/lib-overlay.nix")
-      (import "${inputs.mozilla}/rust-overlay.nix")
       (import "${inputs.naersk}/overlay.nix")
+      (import inputs.fenix)
     ];
   };
 
-  rustChan = nixpkgs.rustChannelOf {
-    date = "2020-12-29";
-    channel = "nightly";
-    sha256 = "sha256-HEBBUpbIgjbluKyT1oKU/KvQFOBFPML9vuAHuXuhoYA=";
+  rustToolchain = with nixpkgs.fenix;
+    combine [
+      minimal.rustc
+      minimal.cargo
+      targets."wasm32-unknown-unknown".latest.rust-std
+    ];
+
+  naersk = nixpkgs.naersk.override {
+    cargo = rustToolchain;
+    rustc = rustToolchain;
   };
 
-  rust = rustChan.rust.override {
-    extensions = [
-      "clippy-preview"
-      "rls-preview"
-      "rustfmt-preview"
-      "rust-analysis"
-      "rust-std"
-      "rust-src"
-    ];
-    targets = [ "wasm32-unknown-unknown" ];
-  };
 in
 rec {
+  inherit nixpkgs;
+
   nixpkgs-fmt = nixpkgs.naersk.buildPackage {
     src = ./.;
     root = ./.;
     cratePaths = [ "." ];
   };
-
-  defaultPackage = nixpkgs-fmt;
 
   devShell = nixpkgs.mkShell {
     nativeBuildInputs = [
@@ -48,7 +42,7 @@ rec {
       nixpkgs.openssl
       nixpkgs.pkgconfig
       nixpkgs.wasm-pack
-      rust
+      rustToolchain
     ]
     ++ nixpkgs.lib.optionals nixpkgs.stdenv.isDarwin [
       nixpkgs.darwin.apple_sdk.frameworks.Security
