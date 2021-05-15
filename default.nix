@@ -47,6 +47,9 @@ rec {
     cratePaths = [ "." ];
   };
 
+  # This used to be the output when we were using flake-compat.
+  defaultNix = nixpkgs-fmt;
+
   devShell = mkShell {
     packages = [
       nixpkgs.cargo-fuzz
