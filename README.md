@@ -113,7 +113,7 @@ nixpkgs-fmt is available in nixpkgs master. `nix-env -i nixpkgs-fmt`.
 
 It's also possible to install it directly from this repository:
 
-`nix-env -f https://github.com/nix-community/nixpkgs-fmt/archive/master.tar.gz -iA defaultNix`
+`nix-env -f https://github.com/nix-community/nixpkgs-fmt/archive/master.tar.gz -iA nixpkgs-fmt`
 
 ### pre-commit hook
 
