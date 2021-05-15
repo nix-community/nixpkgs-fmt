@@ -1,11 +1,70 @@
-{ system ? builtins.currentSystem }:
+{ system ? builtins.currentSystem
+, inputs ? import ./flake.lock.nix { }
+}:
 let
-  flake-compat = builtins.fetchurl {
-    url = "https://raw.githubusercontent.com/edolstra/flake-compat/99f1c2157fba4bfe6211a321fd0ee43199025dbf/default.nix";
-    sha256 = "1vas5z58901gavy5d53n1ima482yvly405jp9l8g07nr4abmzsyb";
+  nixpkgs = import inputs.nixpkgs {
+    inherit system;
+    config = { };
+    overlays = [
+      (import "${inputs.naersk}/overlay.nix")
+      (import inputs.fenix)
+    ];
   };
+
+  rustToolchain = with nixpkgs.fenix;
+    combine [
+      minimal.rustc
+      minimal.cargo
+      targets."wasm32-unknown-unknown".latest.rust-std
+    ];
+
+  naersk = nixpkgs.naersk.override {
+    cargo = rustToolchain;
+    rustc = rustToolchain;
+  };
+
+  # This is a magic shell that can be both built and loaded as a nix-shell.
+  mkShell = { name ? "shell", packages ? [ ], shellHook ? "" }:
+    let
+      drv = nixpkgs.buildEnv {
+        inherit name;
+        # TODO: also add the shellHook as an activation script?
+        paths = packages;
+      };
+    in
+    drv.overrideAttrs (old: {
+      nativeBuildInputs = old.nativeBuildInputs ++ packages;
+      inherit shellHook;
+    });
+
 in
-import flake-compat {
-  src = ./.;
-  inherit system;
+rec {
+  inherit nixpkgs;
+
+  nixpkgs-fmt = nixpkgs.naersk.buildPackage {
+    src = ./.;
+    root = ./.;
+    cratePaths = [ "." ];
+  };
+
+  devShell = mkShell {
+    packages = [
+      nixpkgs.cargo-fuzz
+      nixpkgs.gitAndTools.git-extras
+      nixpkgs.gitAndTools.pre-commit
+      nixpkgs.mdsh
+      nixpkgs.openssl
+      nixpkgs.pkgconfig
+      nixpkgs.wasm-pack
+      rustToolchain
+    ]
+    ++ nixpkgs.lib.optionals nixpkgs.stdenv.isDarwin [
+      nixpkgs.darwin.apple_sdk.frameworks.Security
+    ]
+    ;
+
+    shellHook = ''
+      export PATH=$PWD/target/debug:$PATH
+    '';
+  };
 }
