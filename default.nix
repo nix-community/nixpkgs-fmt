@@ -23,6 +23,20 @@ let
     rustc = rustToolchain;
   };
 
+  # This is a magic shell that can be both built and loaded as a nix-shell.
+  mkShell = { name ? "shell", packages ? [ ], shellHook ? "" }:
+    let
+      drv = nixpkgs.buildEnv {
+        inherit name;
+        # TODO: also add the shellHook as an activation script?
+        paths = packages;
+      };
+    in
+    drv.overrideAttrs (old: {
+      nativeBuildInputs = old.nativeBuildInputs ++ packages;
+      inherit shellHook;
+    });
+
 in
 rec {
   inherit nixpkgs;
@@ -33,8 +47,8 @@ rec {
     cratePaths = [ "." ];
   };
 
-  devShell = nixpkgs.mkShell {
-    nativeBuildInputs = [
+  devShell = mkShell {
+    packages = [
       nixpkgs.cargo-fuzz
       nixpkgs.gitAndTools.git-extras
       nixpkgs.gitAndTools.pre-commit
