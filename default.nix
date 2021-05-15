@@ -1,11 +1,62 @@
-{ system ? builtins.currentSystem }:
+{ system ? builtins.currentSystem
+, inputs ? import ./flake.lock.nix { }
+}:
 let
-  flake-compat = builtins.fetchurl {
-    url = "https://raw.githubusercontent.com/edolstra/flake-compat/99f1c2157fba4bfe6211a321fd0ee43199025dbf/default.nix";
-    sha256 = "1vas5z58901gavy5d53n1ima482yvly405jp9l8g07nr4abmzsyb";
+  nixpkgs = import inputs.nixpkgs {
+    inherit system;
+    config = { };
+    overlays = [
+      (import "${inputs.mozilla}/lib-overlay.nix")
+      (import "${inputs.mozilla}/rust-overlay.nix")
+      (import "${inputs.naersk}/overlay.nix")
+    ];
+  };
+
+  rustChan = nixpkgs.rustChannelOf {
+    date = "2020-12-29";
+    channel = "nightly";
+    sha256 = "sha256-HEBBUpbIgjbluKyT1oKU/KvQFOBFPML9vuAHuXuhoYA=";
+  };
+
+  rust = rustChan.rust.override {
+    extensions = [
+      "clippy-preview"
+      "rls-preview"
+      "rustfmt-preview"
+      "rust-analysis"
+      "rust-std"
+      "rust-src"
+    ];
+    targets = [ "wasm32-unknown-unknown" ];
   };
 in
-import flake-compat {
-  src = ./.;
-  inherit system;
+rec {
+  nixpkgs-fmt = nixpkgs.naersk.buildPackage {
+    src = ./.;
+    root = ./.;
+    cratePaths = [ "." ];
+  };
+
+  defaultPackage = nixpkgs-fmt;
+
+  devShell = nixpkgs.mkShell {
+    nativeBuildInputs = [
+      nixpkgs.cargo-fuzz
+      nixpkgs.gitAndTools.git-extras
+      nixpkgs.gitAndTools.pre-commit
+      nixpkgs.mdsh
+      nixpkgs.openssl
+      nixpkgs.pkgconfig
+      nixpkgs.wasm-pack
+      rust
+    ]
+    ++ nixpkgs.lib.optionals nixpkgs.stdenv.isDarwin [
+      nixpkgs.darwin.apple_sdk.frameworks.Security
+    ]
+    ;
+
+    shellHook = ''
+      export PATH=$PWD/target/debug:$PATH
+    '';
+  };
 }
