@@ -6,7 +6,6 @@ let
     inherit system;
     config = { };
     overlays = [
-      (import "${inputs.naersk}/overlay.nix")
       (import inputs.fenix)
     ];
   };
@@ -18,7 +17,7 @@ let
       targets."wasm32-unknown-unknown".latest.rust-std
     ];
 
-  naersk = nixpkgs.naersk.override {
+  naersk = nixpkgs.callPackage inputs.naersk {
     cargo = rustToolchain;
     rustc = rustToolchain;
   };
@@ -41,7 +40,7 @@ in
 rec {
   inherit nixpkgs;
 
-  nixpkgs-fmt = nixpkgs.naersk.buildPackage {
+  nixpkgs-fmt = naersk.buildPackage {
     src = ./.;
     root = ./.;
     cratePaths = [ "." ];
