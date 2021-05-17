@@ -105,6 +105,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("let   foo = bar;in  92", "let foo = bar; in 92")
         .inside(NODE_LET_IN).after(T![let]).single_space_or_optional_newline()
         .inside(NODE_LET_IN).around(T![in]).single_space_or_optional_newline()
+        .inside(NODE_LET_IN).after(NODE_KEY_VALUE).single_space_or_optional_newline()
         .inside(NODE_LET_IN).before(T![in]).when(header_has_multi_value).when(before_token_not_newline).newline()
         .inside(NODE_LET_IN).after(T![in]).when(in_body_newline).newline()
         .inside(NODE_LET_IN).before(NODE_KEY_VALUE).when(header_has_multi_value).when(before_token_not_newline).newline()
@@ -121,6 +122,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_IF_ELSE).around([T![else],T![then]]).single_space_or_optional_newline()
         .inside(NODE_IF_ELSE).after(T![then]).when(has_expression_node).single_space_or_newline()
         .inside(NODE_IF_ELSE).after(T![else]).when(has_expression_node).single_space_or_newline()
+        
         // special-case to force a linebreak before `=` in
         //
         // ```nix
