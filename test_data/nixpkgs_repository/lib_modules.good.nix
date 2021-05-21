@@ -23,9 +23,6 @@
     { pkg
     , num ? 0
     }:
-    let
-      val = 1;
-      num = 2;
-    in
+    let val = 1; num = 2; in
     pkg + num + val;
 }

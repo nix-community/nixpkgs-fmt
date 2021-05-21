@@ -11,8 +11,7 @@
       then innerClosePropagation acc ys
       else
         let acc' = [ y ] ++ acc;
-        in
-        innerClosePropagation
+        in innerClosePropagation
           acc'
           (uniqList {
             inputList = (maybeAttrNullable "propagatedBuildInputs" [ ] y)

@@ -5,7 +5,6 @@ use rnix::{
     SyntaxKind::{NODE_STRING, TOKEN_COMMENT, TOKEN_STRING_CONTENT, TOKEN_WHITESPACE},
     SyntaxNode, SyntaxToken, TextRange, TextSize,
 };
-use smol_str::SmolStr;
 
 use super::indentation::single_line_comment_indent;
 use crate::{

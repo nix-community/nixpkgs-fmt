@@ -1,6 +1,6 @@
 //! This module contains specific `super::dsl` rules for formatting nix language.
 use rnix::{
-    types::{Lambda, TypedNode, With},
+    types::{Lambda, LetIn, TypedNode, With},
     NodeOrToken, SyntaxElement, SyntaxKind,
     SyntaxKind::*,
     T,
@@ -10,9 +10,8 @@ use crate::{
     dsl::{self, IndentDsl, IndentValue::*, SpacingDsl},
     pattern::p,
     tree_utils::{
-        has_newline, next_non_whitespace_sibling, next_sibling, next_token_sibling,
-        not_on_top_level, on_top_level, prev_non_whitespace_sibling, prev_sibling,
-        prev_token_sibling,
+        has_newline, next_non_whitespace_sibling, next_sibling, not_on_top_level, on_top_level,
+        prev_non_whitespace_sibling, prev_sibling, prev_token_sibling,
     },
 };
 
@@ -106,9 +105,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_LET_IN).after(T![let]).single_space_or_optional_newline()
         .inside(NODE_LET_IN).around(T![in]).single_space_or_optional_newline()
         .inside(NODE_LET_IN).after(NODE_KEY_VALUE).single_space_or_optional_newline()
-        .inside(NODE_LET_IN).before(T![in]).when(header_has_multi_value).when(before_token_not_newline).newline()
-        .inside(NODE_LET_IN).after(T![in]).when(in_body_newline).newline()
-        .inside(NODE_LET_IN).before(NODE_KEY_VALUE).when(header_has_multi_value).when(before_token_not_newline).newline()
+        .inside(NODE_LET_IN).before(NODE_KEY_VALUE).when(let_header_has_newline).newline()
+        .inside(NODE_LET_IN).around(T![in]).when(let_header_has_newline).newline()
 
         .test("{a?3}: a", "{ a ? 3 }: a")
         .inside(NODE_PAT_ENTRY).around(T![?]).single_space()
@@ -135,7 +133,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         // ```
         .add_rule(dsl::SpacingRule {
             name: None,
-            pattern: p(T![=]) & p(next_sibling_is_multiline_lambda_pattern),
+            pattern: p(T![=]) & (p(next_sibling_is_multiline_lambda_pattern) | p(next_sibling_is_multiline_letin_pattern)) ,
             space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
         })
 
@@ -152,11 +150,6 @@ pub(crate) fn spacing() -> SpacingDsl {
             space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
         })
 
-        .add_rule(dsl::SpacingRule {
-            name: None,
-            pattern: p(T![let]) & p(after_let_newline),
-            space: dsl::Space { loc: dsl::SpaceLoc::After, value: dsl::SpaceValue::Newline }
-        })
         ;
 
     dsl
@@ -313,10 +306,6 @@ fn before_token_has_newline(element: &SyntaxElement) -> bool {
     prev_token_sibling(element).map(|e| e.text().contains("\n")).unwrap_or(false)
 }
 
-fn before_token_not_newline(element: &SyntaxElement) -> bool {
-    !before_token_has_newline(element)
-}
-
 fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
     fn find(element: &SyntaxElement) -> Option<bool> {
         let lambda = next_non_whitespace_sibling(element)?.into_node().and_then(Lambda::cast)?;
@@ -326,19 +315,24 @@ fn next_sibling_is_multiline_lambda_pattern(element: &SyntaxElement) -> bool {
     find(element) == Some(true)
 }
 
-fn header_has_multi_value(element: &SyntaxElement) -> bool {
-    let key_value = element.parent().map(|e| {
-        e.children().fold(0, |mut v, e| {
-            if e.kind() == NODE_KEY_VALUE {
-                v += 1;
-                return v;
-            } else {
-                v += 0;
-                return v;
-            }
-        })
-    });
-    key_value.map(|e| e >= 2).unwrap_or(false)
+fn next_sibling_is_multiline_letin_pattern(element: &SyntaxElement) -> bool {
+    fn find(element: &SyntaxElement) -> Option<bool> {
+        let letin = next_non_whitespace_sibling(element)?.into_node().and_then(LetIn::cast)?;
+        let header = letin
+            .node()
+            .children_with_tokens()
+            .into_iter()
+            .take_while(|x| match x {
+                NodeOrToken::Node(_) => true,
+                NodeOrToken::Token(token) => token.kind() != TOKEN_IN,
+            })
+            .any(|child| match child {
+                NodeOrToken::Node(node) => has_newline(&node),
+                NodeOrToken::Token(token) => token.text().contains("\n"),
+            });
+        Some(header)
+    }
+    find(element) == Some(true)
 }
 
 fn inline_let_in(element: &SyntaxElement) -> bool {
@@ -352,23 +346,29 @@ fn inline_let_in(element: &SyntaxElement) -> bool {
         .unwrap_or(false)
 }
 
-// special-cased to force a linebreak after `let` when `in` is not inline and key value >= 2
-fn after_let_newline(element: &SyntaxElement) -> bool {
-    header_has_multi_value(element)
-}
-
-fn in_body_newline(element: &SyntaxElement) -> bool {
-    fn body_has_newline(element: &SyntaxElement) -> Option<bool> {
-        next_non_whitespace_sibling(element)?.as_node().map(|e| has_newline(e))
-    }
-
-    fn header_is_multiline(element: &SyntaxElement) -> Option<bool> {
-        next_token_sibling(&element.parent()?.first_child_or_token()?)
-            .map(|e| e.text().contains('\n'))
-    }
-
-    body_has_newline(element) == Some(true)
-        || (header_is_multiline(element) == Some(true) || header_has_multi_value(element))
+fn let_header_has_newline(element: &SyntaxElement) -> bool {
+    let letin = match element {
+        NodeOrToken::Token(token) => Some(token.parent()),
+        NodeOrToken::Node(node) => node.parent(),
+    };
+    // element.as_node().and_then(|x|x.parent());
+    letin
+        .map(|x| {
+            let mut nodes: Vec<SyntaxElement> = x
+                .children_with_tokens()
+                .into_iter()
+                .take_while(|x| match x {
+                    NodeOrToken::Node(_) => true,
+                    NodeOrToken::Token(token) => token.kind() != TOKEN_IN,
+                })
+                .collect();
+            nodes.pop();
+            nodes.into_iter().any(|child| match child {
+                NodeOrToken::Node(node) => has_newline(&node),
+                NodeOrToken::Token(token) => token.text().contains("\n"),
+            })
+        })
+        .unwrap_or(false)
 }
 
 #[rustfmt::skip]

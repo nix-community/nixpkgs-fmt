@@ -4,7 +4,6 @@ use std::{
 };
 
 use rnix::{SyntaxElement, SyntaxKind::*, SyntaxNode, SyntaxToken, TextSize};
-use serde_json::from_str;
 use smol_str::SmolStr;
 
 use crate::{
