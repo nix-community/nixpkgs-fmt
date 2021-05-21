@@ -85,13 +85,6 @@ pub(crate) fn on_top_level(element: &SyntaxElement) -> bool {
     }
 }
 
-pub(crate) fn next_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken> {
-    match element.next_sibling_or_token()? {
-        NodeOrToken::Node(_) => None,
-        NodeOrToken::Token(it) => Some(it),
-    }
-}
-
 pub(crate) fn prev_token_sibling(element: &SyntaxElement) -> Option<SyntaxToken> {
     successors(element.prev_sibling_or_token(), |it| it.prev_sibling_or_token()).find_map(
         |element| match element {
