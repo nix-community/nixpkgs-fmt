@@ -23,6 +23,7 @@ smol_str = "0.1.17"
 crossbeam-channel = "0.3"
 ignore = "0.4.10"
 clap = "2.33.0"
+libc = "0.2.99"
 
 # Enable serialization support for rnix syntax trees.
 serde_json = "1.0"

@@ -1,7 +1,7 @@
 use std::{
     fmt::Write,
     fs,
-    io::{stdin, Read},
+    io::{self, stdin, Read},
     path::{Path, PathBuf},
     thread,
 };
@@ -114,10 +114,19 @@ fn parse_args() -> Result<Args> {
     Ok(Args { operation, src })
 }
 
+fn reset_sigpipe() -> io::Result<()> {
+    use libc::{signal, SIGPIPE, SIG_DFL, SIG_ERR};
+    if unsafe { signal(SIGPIPE, SIG_DFL) } == SIG_ERR {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
 fn try_main(args: Args) -> Result<()> {
     match args.operation {
         Operation::Fmt { write_changes, fail_on_changes } => match &args.src {
             Src::Stdin => {
+                reset_sigpipe()?;
                 let input = read_stdin_to_string()?;
                 let output = nixpkgs_fmt::reformat_string(&input);
                 let has_changes = input != output;
@@ -175,6 +184,7 @@ fn try_main(args: Args) -> Result<()> {
             }
         },
         Operation::Parse { output_format } => {
+            reset_sigpipe()?;
             let input = read_single_source(&args.src)?;
             let ast = rnix::parse(&input);
             let res = match output_format {
@@ -191,6 +201,7 @@ fn try_main(args: Args) -> Result<()> {
             print!("{}", res)
         }
         Operation::Explain => {
+            reset_sigpipe()?;
             let input = read_stdin_to_string()?;
             let output = nixpkgs_fmt::explain(&input);
             print!("{}", output);
