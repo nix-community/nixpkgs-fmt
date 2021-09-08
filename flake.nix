@@ -5,7 +5,6 @@
   inputs.naersk.url = "github:nmattia/naersk";
   inputs.naersk.inputs.nixpkgs.follows = "nixpkgs";
   inputs.fenix.url = "github:nix-community/fenix";
-  inputs.fenix.inputs.naersk.follows = "naersk";
   inputs.fenix.inputs.nixpkgs.follows = "nixpkgs";
 
   outputs = { self, nixpkgs, naersk, fenix, flake-utils }@inputs:

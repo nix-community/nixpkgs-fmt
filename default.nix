@@ -6,7 +6,12 @@ let
     inherit system;
     config = { };
     overlays = [
-      (import inputs.fenix)
+      (final: prev: {
+        fenix = import inputs.fenix {
+          pkgs = prev;
+          rust-analyzer-src = throw "not used";
+        };
+      })
     ];
   };
 
@@ -57,6 +62,7 @@ rec {
       nixpkgs.mdsh
       nixpkgs.openssl
       nixpkgs.pkgconfig
+      nixpkgs.stdenv.cc
       nixpkgs.wasm-pack
       rustToolchain
     ]
