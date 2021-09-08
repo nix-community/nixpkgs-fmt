@@ -62,6 +62,7 @@ rec {
       nixpkgs.mdsh
       nixpkgs.openssl
       nixpkgs.pkgconfig
+      nixpkgs.stdenv.cc
       nixpkgs.wasm-pack
       rustToolchain
     ]
