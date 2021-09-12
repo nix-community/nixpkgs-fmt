@@ -115,6 +115,14 @@ It's also possible to install it directly from this repository:
 
 `nix-env -f https://github.com/nix-community/nixpkgs-fmt/archive/master.tar.gz -iA nixpkgs-fmt`
 
+### VSCode extensions
+
+There are a few VSCode extensions that make using `nixpkgs-fmt` convenient. 
+Check out:
+
+- [B4dM4n.nixpkgs-fmt](https://marketplace.visualstudio.com/items?itemName=B4dM4n.nixpkgs-fmt)
+- [jnoortheen.nix-ide](https://marketplace.visualstudio.com/items?itemName=jnoortheen.nix-ide)
+
 ### pre-commit hook
 
 This project can also be installed as a [pre-commit](https://pre-commit.com/)
