@@ -187,16 +187,23 @@ fn try_main(args: Args) -> Result<()> {
             reset_sigpipe()?;
             let input = read_single_source(&args.src)?;
             let ast = rnix::parse(&input);
+            let mut error_buf = String::new();
             let res = match output_format {
                 OutputFormat::Rnix => {
                     let mut buf = String::new();
                     for error in ast.errors() {
-                        writeln!(buf, "error: {}", error).unwrap();
+                        writeln!(error_buf, "error: {}", error).unwrap();
                     }
                     writeln!(buf, "{}", ast.root().dump()).unwrap();
                     buf
                 }
                 OutputFormat::Json => serde_json::to_string_pretty(&ast.node())?,
+            };
+            match (output_format, error_buf.is_empty()) {
+                (OutputFormat::Rnix, false) => {
+                    return Err(error_buf.into());
+                }
+                (_, _) => {}
             };
             print!("{}", res)
         }
