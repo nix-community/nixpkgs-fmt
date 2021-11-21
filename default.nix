@@ -22,11 +22,6 @@ let
       targets."wasm32-unknown-unknown".latest.rust-std
     ];
 
-  naersk = nixpkgs.callPackage inputs.naersk {
-    cargo = rustToolchain;
-    rustc = rustToolchain;
-  };
-
   # This is a magic shell that can be both built and loaded as a nix-shell.
   mkShell = { name ? "shell", packages ? [ ], shellHook ? "" }:
     let
@@ -41,14 +36,19 @@ let
       inherit shellHook;
     });
 
+  cargoToml = with builtins; (fromTOML (readFile ./Cargo.toml));
 in
 rec {
   inherit nixpkgs;
 
-  nixpkgs-fmt = naersk.buildPackage {
-    src = ./.;
-    root = ./.;
-    cratePaths = [ "." ];
+  nixpkgs-fmt = nixpkgs.pkgs.rustPlatform.buildRustPackage {
+    inherit (cargoToml.package) name version;
+
+    src = nixpkgs.lib.cleanSource ./.;
+
+    doCheck = true;
+
+    cargoLock.lockFile = ./Cargo.lock;
   };
 
   # This used to be the output when we were using flake-compat.
