@@ -13,12 +13,12 @@ args@{ z, }:
   j = 5 * 5;
   k = z ? fs;
   l = z ++ z;
-  m = -324;
+  m = - 324;
   n = z z;
   o = import <nixpkgs>;
   p = with z; "fdsfs";
   q = ''
-    ${ 5 + 5 }
-  '';
-  r = " f${ z }ds ";
+      ${5+5}
+    	'';
+  r = " f${z}ds ";
 }

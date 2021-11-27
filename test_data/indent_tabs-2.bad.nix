@@ -1,4 +1,4 @@
-args	@	{	z	,	}	:
+args@{	z	,	}	:
 
 		  	{
 		a	 =  	 	"1"	;
@@ -11,15 +11,14 @@ args	@	{	z	,	}	:
 		h 		=	 null	;
 	i 	  		=	 [	 1	 ./example.bin	 { 		hello	=		"world"	;	 } 	]	;	
 			j 	= 		5	 * 			5;			
-	k     = z ?	 		fs		    ;
+	k     = z ? fs		    ;
 	l   = z 		++		 z;
-	m 	=	 -	 		  324		;
+	m 	=	 - 324		;
 	n = z		  z    ;	
 	o = import 	 	 	 		<nixpkgs>		;
-	p = with  	 	 	  z	 	 ;	 	 	  "fdsfs";			    
+	p = with z; "fdsfs";			    
 	q = ''
-  ${   			5		   +		   5  		}
+  ${5+5}
 	'';
-	r = " f${  					z		 	 	    }ds ";
-		  	  		 }   
-			
+	r = " f${z}ds ";
+		  	  		 }
