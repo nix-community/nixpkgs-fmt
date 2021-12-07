@@ -14,7 +14,7 @@ repository = "https://github.com/nix-community/nixpkgs-fmt"
 members = [ "./wasm" ]
 
 [dependencies]
-rnix = "0.9.0"
+rnix = "0.10.1"
 smol_str = "0.1.17"
 
 # Dependencies that are used in the binary only
