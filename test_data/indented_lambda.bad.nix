@@ -8,7 +8,7 @@
     else "--${k}"
 , mkOption ? k: v:
   if v == null
-  then [ ]
+  then []
   else [ (mkOptionName k) (lib.generators.mkValueStringDefault {} v) ]
 }:
 {  toINI = {

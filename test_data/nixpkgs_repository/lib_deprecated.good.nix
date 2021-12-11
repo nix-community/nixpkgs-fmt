@@ -1,6 +1,6 @@
 {
   innerClosePropagation = acc: xs:
-    if xs == [ ]
+    if xs == []
     then acc
     else
       let
@@ -14,8 +14,8 @@
         in innerClosePropagation
           acc'
           (uniqList {
-            inputList = (maybeAttrNullable "propagatedBuildInputs" [ ] y)
-              ++ (maybeAttrNullable "propagatedNativeBuildInputs" [ ] y)
+            inputList = (maybeAttrNullable "propagatedBuildInputs" [] y)
+              ++ (maybeAttrNullable "propagatedNativeBuildInputs" [] y)
               ++ ys;
             acc = acc';
           });

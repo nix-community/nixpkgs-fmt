@@ -1,4 +1,4 @@
 {
 attrs = {};
-lists = [ ];
+lists = [];
 }
