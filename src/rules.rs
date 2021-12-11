@@ -812,7 +812,7 @@ foo = x:
             .into(),
         }
         .run()
-        .map_err(|e| panic!(e))
+        .map_err(|e| panic!("{}", e))
         .unwrap();
     }
 
