@@ -1,3 +1,12 @@
+Unreleased / YYYY-MM-DD
+=======================
+
+### Formatting changes
+
+* Empty sets: `{ }`
+  and lists: `[ ]`
+  are now formatted as: `{}`
+  and: `[]` respectively (#264)
 
 1.2.0 / 2021-03-29
 ==================
