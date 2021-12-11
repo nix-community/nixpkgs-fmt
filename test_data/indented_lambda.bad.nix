@@ -9,7 +9,7 @@
 , mkOption ? k: v:
   if v == null
   then [ ]
-  else [ (mkOptionName k) (lib.generators.mkValueStringDefault { } v) ]
+  else [ (mkOptionName k) (lib.generators.mkValueStringDefault {} v) ]
 }:
 {  toINI = {
   # parameter comment

@@ -9,4 +9,4 @@ let
     inherit foo; bar = baz;
   };
 in
-{ }
+{}

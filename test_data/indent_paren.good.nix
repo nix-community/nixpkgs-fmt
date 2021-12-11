@@ -19,7 +19,7 @@
           a
           (attrNames n)
       )
-      { }
+      {}
       list_of_attrs;
   bar = fun "arg" (callPackage ./. {
     inherit foo;

@@ -72,8 +72,8 @@ pub(crate) fn spacing() -> SpacingDsl {
         .test("{foo = 92;}", "{ foo = 92; }")
         .inside(NODE_ATTR_SET).after(T!["{"]).single_space_or_newline()
         .inside(NODE_ATTR_SET).before(T!["}"]).single_space_or_newline()
-        .test("{}", "{ }")
-        .inside(NODE_ATTR_SET).between(T!["{"], T!["}"]).single_space()
+        .test("{}", "{}")
+        .inside(NODE_ATTR_SET).between(T!["{"], T!["}"]).no_space()
         .inside(NODE_ATTR_SET).before(NODE_KEY_VALUE).single_space_or_optional_newline()
         .inside(NODE_ATTR_SET).between(NODE_KEY_VALUE, NODE_KEY_VALUE).single_space_or_newline()
         .inside(NODE_ATTR_SET).between(NODE_INHERIT, [NODE_INHERIT, TOKEN_COMMENT]).single_space_or_optional_newline()
@@ -120,7 +120,7 @@ pub(crate) fn spacing() -> SpacingDsl {
         .inside(NODE_IF_ELSE).around([T![else],T![then]]).single_space_or_optional_newline()
         .inside(NODE_IF_ELSE).after(T![then]).when(has_expression_node).single_space_or_newline()
         .inside(NODE_IF_ELSE).after(T![else]).when(has_expression_node).single_space_or_newline()
-        
+
         // special-case to force a linebreak before `=` in
         //
         // ```nix
@@ -434,7 +434,7 @@ pub(crate) fn indentation() -> IndentDsl {
                   92
                 )
             "#)
-        
+
         .rule("Indent attribute set content")
             .inside(NODE_ATTR_SET)
             .not_matching([T!["{"], T!["}"]])

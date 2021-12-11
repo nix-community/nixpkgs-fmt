@@ -9,14 +9,14 @@
 , mkOption ? k: v:
     if v == null
     then [ ]
-    else [ (mkOptionName k) (lib.generators.mkValueStringDefault { } v) ]
+    else [ (mkOptionName k) (lib.generators.mkValueStringDefault {} v) ]
 }:
 {
   toINI =
     {
       # parameter comment
       mkSectionName ? (name: libStr.escape [ "[" "]" ] name)
-    , mkKeyValue ? mkKeyValueDefault { } "="
+    , mkKeyValue ? mkKeyValueDefault {} "="
     }: attrsOfAttrs:
     mapAttrsToStringsSep "\n" mkSection attrsOfAttrs;
 }
