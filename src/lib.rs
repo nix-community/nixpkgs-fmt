@@ -89,11 +89,6 @@ pub fn reformat_node(node: &SyntaxNode) -> SyntaxNode {
 pub fn reformat_string(text: &str) -> String {
     let (mut text, line_endings) = convert_to_unix_line_endings(text);
 
-    // Forcibly convert tabs to spaces as a pre-pass
-    if text.contains('\t') {
-        text = Cow::Owned(text.replace('\t', "  "))
-    }
-
     let ast = rnix::parse(&*text);
     let root_node = ast.node();
     let res = reformat_node(&root_node).to_string();
