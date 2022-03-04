@@ -190,6 +190,7 @@ Feel free to submit your project!
 
 ### Formatters
 
+* [alejandra](https://github.com/kamadorueda/alejandra) - Another rnix based formatter, using a rule based engine.
 * [canonix](https://github.com/hercules-ci/canonix/) - Nix formatter prototype written in Haskell using the tree-sitter-nix grammar.
 * [format-nix](https://github.com/justinwoo/format-nix/) - A nix formatter using tree-sitter-nix.
 * [nix-format](https://github.com/taktoa/nix-format) - Emacs-based Nix formatter.
