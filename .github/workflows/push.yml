@@ -18,7 +18,7 @@ jobs:
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
         skipNixBuild: true
     - run: ./ci.sh
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: wasm
         path: wasm
