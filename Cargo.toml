@@ -20,7 +20,7 @@ smol_str = "0.1.17"
 # Dependencies that are used in the binary only
 # Ideally, the feature should be enabled only for binary,
 # but Cargo can't express that nicely yet.
-crossbeam-channel = "0.3"
+crossbeam-channel = "0.4"
 ignore = "0.4.10"
 clap = "2.33.0"
 libc = "0.2.99"
