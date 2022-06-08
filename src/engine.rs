@@ -97,6 +97,73 @@ pub(crate) fn reformat(
     indent_diff.to_node()
 }
 
+/// Similar to reformat, but returns only the edits
+pub(crate) fn reformat_edits(
+    spacing_dsl: &SpacingDsl,
+    indent_dsl: &IndentDsl,
+    node: &SyntaxNode,
+) -> (Vec<AtomEdit>, Vec<AtomEdit>) {
+    // First, adjust spacing rules between the nodes.
+    // This can force some newlines.
+    let mut model = FmtModel::new(node.clone());
+
+    // First, adjust spacing rules between the nodes.
+    // This can force some newlines.
+    let spacing_rule_set = PatternSet::new(spacing_dsl.rules.iter());
+    for element in walk_non_whitespace_non_interpol(node) {
+        for rule in spacing_rule_set.matching(element.clone()) {
+            rule.apply(&element, &mut model)
+        }
+    }
+
+    let spacing_diff = model.into_diff();
+    let spacing_edits =
+        spacing_diff.edits.iter().map(|(ae, _)| ae.clone()).collect::<Vec<AtomEdit>>();
+    let node = spacing_diff.to_node();
+
+    // Next, for each node which starts the newline, adjust the indent.
+    let mut model = FmtModel::new(node.clone());
+
+    let anchor_set = PatternSet::new(indent_dsl.anchors.iter());
+    for element in walk_non_whitespace_non_interpol(&node) {
+        let block = model.block_for(&element, BlockPosition::Before);
+        if !block.has_newline() {
+            // No need to indent an element if it doesn't start a line
+            continue;
+        }
+        // In cases like
+        //
+        // ```nix
+        //   param:
+        //     body
+        // ```
+        //
+        // we only indent top-level node (lambda), and not it's first child (parameter)
+        // TODO: Remove it when refactoring indentation engine.
+        if element.parent().map(|it| it.text_range().start()) == Some(element.text_range().start())
+        {
+            continue;
+        }
+
+        let mut matching = indent_dsl.rules.iter().filter(|it| it.matches(&element));
+        if let Some(rule) = matching.next() {
+            rule.apply(&element, &mut model, &anchor_set);
+            assert!(matching.next().is_none(), "more that one indent rule matched");
+        } else {
+            indentation::default_indent(&element, &mut model, &anchor_set)
+        }
+    }
+
+    // Finally, do custom touch-ups like re-indenting of string literals and
+    // replacing URLs with string literals.
+    for element in walk_non_whitespace_non_interpol(&node) {
+        fixes::fix(element, &mut model, &anchor_set)
+    }
+
+    let indent_diff = model.into_diff();
+    (spacing_edits, indent_diff.edits.into_iter().map(|(ae, _)| ae).collect::<Vec<AtomEdit>>())
+}
+
 impl FmtDiff {
     fn replace(&mut self, range: TextRange, text: SmolStr, reason: Option<RuleName>) {
         self.edits.push((AtomEdit { delete: range, insert: text }, reason))

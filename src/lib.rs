@@ -87,7 +87,7 @@ pub fn reformat_node(node: &SyntaxNode) -> SyntaxNode {
 }
 
 pub fn reformat_string(text: &str) -> String {
-    let (mut text, line_endings) = convert_to_unix_line_endings(text);
+    let (text, line_endings) = convert_to_unix_line_endings(text);
 
     let ast = rnix::parse(&*text);
     let root_node = ast.node();
@@ -96,6 +96,19 @@ pub fn reformat_string(text: &str) -> String {
         LineEndings::Unix => res,
         LineEndings::Dos => convert_to_dos_line_endings(res),
     }
+}
+
+pub fn reformat_edits(node: &SyntaxNode) -> (Vec<(TextRange, String)>, Vec<(TextRange, String)>) {
+    let spacing = rules::spacing();
+    let indentation = rules::indentation();
+    let (spacing_edits, indent_edits) = engine::reformat_edits(&spacing, &indentation, node);
+    let mut res = (
+        spacing_edits.into_iter().map(|ae| (ae.delete, ae.insert.to_string())).collect::<Vec<_>>(),
+        indent_edits.into_iter().map(|ae| (ae.delete, ae.insert.to_string())).collect::<Vec<_>>(),
+    );
+    res.0.sort_by(|a, b| a.0.start().cmp(&b.0.start()));
+    res.1.sort_by(|a, b| a.0.start().cmp(&b.0.start()));
+    res
 }
 
 pub fn explain(text: &str) -> String {
