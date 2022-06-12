@@ -16,14 +16,20 @@ use crate::{
     AtomEdit, FmtDiff,
 };
 
+pub(crate) enum ExtraInfo<'a> {
+    Explanation(&'a mut Vec<(AtomEdit, Option<RuleName>)>),
+    Edits(&'a mut Vec<AtomEdit>, &'a mut Vec<AtomEdit>),
+    None,
+}
+
 /// The main entry point for formatting
 pub(crate) fn reformat(
     spacing_dsl: &SpacingDsl,
     indent_dsl: &IndentDsl,
     node: &SyntaxNode,
-    // Passing optional reference is just a cute type-safe way for the caller to
-    // decide if they need explanation.
-    mut explanation: Option<&mut Vec<(AtomEdit, Option<RuleName>)>>,
+    // Passing this enum is just a cute type-safe way for the caller to
+    // select what extra info they need.
+    mut extra_info: ExtraInfo,
 ) -> SyntaxNode {
     // First, adjust spacing rules between the nodes.
     // This can force some newlines.
@@ -39,10 +45,13 @@ pub(crate) fn reformat(
     }
 
     let spacing_diff = model.into_diff();
-    if let Some(explanation) = &mut explanation {
+    if let ExtraInfo::Explanation(explanation) = &mut extra_info {
         if spacing_diff.has_changes() {
             explanation.extend(spacing_diff.edits.clone())
         }
+    } else if let ExtraInfo::Edits(spacing_edits, _) = &mut extra_info {
+        spacing_edits
+            .extend(spacing_diff.edits.iter().map(|(ae, _)| ae.clone()).collect::<Vec<_>>());
     }
     let node = spacing_diff.to_node();
 
@@ -86,82 +95,17 @@ pub(crate) fn reformat(
     }
 
     let indent_diff = model.into_diff();
-    if let Some(explanation) = explanation {
+    if let ExtraInfo::Explanation(explanation) = extra_info {
         // We don't add indentation explanations if we had whitespace changes,
         // as that'll require fixing up the original ranges. This could be done,
         // but it's not clear if it is really necessary.
         if indent_diff.has_changes() && explanation.is_empty() {
             explanation.extend(indent_diff.edits.clone())
         }
+    } else if let ExtraInfo::Edits(_, indent_edits) = extra_info {
+        indent_edits.extend(indent_diff.edits.iter().map(|(ae, _)| ae.clone()).collect::<Vec<_>>());
     }
     indent_diff.to_node()
-}
-
-/// Similar to reformat, but returns only the edits
-pub(crate) fn reformat_edits(
-    spacing_dsl: &SpacingDsl,
-    indent_dsl: &IndentDsl,
-    node: &SyntaxNode,
-) -> (Vec<AtomEdit>, Vec<AtomEdit>) {
-    // First, adjust spacing rules between the nodes.
-    // This can force some newlines.
-    let mut model = FmtModel::new(node.clone());
-
-    // First, adjust spacing rules between the nodes.
-    // This can force some newlines.
-    let spacing_rule_set = PatternSet::new(spacing_dsl.rules.iter());
-    for element in walk_non_whitespace_non_interpol(node) {
-        for rule in spacing_rule_set.matching(element.clone()) {
-            rule.apply(&element, &mut model)
-        }
-    }
-
-    let spacing_diff = model.into_diff();
-    let spacing_edits =
-        spacing_diff.edits.iter().map(|(ae, _)| ae.clone()).collect::<Vec<AtomEdit>>();
-    let node = spacing_diff.to_node();
-
-    // Next, for each node which starts the newline, adjust the indent.
-    let mut model = FmtModel::new(node.clone());
-
-    let anchor_set = PatternSet::new(indent_dsl.anchors.iter());
-    for element in walk_non_whitespace_non_interpol(&node) {
-        let block = model.block_for(&element, BlockPosition::Before);
-        if !block.has_newline() {
-            // No need to indent an element if it doesn't start a line
-            continue;
-        }
-        // In cases like
-        //
-        // ```nix
-        //   param:
-        //     body
-        // ```
-        //
-        // we only indent top-level node (lambda), and not it's first child (parameter)
-        // TODO: Remove it when refactoring indentation engine.
-        if element.parent().map(|it| it.text_range().start()) == Some(element.text_range().start())
-        {
-            continue;
-        }
-
-        let mut matching = indent_dsl.rules.iter().filter(|it| it.matches(&element));
-        if let Some(rule) = matching.next() {
-            rule.apply(&element, &mut model, &anchor_set);
-            assert!(matching.next().is_none(), "more that one indent rule matched");
-        } else {
-            indentation::default_indent(&element, &mut model, &anchor_set)
-        }
-    }
-
-    // Finally, do custom touch-ups like re-indenting of string literals and
-    // replacing URLs with string literals.
-    for element in walk_non_whitespace_non_interpol(&node) {
-        fixes::fix(element, &mut model, &anchor_set)
-    }
-
-    let indent_diff = model.into_diff();
-    (spacing_edits, indent_diff.edits.into_iter().map(|(ae, _)| ae).collect::<Vec<AtomEdit>>())
 }
 
 impl FmtDiff {

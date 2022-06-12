@@ -7,6 +7,7 @@ mod pattern;
 
 use std::{borrow::Cow, fmt, fmt::Formatter};
 
+use engine::ExtraInfo;
 use rnix::{SyntaxNode, TextRange, TextSize};
 use smol_str::SmolStr;
 
@@ -22,8 +23,10 @@ pub(crate) struct FmtDiff {
     edits: Vec<(AtomEdit, Option<RuleName>)>,
 }
 
+/// An edit where the `delete` range represents the range of the original text
+// that should be replaced with the `insert` string.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct AtomEdit {
+pub struct AtomEdit {
     pub delete: TextRange,
     pub insert: SmolStr,
 }
@@ -83,7 +86,7 @@ impl FmtDiff {
 pub fn reformat_node(node: &SyntaxNode) -> SyntaxNode {
     let spacing = rules::spacing();
     let indentation = rules::indentation();
-    engine::reformat(&spacing, &indentation, node, None)
+    engine::reformat(&spacing, &indentation, node, ExtraInfo::None)
 }
 
 pub fn reformat_string(text: &str) -> String {
@@ -98,17 +101,28 @@ pub fn reformat_string(text: &str) -> String {
     }
 }
 
-pub fn reformat_edits(node: &SyntaxNode) -> (Vec<(TextRange, String)>, Vec<(TextRange, String)>) {
+/// Returns the edits that must be applied to `node` in order to reformat it.
+/// The first of the two results contains spacing edits, and the second
+/// contains indentation edits. Note that the ranges in both sets of edits
+/// refer to ranges in the document before edits have been applied (in other
+/// words, edits should not be applies sequentially; they do not represent
+/// intermediate state). Also note that the ranges in the indentation edits
+/// refer to positions in the document **after the spacing edits have been
+/// applied**.
+pub fn reformat_edits(node: &SyntaxNode) -> (Vec<AtomEdit>, Vec<AtomEdit>) {
     let spacing = rules::spacing();
     let indentation = rules::indentation();
-    let (spacing_edits, indent_edits) = engine::reformat_edits(&spacing, &indentation, node);
-    let mut res = (
-        spacing_edits.into_iter().map(|ae| (ae.delete, ae.insert.to_string())).collect::<Vec<_>>(),
-        indent_edits.into_iter().map(|ae| (ae.delete, ae.insert.to_string())).collect::<Vec<_>>(),
+
+    let (mut spacing_edits, mut indent_edits) = (Vec::new(), Vec::new());
+    engine::reformat(
+        &spacing,
+        &indentation,
+        node,
+        ExtraInfo::Edits(&mut spacing_edits, &mut indent_edits),
     );
-    res.0.sort_by(|a, b| a.0.start().cmp(&b.0.start()));
-    res.1.sort_by(|a, b| a.0.start().cmp(&b.0.start()));
-    res
+    spacing_edits.sort_by(|a, b| a.delete.start().cmp(&b.delete.start()));
+    indent_edits.sort_by(|a, b| a.delete.start().cmp(&b.delete.start()));
+    (spacing_edits, indent_edits)
 }
 
 pub fn explain(text: &str) -> String {
@@ -117,7 +131,7 @@ pub fn explain(text: &str) -> String {
     let spacing = rules::spacing();
     let indentation = rules::indentation();
     let mut explanation = Vec::new();
-    engine::reformat(&spacing, &indentation, &ast.node(), Some(&mut explanation));
+    engine::reformat(&spacing, &indentation, &ast.node(), ExtraInfo::Explanation(&mut explanation));
 
     let mut buf = String::new();
     let mut line_start: TextSize = 0.into();
@@ -195,5 +209,45 @@ foo =1;  # [7; 7): Space after =
 }
 "
         )
+    }
+
+    #[test]
+    fn edits() {
+        let input = include_str!("../test_data/indent_tabs-2.bad.nix");
+        let expected = include_str!("../test_data/indent_tabs-2.good.nix");
+        let (spacing_edits, indent_edits) = reformat_edits(&rnix::parse(input).node());
+        dbg!(&spacing_edits, &indent_edits);
+
+        let mut intermediate_len = input.len() as isize;
+        for ae in &spacing_edits {
+            intermediate_len += ae.insert.len() as isize;
+            let del_len: u32 = ae.delete.len().into();
+            intermediate_len -= del_len as isize;
+        }
+        let mut intermediate = String::with_capacity(intermediate_len as usize);
+        let mut prev = 0;
+        for ae in spacing_edits {
+            intermediate.push_str(&input[prev..ae.delete.start().into()]);
+            intermediate.push_str(&ae.insert);
+            prev = ae.delete.end().into();
+        }
+        intermediate.push_str(&input[prev..]);
+
+        let mut final_len = intermediate.len() as isize;
+        for ae in &indent_edits {
+            final_len += ae.insert.len() as isize;
+            let del_len: u32 = ae.delete.len().into();
+            final_len -= del_len as isize;
+        }
+        let mut actual = String::with_capacity(final_len as usize);
+        prev = 0;
+        for ae in indent_edits {
+            actual.push_str(&intermediate[prev..ae.delete.start().into()]);
+            actual.push_str(&ae.insert);
+            prev = ae.delete.end().into();
+        }
+        actual.push_str(&intermediate[prev..]);
+
+        assert_eq!(expected, &actual);
     }
 }
