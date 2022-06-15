@@ -1,4 +1,42 @@
 
+1.3.0 / 2022-06-15
+==================
+
+### Formatting Changes
+
+  * Remove indentation for lambda function in top level
+  * fix multiline comment (#245)
+  * Improve formatting with tab characters (#275)
+  * change NODE_LET_IN behavior to fix idempotent issue.
+  * Update rnix to 0.10.2 (#297, #278)
+  * add single space after variable declaration
+
+### Other
+
+  * improve error CLI ergonomics (#269)
+  * Properly handle SIGPIPE (#256)
+
+  * Add links to VSCode extensions to README (#259)
+  * Bump crossbeam-channel from 0.3.9 to 0.4.4 (#293)
+  * Bump regex from 1.5.4 to 1.5.6 (#294)
+  * README: fix installation (#246)
+  * build: replace flake-compat with flake.lock.nix
+  * cargo update
+  * cargo update (#271)
+  * cargo: fix the rowan dependency
+  * default.nix: composition > inheritance
+  * default.nix: keep back-compat
+  * devShell: add stdenv.cc to the environment
+  * docs: clarify changelog generation (#277)
+  * fix CLI option output-format (#242)
+  * fix ordering error in CI
+  * flake update
+  * flake.lock.nix: work in pure mode
+  * nix: make the shell buildable
+  * nix: remove naersk (#272)
+  * nix: replace nixpkgs-mozilla with fenix
+  * refactor: avoid non_fmt_panics warning (#279)
+
 1.2.0 / 2021-03-29
 ==================
 
