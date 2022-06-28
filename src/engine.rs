@@ -18,7 +18,7 @@ use crate::{
 
 pub(crate) enum ExtraInfo<'a> {
     Explanation(&'a mut Vec<(AtomEdit, Option<RuleName>)>),
-    Edits(&'a mut Vec<AtomEdit>, &'a mut Vec<AtomEdit>),
+    Edits { spacing_edits: &'a mut Vec<AtomEdit>, indent_edits: &'a mut Vec<AtomEdit> },
     None,
 }
 
@@ -49,7 +49,7 @@ pub(crate) fn reformat(
         if spacing_diff.has_changes() {
             explanation.extend(spacing_diff.edits.clone())
         }
-    } else if let ExtraInfo::Edits(spacing_edits, _) = &mut extra_info {
+    } else if let ExtraInfo::Edits { spacing_edits, .. } = &mut extra_info {
         spacing_edits
             .extend(spacing_diff.edits.iter().map(|(ae, _)| ae.clone()).collect::<Vec<_>>());
     }
@@ -102,7 +102,7 @@ pub(crate) fn reformat(
         if indent_diff.has_changes() && explanation.is_empty() {
             explanation.extend(indent_diff.edits.clone())
         }
-    } else if let ExtraInfo::Edits(_, indent_edits) = extra_info {
+    } else if let ExtraInfo::Edits { indent_edits, .. } = extra_info {
         indent_edits.extend(indent_diff.edits.iter().map(|(ae, _)| ae.clone()).collect::<Vec<_>>());
     }
     indent_diff.to_node()

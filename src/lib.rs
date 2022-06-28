@@ -118,7 +118,7 @@ pub fn reformat_edits(node: &SyntaxNode) -> (Vec<AtomEdit>, Vec<AtomEdit>) {
         &spacing,
         &indentation,
         node,
-        ExtraInfo::Edits(&mut spacing_edits, &mut indent_edits),
+        ExtraInfo::Edits { spacing_edits: &mut spacing_edits, indent_edits: &mut indent_edits },
     );
     spacing_edits.sort_by(|a, b| a.delete.start().cmp(&b.delete.start()));
     indent_edits.sort_by(|a, b| a.delete.start().cmp(&b.delete.start()));
