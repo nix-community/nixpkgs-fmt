@@ -22,7 +22,10 @@ pub(crate) enum ExtraInfo<'a> {
     Explanation(&'a mut Vec<(AtomEdit, Option<RuleName>)>),
     /// Edits contains spacing edits to be applied to the document and indent edits to be applied in
     /// a second, separate transaction.
-    Edits { spacing_edits: &'a mut Vec<AtomEdit>, indent_edits: &'a mut Vec<AtomEdit> },
+    Edits {
+        spacing_edits: &'a mut Vec<AtomEdit>,
+        indent_edits: &'a mut Vec<AtomEdit>,
+    },
     None,
 }
 
