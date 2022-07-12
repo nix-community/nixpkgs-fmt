@@ -17,6 +17,8 @@ use crate::{
 };
 
 pub(crate) enum ExtraInfo<'a> {
+    // Explanation contains a vector of edits, each of which is optionally paired with the rule name
+    // that caused the edit.
     Explanation(&'a mut Vec<(AtomEdit, Option<RuleName>)>),
     /// Edits contains spacing edits to be applied to the document and indent edits to be applied in
     /// a second, separate transaction.
