@@ -16,14 +16,27 @@ use crate::{
     AtomEdit, FmtDiff,
 };
 
+pub(crate) enum ExtraInfo<'a> {
+    // Explanation contains a vector of edits, each of which is optionally paired with the rule name
+    // that caused the edit.
+    Explanation(&'a mut Vec<(AtomEdit, Option<RuleName>)>),
+    /// Edits contains spacing edits to be applied to the document and indent edits to be applied in
+    /// a second, separate transaction.
+    Edits {
+        spacing_edits: &'a mut Vec<AtomEdit>,
+        indent_edits: &'a mut Vec<AtomEdit>,
+    },
+    None,
+}
+
 /// The main entry point for formatting
 pub(crate) fn reformat(
     spacing_dsl: &SpacingDsl,
     indent_dsl: &IndentDsl,
     node: &SyntaxNode,
-    // Passing optional reference is just a cute type-safe way for the caller to
-    // decide if they need explanation.
-    mut explanation: Option<&mut Vec<(AtomEdit, Option<RuleName>)>>,
+    // Passing this enum is just a cute type-safe way for the caller to
+    // select what extra info they need.
+    mut extra_info: ExtraInfo,
 ) -> SyntaxNode {
     // First, adjust spacing rules between the nodes.
     // This can force some newlines.
@@ -39,10 +52,13 @@ pub(crate) fn reformat(
     }
 
     let spacing_diff = model.into_diff();
-    if let Some(explanation) = &mut explanation {
+    if let ExtraInfo::Explanation(explanation) = &mut extra_info {
         if spacing_diff.has_changes() {
             explanation.extend(spacing_diff.edits.clone())
         }
+    } else if let ExtraInfo::Edits { spacing_edits, .. } = &mut extra_info {
+        spacing_edits
+            .extend(spacing_diff.edits.iter().map(|(ae, _)| ae.clone()).collect::<Vec<_>>());
     }
     let node = spacing_diff.to_node();
 
@@ -86,13 +102,15 @@ pub(crate) fn reformat(
     }
 
     let indent_diff = model.into_diff();
-    if let Some(explanation) = explanation {
+    if let ExtraInfo::Explanation(explanation) = extra_info {
         // We don't add indentation explanations if we had whitespace changes,
         // as that'll require fixing up the original ranges. This could be done,
         // but it's not clear if it is really necessary.
         if indent_diff.has_changes() && explanation.is_empty() {
             explanation.extend(indent_diff.edits.clone())
         }
+    } else if let ExtraInfo::Edits { indent_edits, .. } = extra_info {
+        indent_edits.extend(indent_diff.edits.iter().map(|(ae, _)| ae.clone()).collect::<Vec<_>>());
     }
     indent_diff.to_node()
 }
