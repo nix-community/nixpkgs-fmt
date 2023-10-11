@@ -1,6 +1,6 @@
 # nixpkgs-fmt - Nix code formatter for nixpkgs
 
-[![Build Status](https://travis-ci.com/nix-community/nixpkgs-fmt.svg?branch=master)](https://travis-ci.com/nix-community/nixpkgs-fmt) [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
+[![CI](https://github.com/nix-community/nixpkgs-fmt/actions/workflows/push.yml/badge.svg?branch=master)](https://github.com/nix-community/nixpkgs-fmt/actions/workflows/push.yml) [![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 
 **STATUS: beta**
 
